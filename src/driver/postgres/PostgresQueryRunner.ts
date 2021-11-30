@@ -274,7 +274,8 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
 
         const databaseConnection = await this.connect();
         this.driver.connection.logger.logQuery(query, parameters, this);
-        const stream = databaseConnection.query(new QueryStream(query, parameters));
+        const queryStream = new QueryStream(query, parameters);
+        const stream = databaseConnection.query(queryStream);
         if (onEnd) stream.on("end", onEnd);
         if (onError) stream.on("error", onError);
 

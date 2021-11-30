@@ -1,6 +1,6 @@
 [
   {
-    "skip": false,
+    "skip": true,
     "name": "mysql",
     "type": "mysql",
     "host": "typeorm-mysql",
@@ -11,14 +11,14 @@
     "logging": false
   },
   {
-    "skip": false,
+    "skip": true,
     "name": "sqlite",
     "type": "sqlite",
     "database": "temp/sqlitedb.db",
     "logging": false
   },
   {
-    "skip": false,
+    "skip": true,
     "name": "better-sqlite3",
     "type": "better-sqlite3",
     "database": "temp/better-sqlite3db.db",
@@ -36,7 +36,7 @@
     "logging": false
   },
   {
-    "skip": false,
+    "skip": true,
     "name": "mssql",
     "type": "mssql",
     "host": "typeorm-mssql",
@@ -50,7 +50,7 @@
     }
   },
   {
-    "skip": false,
+    "skip": true,
     "name": "oracle",
     "type": "oracle",
     "host": "typeorm-oracle",
@@ -64,7 +64,7 @@
     }
   },
   {
-    "skip": false,
+    "skip": true,
     "name": "cockroachdb",
     "type": "cockroachdb",
     "host": "typeorm-cockroachdb",
@@ -74,10 +74,11 @@
     "database": "defaultdb"
   },
   {
-    "skip": false,
+    "skip": true,
     "disabledIfNotEnabledImplicitly": true,
     "name": "mongodb",
     "type": "mongodb",
+    "host": "typeorm-mongodb",
     "port": 27017,
     "database": "test",
     "logging": false,
