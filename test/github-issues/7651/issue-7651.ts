@@ -23,12 +23,15 @@ describe("github issues > #7651 Enum that contains functions is not accordingly 
             orderEntity.id = 1;
             orderEntity.order = Order.from("_2"); // example of function call on enum to retrieve enum from string
 
+            const qr = connection.createQueryRunner();
+
             const orderEntityRepository = connection.getRepository(OrderTestEntity);
-            await orderEntityRepository.save(orderEntity);
+            await orderEntityRepository.save(qr, orderEntity);
 
             // WHEN
-            const loadedOrderEntity = await orderEntityRepository.findOne(1);
+            const loadedOrderEntity = await orderEntityRepository.findOne(qr, 1);
 
+            await qr.release();
             // THEN
             loadedOrderEntity!.order.should.be.eq(Order.SECOND);
         })));
@@ -38,13 +41,15 @@ describe("github issues > #7651 Enum that contains functions is not accordingly 
             const orderEntity = new OrderTestEntity();
             orderEntity.id = 1;
             orderEntity.orders = [Order.from("_2"), Order.THIRD];
+            const qr = connection.createQueryRunner();
 
             const orderEntityRepository = connection.getRepository(OrderTestEntity);
-            await orderEntityRepository.save(orderEntity);
+            await orderEntityRepository.save(qr, orderEntity);
 
             // WHEN
-            const loadedOrderEntity = await orderEntityRepository.findOne(1);
+            const loadedOrderEntity = await orderEntityRepository.findOne(qr, 1);
 
+            await qr.release();
             // THEN
             loadedOrderEntity!.orders.should.be.eql([Order.SECOND, Order.THIRD]);
         })));

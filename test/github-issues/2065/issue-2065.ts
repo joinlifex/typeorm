@@ -18,6 +18,8 @@ describe("github issues > #2065 TypeError: Cannot convert object to primitive va
         const post = Object.create(null) as Post;
         post.id = 1;
         post.title = "Hello Post";
-        await connection.manager.save(Post, post);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, Post, post);
+        await qr.release();
     })));
 });

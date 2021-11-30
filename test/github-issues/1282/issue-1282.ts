@@ -24,7 +24,8 @@ describe("github issue > #1282 FEATURE REQUEST - Naming strategy joinTableColumn
 
     it("NamingStrategyUnderTest#", () => Promise.all(connections.map(async connection => {
 
-        await connection.getRepository(Animal).find();
+        const qr = connection.createQueryRunner();
+        await connection.getRepository(Animal).find(qr);
 
         let metadata = connection.getManyToManyMetadata(Animal, "categories");
 
@@ -41,6 +42,7 @@ describe("github issue > #1282 FEATURE REQUEST - Naming strategy joinTableColumn
         expect(columns.find((column: ColumnMetadata) => column.databaseName === "categoryIdInverse"))
             .not.to.be.undefined;
 
+        await qr.release();
     })));
 
 });

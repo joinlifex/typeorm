@@ -17,16 +17,18 @@ describe("github issues > #3374 Synchronize issue with UUID (MySQL)", () => {
 
     it("should not drop primary column again", () => Promise.all(connections.map(async function(connection) {
 
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.id = 1;
         post.name = "hello world";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         await connection.synchronize();
 
-        const loadedPost = await connection.manager.find(Post, { name: "hello world" });
+        const loadedPost = await connection.manager.find(qr, Post, { name: "hello world" });
         expect(loadedPost).to.be.not.empty;
 
+        await qr.release();
     })));
 
 });

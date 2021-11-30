@@ -21,7 +21,8 @@ describe("persistence > remove-topological-order", function() {
     // -------------------------------------------------------------------------
 
     it("should remove depend properties in a proper order", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+            
         // insert some data
         const category1 = new Category();
         category1.name = "cat#1";
@@ -34,12 +35,14 @@ describe("persistence > remove-topological-order", function() {
         post.categories = [category1, category2];
 
         // check insertion
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         // check deletion
-        await connection.manager.remove([category2, post, category1]);
+        await connection.manager.remove(qr, [category2, post, category1]);
 
         // todo: finish test, e.g. check actual queries
+        
+        await qr.release();
     })));
 
 });

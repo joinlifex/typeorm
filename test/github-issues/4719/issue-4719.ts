@@ -18,9 +18,9 @@ describe("github issues > #4719 HStore with empty string values", () => {
 
       const post = new Post();
       post.hstoreObj = {name: "Alice", surname: "A", age: 25, blank: "", "": "blank-key", "\"": "\"", foo: null};
-      const {id} = await postRepository.save(post);
+      const {id} = await postRepository.save(queryRunner, post);
 
-      const loadedPost = await postRepository.findOneOrFail(id);
+      const loadedPost = await postRepository.findOneOrFail(queryRunner, id);
       loadedPost.hstoreObj.should.be.deep.equal(
         { name: "Alice", surname: "A", age: "25", blank: "", "": "blank-key", "\"": "\"", foo: null });
       await queryRunner.release();
@@ -32,9 +32,9 @@ describe("github issues > #4719 HStore with empty string values", () => {
 
       const post = new Post();
       post.hstoreObj = { username: `", admin=>"1`, admin: "0" };
-      const {id} = await postRepository.save(post);
+      const {id} = await postRepository.save(queryRunner, post);
 
-      const loadedPost = await postRepository.findOneOrFail(id);
+      const loadedPost = await postRepository.findOneOrFail(queryRunner, id);
       loadedPost.hstoreObj.should.be.deep.equal({ username: `", admin=>"1`, admin: "0" });
       await queryRunner.release();
     })));

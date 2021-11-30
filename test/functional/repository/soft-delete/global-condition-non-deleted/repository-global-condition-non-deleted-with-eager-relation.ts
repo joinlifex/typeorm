@@ -15,7 +15,8 @@ describe(`repository > the global condtion of "non-deleted" with eager relation`
     after(() => closeTestingConnections(connections));
 
     it(`The global condition of "non-deleted" should be set for the entity with delete date columns and eager relation`, () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const post1 = new PostWithRelation();
         post1.title = "title#1";
         const post2 = new PostWithRelation();
@@ -23,15 +24,15 @@ describe(`repository > the global condtion of "non-deleted" with eager relation`
         const post3 = new PostWithRelation();
         post3.title = "title#3";
 
-        await connection.manager.save(post1);
-        await connection.manager.save(post2);
-        await connection.manager.save(post3);
+        await connection.manager.save(qr, post1);
+        await connection.manager.save(qr, post2);
+        await connection.manager.save(qr, post3);
 
-        await connection.manager.softRemove(post1);
+        await connection.manager.softRemove(qr, post1);
 
         const loadedPosts = await connection
             .getRepository(PostWithRelation)
-            .find();
+            .find(qr);
         loadedPosts!.length.should.be.equal(2);
         const loadedPost2 = loadedPosts.find(p => p.id === 2);
         expect(loadedPost2).to.exist;
@@ -42,10 +43,12 @@ describe(`repository > the global condtion of "non-deleted" with eager relation`
         expect(loadedPost3!.deletedAt).to.equals(null);
         expect(loadedPost3!.title).to.equals("title#3");
 
+        await qr.release();
     })));
 
     it(`The global condition of "non-deleted" should not be set when the option "withDeleted" is set to true`, () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const post1 = new PostWithRelation();
         post1.title = "title#1";
         const post2 = new PostWithRelation();
@@ -53,15 +56,15 @@ describe(`repository > the global condtion of "non-deleted" with eager relation`
         const post3 = new PostWithRelation();
         post3.title = "title#3";
 
-        await connection.manager.save(post1);
-        await connection.manager.save(post2);
-        await connection.manager.save(post3);
+        await connection.manager.save(qr, post1);
+        await connection.manager.save(qr, post2);
+        await connection.manager.save(qr, post3);
 
-        await connection.manager.softRemove(post1);
+        await connection.manager.softRemove(qr, post1);
 
         const loadedPosts = await connection
             .getRepository(PostWithRelation)
-            .find({
+            .find(qr, {
                 withDeleted: true,
             });
 
@@ -81,11 +84,12 @@ describe(`repository > the global condtion of "non-deleted" with eager relation`
 
         const loadedPost = await connection
             .getRepository(PostWithRelation)
-            .findOne(1, {
+            .findOne(qr, 1, {
                 withDeleted: true,
             });
         expect(loadedPost).to.exist;
         expect(loadedPost!.title).to.equals("title#1");
 
+        await qr.release();
     })));
 });

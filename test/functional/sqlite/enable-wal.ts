@@ -16,9 +16,11 @@ describe("sqlite driver > enable wal", () => {
     after(() => closeTestingConnections(connections));
 
     it("should set the journal mode as expected", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         // if we come this far, test was successful as a connection was established
-        const result = await connection.query('PRAGMA journal_mode');
+        const result = await connection.query(qr, "PRAGMA journal_mode");
 
-        expect(result).to.eql([{ journal_mode: 'wal'}]);
+        expect(result).to.eql([{ journal_mode: "wal"}]);
+        await qr.release();
     })));
 });

@@ -526,7 +526,7 @@ export class EntityMetadata {
     /**
      * Creates a new entity.
      */
-    create(queryRunner?: QueryRunner, options?: { fromDeserializer?: boolean }): any {
+    create(queryRunner: QueryRunner, options?: { fromDeserializer?: boolean }): any {
         // if target is set to a function (e.g. class) that can be created then create it
         let ret: any;
         if (this.target instanceof Function) {
@@ -536,13 +536,13 @@ export class EntityMetadata {
                 ret = Object.create(this.target.prototype);
             }
 
-            this.lazyRelations.forEach(relation => this.connection.relationLoader.enableLazyLoad(relation, ret, queryRunner));
+            this.lazyRelations.forEach(relation => this.connection.relationLoader.enableLazyLoad(queryRunner, relation, ret));
             return ret;
         }
 
         // otherwise simply return a new empty object
         const newObject = {};
-        this.lazyRelations.forEach(relation => this.connection.relationLoader.enableLazyLoad(relation, newObject, queryRunner));
+        this.lazyRelations.forEach(relation => this.connection.relationLoader.enableLazyLoad(queryRunner, relation, newObject));
         return newObject;
     }
 

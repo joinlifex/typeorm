@@ -18,59 +18,69 @@ describe("mongodb > object id columns", () => {
 
     it("should persist ObjectIdColumn property as _id to DB", () => Promise.all(connections.map(async connection => {
         const postMongoRepository = connection.getMongoRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save a post
         const post = new Post();
         post.title = "Post";
-        await postMongoRepository.save(post);
+        await postMongoRepository.save(qr, post);
 
         // little hack to get raw data from mongodb
         const aggArr = await postMongoRepository.aggregate([]).toArray();
 
         expect(aggArr[0]._id).to.be.not.undefined;
         expect(aggArr[0].nonIdNameOfObjectId).to.be.undefined;
+    
+        await qr.release();
     })));
 
 
     it("should map _id to ObjectIdColumn property and remove BD _id property", () => Promise.all(connections.map(async connection => {
         const postMongoRepository = connection.getMongoRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save a post
         const post = new Post();
         post.title = "Post";
-        await postMongoRepository.save(post);
+        await postMongoRepository.save(qr, post);
 
         expect(post.nonIdNameOfObjectId).to.be.not.undefined;
         expect((post as any)._id).to.be.undefined;
+    
+        await qr.release();
     })));
 
 
     it("should save and load properly if objectId property has name _id", () => Promise.all(connections.map(async connection => {
         const postMongoRepository = connection.getMongoRepository(PostWithUnderscoreId);
 
+        const qr = connection.createQueryRunner();
         // save a post
         const post = new PostWithUnderscoreId();
         post.title = "Post";
-        await postMongoRepository.save(post);
+        await postMongoRepository.save(qr, post);
 
         expect(post._id).to.be.not.undefined;
 
-        const loadedPost = await postMongoRepository.findOne(post._id);
+        const loadedPost = await postMongoRepository.findOne(qr, post._id);
         expect(loadedPost!._id).to.be.not.undefined;
+    
+        await qr.release();
     })));
 
 
     it("should not persist entity ObjectIdColumn property in DB on update by save", () => Promise.all(connections.map(async connection => {
         const postMongoRepository = connection.getMongoRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save a post
         const post = new Post();
         post.title = "Post";
-        await postMongoRepository.save(post);
+        await postMongoRepository.save(qr, post);
 
         post.title = "Muhaha changed title";
 
-        await postMongoRepository.save(post);
+        await postMongoRepository.save(qr, post);
 
         expect(post.nonIdNameOfObjectId).to.be.not.undefined;
         expect((post as any)._id).to.be.undefined;
@@ -80,6 +90,8 @@ describe("mongodb > object id columns", () => {
 
         expect(aggArr[0]._id).to.be.not.undefined;
         expect(aggArr[0].nonIdNameOfObjectId).to.be.undefined;
+    
+        await qr.release();
     })));
 
 });

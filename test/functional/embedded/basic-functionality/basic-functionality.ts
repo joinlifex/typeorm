@@ -16,6 +16,7 @@ describe("embedded > basic functionality", () => {
 
     it("should insert, load, update and remove entities with embeddeds properly", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         const post = new Post();
         post.title = "Hello post";
@@ -25,10 +26,10 @@ describe("embedded > basic functionality", () => {
         post.counters.favorites = 2;
         post.counters.likes = 1;
 
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // now load it
-        const loadedPost = (await postRepository.findOne(post.id))!;
+        const loadedPost = (await postRepository.findOne(qr, post.id))!;
         loadedPost.title.should.be.equal("Hello post");
         loadedPost.text.should.be.equal("This is text about the post");
         loadedPost.counters.should.be.eql({
@@ -40,10 +41,10 @@ describe("embedded > basic functionality", () => {
         // now update the post
         loadedPost.counters.favorites += 1;
 
-        await postRepository.save(loadedPost);
+        await postRepository.save(qr, loadedPost);
 
         // now check it
-        const loadedPost2 = (await postRepository.findOne(post.id))!;
+        const loadedPost2 = (await postRepository.findOne(qr, post.id))!;
         loadedPost2.title.should.be.equal("Hello post");
         loadedPost2.text.should.be.equal("This is text about the post");
         loadedPost2.counters.should.be.eql({
@@ -52,11 +53,13 @@ describe("embedded > basic functionality", () => {
             likes: 1
         });
 
-        await postRepository.remove(loadedPost2);
+        await postRepository.remove(qr, loadedPost2);
 
         // now check it
-        const loadedPost3 = (await postRepository.findOne(post.id))!;
+        const loadedPost3 = (await postRepository.findOne(qr, post.id))!;
         expect(loadedPost3).to.be.undefined;
+        
+        await qr.release();
     })));
 
 });

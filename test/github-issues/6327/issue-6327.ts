@@ -18,14 +18,16 @@ describe("github issues > #6327 softRemove DeleteDateColumn is null at Susbscrib
     it("should send correct update and delete date columns to after update subscriber", () => Promise.all(connections.map(async connection => {
 
         const manager = connection.manager;
+        const qr = connection.createQueryRunner();
 
         const entity = new Post();
-        await manager.save(entity);
+        await manager.save(qr, entity);
 
-        const deletedEntity = await manager.softRemove(entity, { data: { action: "soft-delete" } });
+        const deletedEntity = await manager.softRemove(qr, entity, { data: { action: "soft-delete" } });
 
-        await manager.recover(deletedEntity, { data: { action: "restore" } });
+        await manager.recover(qr, deletedEntity, { data: { action: "restore" } });
 
+        await qr.release();
     })));
 
 });

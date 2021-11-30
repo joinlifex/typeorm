@@ -24,7 +24,6 @@ export class EntityPersistExecutor {
     // -------------------------------------------------------------------------
 
     constructor(protected connection: Connection,
-                protected queryRunner: QueryRunner|undefined,
                 protected mode: "save"|"remove"|"soft-remove"|"recover",
                 protected target: Function|string|undefined,
                 protected entity: ObjectLiteral|ObjectLiteral[],
@@ -38,7 +37,7 @@ export class EntityPersistExecutor {
     /**
      * Executes persistence operation ob given entity or entities.
      */
-    async execute(): Promise<void> {
+    async execute(queryRunner: QueryRunner): Promise<void> {
 
         // check if entity we are going to save is valid and is an object
         if (!this.entity || typeof this.entity !== "object")
@@ -47,9 +46,6 @@ export class EntityPersistExecutor {
         // we MUST call "fake" resolve here to make sure all properties of lazily loaded relations are resolved
         await Promise.resolve();
 
-        // if query runner is already defined in this class, it means this entity manager was already created for a single connection
-        // if its not defined we create a new query runner - single connection where we'll execute all our operations
-        const queryRunner = this.queryRunner || this.connection.createQueryRunner();
 
         // save data in the query runner - this is useful functionality to share data from outside of the world
         // with third classes - like subscribers and listener methods
@@ -119,7 +115,7 @@ export class EntityPersistExecutor {
                 // console.log("subjects", subjects);
 
                 // create a subject executor
-                return new SubjectExecutor(queryRunner, subjects, this.options);
+                return new SubjectExecutor(subjects, this.options);
             }));
             // console.timeEnd("building subject executors...");
 
@@ -146,7 +142,7 @@ export class EntityPersistExecutor {
                 // execute all persistence operations for all entities we have
                 // console.time("executing subject executors...");
                 for (const executor of executorsWithExecutableOperations) {
-                    await executor.execute();
+                    await executor.execute(queryRunner);
                 }
                 // console.timeEnd("executing subject executors...");
 
@@ -169,10 +165,6 @@ export class EntityPersistExecutor {
 
         } finally {
             queryRunner.data = oldQueryRunnerData;
-
-            // release query runner only if its created by us
-            if (!this.queryRunner)
-                await queryRunner.release();
         }
     }
 

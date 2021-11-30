@@ -142,7 +142,7 @@ describe("repository > basic methods", () => {
 
     });
 
-    describe("createQueryBuilder", function() {
+    describe(".createQueryBuilder(", function() {
 
         it("should create a new query builder with the given alias", () => connections.forEach(connection => {
             const postRepository = connection.getRepository(Post);
@@ -163,54 +163,63 @@ describe("repository > basic methods", () => {
 
     describe("create", function() {
 
-        it("should create a new instance of the object we are working with", () => connections.forEach(connection => {
+        it("should create a new instance of the object we are working with", () => connections.forEach(async connection => {
+            const qr = connection.createQueryRunner();
             const repository = connection.getRepository(Post);
-            repository.create().should.be.instanceOf(Post);
+            repository.create(qr).should.be.instanceOf(Post);
+            await qr.release();
         }));
 
-        it("should create a new empty object if entity schema is used", () => connections.forEach(connection => {
+        it("should create a new empty object if entity schema is used", () => connections.forEach(async connection => {
+            const qr = connection.createQueryRunner();
             const repository = connection.getRepository("User") as Repository<User>;
-            repository.create().should.be.eql({});
+            repository.create(qr).should.be.eql({});
+            await qr.release();
         }));
 
-        it("should create a new empty object if entity schema with a target is used", () => connections.forEach(connection => {
+        it("should create a new empty object if entity schema with a target is used", () => connections.forEach(async connection => {
+            const qr = connection.createQueryRunner();
             const repository = connection.getRepository<Question>("Question");
-            repository.create().should.not.be.undefined;
-            repository.create().should.not.be.null;
-            repository.create().type.should.be.equal("question"); // make sure this is our Question function
+            repository.create(qr).should.not.be.undefined;
+            repository.create(qr).should.not.be.null;
+            repository.create(qr).type.should.be.equal("question"); // make sure this is our Question function
+            await qr.release();
         }));
 
-        it("should create an entity and copy to it all properties of the given plain object if its given", () => connections.forEach(connection => {
+        it("should create an entity and copy to it all properties of the given plain object if its given", () => connections.forEach(async connection => {
+            const qr = connection.createQueryRunner();
             const postRepository = connection.getRepository(Post);
             const userRepository = connection.getRepository<User>("User");
             const questionRepository = connection.getRepository<Question>("Question");
 
             const plainPost = { id: 2, title: "Hello post" };
-            const post = postRepository.create(plainPost);
+            const post = postRepository.create(qr, plainPost);
             post.should.be.instanceOf(Post);
             (post.id as number).should.be.equal(2);
             post.title.should.be.equal("Hello post");
 
             const plainUser = { id: 3, firstName: "John", secondName: "Doe" };
-            const user = userRepository.create(plainUser);
+            const user = userRepository.create(qr, plainUser);
             (user.id as number).should.be.equal(3);
             (user.firstName as string).should.be.equal("John");
             (user.secondName as string).should.be.equal("Doe");
 
             const plainQuestion = { id: 3, title: "What is better?" };
-            const question = questionRepository.create(plainQuestion);
+            const question = questionRepository.create(qr, plainQuestion);
             (question.id as number).should.be.equal(3);
             (question.title as string).should.be.equal("What is better?");
+            await qr.release();
         }));
 
     });
 
     describe("createMany", function() {
 
-        it("should create entities and copy to them all properties of the given plain object if its given", () => connections.forEach(connection => {
+        it("should create entities and copy to them all properties of the given plain object if its given", () => connections.forEach(async connection => {
+            const qr = connection.createQueryRunner();
             const postRepository = connection.getRepository(Post);
             const plainPosts = [{ id: 2, title: "Hello post" }, { id: 3, title: "Bye post" }];
-            const posts = postRepository.create(plainPosts);
+            const posts = postRepository.create(qr, plainPosts);
             posts.length.should.be.equal(2);
             posts[0].should.be.instanceOf(Post);
             (posts[0].id as number).should.be.equal(2);
@@ -218,6 +227,7 @@ describe("repository > basic methods", () => {
             posts[1].should.be.instanceOf(Post);
             (posts[1].id as number).should.be.equal(3);
             posts[1].title.should.be.equal("Bye post");
+            await qr.release();
         }));
 
     });
@@ -225,55 +235,60 @@ describe("repository > basic methods", () => {
     describe("preload", function() {
 
         it("should preload entity from the given object with only id", () => Promise.all(connections.map(async connection => {
+            
+            const qr = connection.createQueryRunner();
             const blogRepository = connection.getRepository(Blog);
             const categoryRepository = connection.getRepository(Category);
 
             // save the category
             const category = new Category();
             category.name = "people";
-            await categoryRepository.save(category);
+            await categoryRepository.save(qr, category);
 
             // save the blog
             const blog = new Blog();
             blog.title = "About people";
             blog.text = "Blog about good people";
             blog.categories = [category];
-            await blogRepository.save(blog);
+            await blogRepository.save(qr, blog);
 
             // and preload it
             const plainBlogWithId = { id: 1 };
-            const preloadedBlog = await blogRepository.preload(plainBlogWithId);
+            const preloadedBlog = await blogRepository.preload(qr, plainBlogWithId);
             preloadedBlog!.should.be.instanceOf(Blog);
             preloadedBlog!.id.should.be.equal(1);
             preloadedBlog!.title.should.be.equal("About people");
             preloadedBlog!.text.should.be.equal("Blog about good people");
+            await qr.release();
         })));
 
         it("should preload entity and all relations given in the object", () => Promise.all(connections.map(async connection => {
             const blogRepository = connection.getRepository(Blog);
             const categoryRepository = connection.getRepository(Category);
+            const qr = connection.createQueryRunner();
 
             // save the category
             const category = new Category();
             category.name = "people";
-            await categoryRepository.save(category);
+            await categoryRepository.save(qr, category);
 
             // save the blog
             const blog = new Blog();
             blog.title = "About people";
             blog.text = "Blog about good people";
             blog.categories = [category];
-            await blogRepository.save(blog);
+            await blogRepository.save(qr, blog);
 
             // and preload it
             const plainBlogWithId = { id: 1, categories: [{ id: 1 }] };
-            const preloadedBlog = await blogRepository.preload(plainBlogWithId);
+            const preloadedBlog = await blogRepository.preload(qr, plainBlogWithId);
             preloadedBlog!.should.be.instanceOf(Blog);
             preloadedBlog!.id.should.be.equal(1);
             preloadedBlog!.title.should.be.equal("About people");
             preloadedBlog!.text.should.be.equal("Blog about good people");
             preloadedBlog!.categories[0].id.should.be.equal(1);
             preloadedBlog!.categories[0].name.should.be.equal("people");
+            await qr.release();
         })));
 
     });
@@ -281,6 +296,7 @@ describe("repository > basic methods", () => {
     describe("merge", function() {
 
         it("should merge multiple entities", () => Promise.all(connections.map(async connection => {
+            const qr = connection.createQueryRunner();
             const blogRepository = connection.getRepository(Blog);
 
             const originalEntity = new Blog();
@@ -299,7 +315,7 @@ describe("repository > basic methods", () => {
             const blog3 = new Blog();
             blog3.categories = [category];
 
-            const mergedBlog = blogRepository.merge(originalEntity, blog1, blog2, blog3);
+            const mergedBlog = blogRepository.merge(qr, originalEntity, blog1, blog2, blog3);
 
             mergedBlog.should.be.instanceOf(Blog);
             mergedBlog.should.be.equal(originalEntity);
@@ -309,9 +325,11 @@ describe("repository > basic methods", () => {
             mergedBlog.title.should.be.equal("First Blog");
             mergedBlog.text.should.be.equal("text is from second blog");
             mergedBlog.categories[0].name.should.be.equal("category from third blog");
+            await qr.release();
         })));
 
         it("should merge both entities and plain objects", () => Promise.all(connections.map(async connection => {
+            const qr = connection.createQueryRunner();
             const blogRepository = connection.getRepository(Blog);
 
             const originalEntity = new Blog();
@@ -326,7 +344,7 @@ describe("repository > basic methods", () => {
             const blog3 = new Blog();
             blog3.categories = [{ name: "category from third blog" } as Category];
 
-            const mergedBlog = blogRepository.merge(originalEntity, blog1, blog2, blog3);
+            const mergedBlog = blogRepository.merge(qr, originalEntity, blog1, blog2, blog3);
 
             mergedBlog.should.be.instanceOf(Blog);
             mergedBlog.should.be.equal(originalEntity);
@@ -336,6 +354,7 @@ describe("repository > basic methods", () => {
             mergedBlog.title.should.be.equal("First Blog");
             mergedBlog.text.should.be.equal("text is from second blog");
             mergedBlog.categories[0].name.should.be.equal("category from third blog");
+            await qr.release();
         })));
 
     });
@@ -345,6 +364,7 @@ describe("repository > basic methods", () => {
             if (!connection || (connection.options as any).skip === true) {
                 return;
             }
+            const qr = connection.createQueryRunner();
 
             const post = new Post();
             const date = new Date("2018-01-01 01:00:00");
@@ -354,15 +374,15 @@ describe("repository > basic methods", () => {
 
             const postRepository = connection.getRepository(Post);
 
-            await postRepository.save(post);
+            await postRepository.save(qr, post);
 
-            const dbPost = await postRepository.findOne(post.id) as Post;
+            const dbPost = await postRepository.findOne(qr, post.id) as Post;
             dbPost.should.be.instanceOf(Post);
             dbPost.dateAdded!.should.be.instanceOf(Date);
             dbPost.dateAdded!.getTime().should.be.equal(date.getTime());
 
             dbPost.title = "New title";
-            const saved = await postRepository.save(dbPost);
+            const saved = await postRepository.save(qr, dbPost);
 
             saved.should.be.instanceOf(Post);
 
@@ -370,11 +390,13 @@ describe("repository > basic methods", () => {
             saved.title.should.be.equal("New title");
             saved.dateAdded!.should.be.instanceof(Date);
             saved.dateAdded!.getTime().should.be.equal(date.getTime());
+            await qr.release();
         })));
     });
 
     describe("upsert", function () {
         it("should first create then update an entity", () => Promise.all(connections.map(async (connection) => {
+            const qr = connection.createQueryRunner();
             if (connection.driver.supportedUpsertType == null) return;
             const externalIdObjects = connection.getRepository(ExternalIdPrimaryKeyEntity);
             const postRepository = connection.getRepository(Post);
@@ -382,23 +404,23 @@ describe("repository > basic methods", () => {
             const relationAsPrimaryKeyRepository = connection.getRepository(RelationAsPrimaryKey);
             const externalId = "external-1";
 
-            const category = await categoryRepository.save({
+            const category = await categoryRepository.save(qr, {
                 name: "Category"
             });
 
             // create a new post and insert it
-            await postRepository.upsert({ externalId, title: "Post title initial" }, ["externalId"]);
+            await postRepository.upsert(qr, { externalId, title: "Post title initial" }, ["externalId"]);
 
-            const initial = await postRepository.findOneOrFail({ externalId });
+            const initial = await postRepository.findOneOrFail(qr, { externalId });
 
             initial.title.should.be.equal("Post title initial");
 
             await sleep(1000);
 
             // update post with externalId
-            await postRepository.upsert({ externalId, title: "Post title updated", category }, ["externalId"]);
+            await postRepository.upsert(qr, { externalId, title: "Post title updated", category }, ["externalId"]);
 
-            const updated = await postRepository.findOneOrFail({ externalId }, { relations: ["category"] });
+            const updated = await postRepository.findOneOrFail(qr, { externalId }, { relations: ["category"] });
             // title should have changed
             updated.title.should.be.equal("Post title updated");
             // id should not have changed
@@ -420,28 +442,30 @@ describe("repository > basic methods", () => {
             //     );
 
             // unique constraint on externalId already enforces this, but test it anyways
-            const count = await postRepository.find({ externalId });
+            const count = await postRepository.find(qr, { externalId });
             count.length.should.be.equal(1);
 
             // upserts on primary key without specifying conflict columns should upsert
-            await externalIdObjects.upsert({ externalId, title: "foo" }, ["externalId"]);
-            (await externalIdObjects.findOneOrFail(externalId))!.title.should.be.equal("foo");
+            await externalIdObjects.upsert(qr, { externalId, title: "foo" }, ["externalId"]);
+            (await externalIdObjects.findOneOrFail(qr, externalId))!.title.should.be.equal("foo");
 
-            await externalIdObjects.upsert({ externalId, title: "bar" }, ["externalId"]);
-            (await externalIdObjects.findOneOrFail(externalId))!.title.should.be.equal("bar");
+            await externalIdObjects.upsert(qr, { externalId, title: "bar" }, ["externalId"]);
+            (await externalIdObjects.findOneOrFail(qr, externalId))!.title.should.be.equal("bar");
 
             // upserts on unique relation should work
-            await relationAsPrimaryKeyRepository.upsert({ category }, ["category.id"]);
+            await relationAsPrimaryKeyRepository.upsert(qr, { category }, ["category.id"]);
 
             (
-                await relationAsPrimaryKeyRepository.findOneOrFail(
+                await relationAsPrimaryKeyRepository.findOneOrFail(qr, 
                     { category },
                     { relations: ["category"] }
                 )
             ).category.id.should.equal(category.id);
+            await qr.release();
         })));
         it("should bulk upsert", () => Promise.all(connections.map(async (connection) => {
             if (connection.driver.supportedUpsertType == null) return;
+            const qr = connection.createQueryRunner();
 
             const externalIdObjects = connection.getRepository(ExternalIdPrimaryKeyEntity);
 
@@ -450,9 +474,9 @@ describe("repository > basic methods", () => {
                 title: "Initially inserted",
             }));
 
-            await externalIdObjects.upsert(entitiesToInsert, ["externalId"]);
+            await externalIdObjects.upsert(qr, entitiesToInsert, ["externalId"]);
 
-            (await externalIdObjects.find({ externalId: Like("external-bulk-%") })).forEach((inserted, i) => {
+            (await externalIdObjects.find(qr, { externalId: Like("external-bulk-%") })).forEach((inserted, i) => {
                 inserted.title.should.be.equal("Initially inserted");
             });
 
@@ -461,84 +485,95 @@ describe("repository > basic methods", () => {
                 title: "Updated",
             }));
 
-            await externalIdObjects.upsert(entitiesToUpdate, ["externalId"]);
+            await externalIdObjects.upsert(qr, entitiesToUpdate, ["externalId"]);
 
-            (await externalIdObjects.find({ externalId: Like("external-bulk-%") })).forEach((updated, i) => {
+            (await externalIdObjects.find(qr, { externalId: Like("external-bulk-%") })).forEach((updated, i) => {
                 updated.title.should.be.equal("Updated");
             });
+            await qr.release();
         })));
         it("should not overwrite unspecified properties", () => Promise.all(connections.map(async (connection) => {
             if (connection.driver.supportedUpsertType == null) return;
+            const qr = connection.createQueryRunner();
             
             const postObjects = connection.getRepository(Post);
             const externalId = "external-no-overwrite-unrelated";
 
             // update properties of embedded
-            await postObjects.upsert({ externalId, title: "title", subTitle: "subtitle" }, ["externalId"]);
-            await postObjects.upsert({ externalId, title: "title updated" }, ["externalId"]);
-            (await postObjects.findOneOrFail(({ externalId }))).subTitle.should.equal("subtitle");
-            (await postObjects.findOneOrFail(({ externalId }))).title.should.equal("title updated");
+            await postObjects.upsert(qr, { externalId, title: "title", subTitle: "subtitle" }, ["externalId"]);
+            await postObjects.upsert(qr, { externalId, title: "title updated" }, ["externalId"]);
+            (await postObjects.findOneOrFail(qr, ({ externalId }))).subTitle.should.equal("subtitle");
+            (await postObjects.findOneOrFail(qr, ({ externalId }))).title.should.equal("title updated");
+            await qr.release();
         })));
         it("should upsert with embedded columns", () => Promise.all(connections.map(async (connection) => {
             if (connection.driver.supportedUpsertType == null) return;
+            const qr = connection.createQueryRunner();
             
             const externalIdObjects = connection.getRepository(ExternalIdPrimaryKeyEntity);
             const embeddedConstraintObjects = connection.getRepository(EmbeddedUniqueConstraintEntity);
             const externalId = "external-embedded";
             
             // update properties of embedded
-            await externalIdObjects.upsert({ externalId, title: "embedded", embedded: { foo: "foo 1" } }, ["externalId"]);
+            await externalIdObjects.upsert(qr, { externalId, title: "embedded", embedded: { foo: "foo 1" } }, ["externalId"]);
             
-            (await externalIdObjects.findOneOrFail({ externalId })).embedded.foo.should.be.equal("foo 1");
+            (await externalIdObjects.findOneOrFail(qr, { externalId })).embedded.foo.should.be.equal("foo 1");
             
-            await externalIdObjects.upsert({ externalId, title: "embedded", embedded: { foo: "foo 2" } }, ["externalId"]);
+            await externalIdObjects.upsert(qr, { externalId, title: "embedded", embedded: { foo: "foo 2" } }, ["externalId"]);
             
-            (await externalIdObjects.findOneOrFail({ externalId })).embedded.foo.should.be.equal("foo 2");
+            (await externalIdObjects.findOneOrFail(qr, { externalId })).embedded.foo.should.be.equal("foo 2");
             
             // upsert on embedded
-            await embeddedConstraintObjects.upsert({ embedded: { id: "bar1", value: "foo 1" } }, ["embedded.id"]);
-            (await embeddedConstraintObjects.findOneOrFail({ embedded: { id: "bar1" } })).embedded.value.should.be.equal("foo 1");
-            await embeddedConstraintObjects.upsert({ embedded: { id: "bar1", value: "foo 2" } }, ["embedded.id"]);
-            (await embeddedConstraintObjects.findOneOrFail({ embedded: { id: "bar1" } })).embedded.value.should.be.equal("foo 2");
+            await embeddedConstraintObjects.upsert(qr, { embedded: { id: "bar1", value: "foo 1" } }, ["embedded.id"]);
+            (await embeddedConstraintObjects.findOneOrFail(qr, { embedded: { id: "bar1" } })).embedded.value.should.be.equal("foo 1");
+            await embeddedConstraintObjects.upsert(qr, { embedded: { id: "bar1", value: "foo 2" } }, ["embedded.id"]);
+            (await embeddedConstraintObjects.findOneOrFail(qr, { embedded: { id: "bar1" } })).embedded.value.should.be.equal("foo 2");
+            await qr.release();
         })));
         it("should bulk upsert with embedded columns", () => Promise.all(connections.map(async (connection) => {
             if (connection.driver.supportedUpsertType == null) return;
+            const qr = connection.createQueryRunner();
             
             const embeddedConstraintObjects = connection.getRepository(EmbeddedUniqueConstraintEntity);
             
-            await embeddedConstraintObjects.upsert([{
+            await embeddedConstraintObjects.upsert(qr, [{
                 embedded: { id: "bar2", value: "value2" },
             },
             {
                 embedded: { id: "bar3", value: "value3" },
             }], ["embedded.id"]);
-            (await embeddedConstraintObjects.findOneOrFail({ embedded: { id: "bar2" } })).embedded.value.should.be.equal("value2");
-            (await embeddedConstraintObjects.findOneOrFail({ embedded: { id: "bar3" } })).embedded.value.should.be.equal("value3");
+            (await embeddedConstraintObjects.findOneOrFail(qr, { embedded: { id: "bar2" } })).embedded.value.should.be.equal("value2");
+            (await embeddedConstraintObjects.findOneOrFail(qr, { embedded: { id: "bar3" } })).embedded.value.should.be.equal("value3");
 
-            await embeddedConstraintObjects.upsert([{
+            await embeddedConstraintObjects.upsert(qr, [{
                 embedded: { id: "bar2", value: "value2 2" },
             },
             {
                 embedded: { id: "bar3", value: "value3 2" },
             }], ["embedded.id"]);
-            (await embeddedConstraintObjects.findOneOrFail({ embedded: { id: "bar2" } })).embedded.value.should.be.equal("value2 2");
-            (await embeddedConstraintObjects.findOneOrFail({ embedded: { id: "bar3" } })).embedded.value.should.be.equal("value3 2");
+            (await embeddedConstraintObjects.findOneOrFail(qr, { embedded: { id: "bar2" } })).embedded.value.should.be.equal("value2 2");
+            (await embeddedConstraintObjects.findOneOrFail(qr, { embedded: { id: "bar3" } })).embedded.value.should.be.equal("value3 2");
+            await qr.release();
         })));
         it("should throw if attempting to conflict on properties with no unique constraint", () => Promise.all(connections.map(async (connection) => {
             if (connection.driver.supportedUpsertType == null) return;
             
+            const qr = connection.createQueryRunner();
             const externalIdObjects = connection.getRepository(ExternalIdPrimaryKeyEntity);
             // cannot conflict on a column with no unique index
-            await externalIdObjects.upsert({ title: "foo"}, ["title"])
+            await externalIdObjects.upsert(qr, { title: "foo"}, ["title"])
                 .should.be.rejectedWith(TypeORMError);
+            await qr.release();
         })));
         it("should throw if using an unsupported driver", () => Promise.all(connections.map(async (connection) => {
             if (connection.driver.supportedUpsertType != null) return;
+            const qr = connection.createQueryRunner();
             
             const postRepository = connection.getRepository(Post);
             const externalId = "external-2";
-            await postRepository.upsert({ externalId, title: "Post title initial" }, ["externalId"])
+            await postRepository.upsert(qr, { externalId, title: "Post title initial" }, ["externalId"])
                 .should.be.rejectedWith(TypeORMError);
+            await qr.release();
         })));
     });
 
@@ -547,23 +582,24 @@ describe("repository > basic methods", () => {
         it("if we preload entity from the plain object and merge preloaded object with plain object we'll have an object from the db with the replaced properties by a plain object's properties", () => Promise.all(connections.map(async connection => {
             const blogRepository = connection.getRepository(Blog);
             const categoryRepository = connection.getRepository(Category);
+            const qr = connection.createQueryRunner();
 
             // save first category
             const firstCategory = new Category();
             firstCategory.name = "people";
-            await categoryRepository.save(firstCategory);
+            await categoryRepository.save(qr, firstCategory);
 
             // save second category
             const secondCategory = new Category();
             secondCategory.name = "animals";
-            await categoryRepository.save(secondCategory);
+            await categoryRepository.save(qr, secondCategory);
 
             // save the blog
             const blog = new Blog();
             blog.title = "About people";
             blog.text = "Blog about good people";
             blog.categories = [firstCategory, secondCategory];
-            await blogRepository.save(blog);
+            await blogRepository.save(qr, blog);
 
             // and preload it
             const plainBlogWithId: DeepPartial<Blog> = {
@@ -571,7 +607,7 @@ describe("repository > basic methods", () => {
                 title: "changed title about people",
                 categories: [ { id: 1 }, { id: 2, name: "insects" } ]
             };
-            const preloadedBlog = await blogRepository.preload(plainBlogWithId);
+            const preloadedBlog = await blogRepository.preload(qr, plainBlogWithId);
             preloadedBlog!.should.be.instanceOf(Blog);
             preloadedBlog!.id.should.be.equal(1);
             preloadedBlog!.title.should.be.equal("changed title about people");
@@ -580,6 +616,7 @@ describe("repository > basic methods", () => {
             preloadedBlog!.categories[0].name.should.be.equal("people");
             preloadedBlog!.categories[1].id.should.be.equal(2);
             preloadedBlog!.categories[1].name.should.be.equal("insects");
+            await qr.release();
         })));
 
     });
@@ -588,21 +625,23 @@ describe("repository > basic methods", () => {
 
         it("should execute the query natively and it should return the result", () => Promise.all(connections.map(async connection => {
             const repository = connection.getRepository(Blog);
+            const qr = connection.createQueryRunner();
 
             for (let i = 0; i < 5; i++) { // todo: should pass with 50 items. find the problem
                 const blog = new Blog();
                 blog.title = "hello blog";
                 blog.text = "hello blog #" + i;
                 blog.counter = i * 100;
-                await repository.save(blog);
+                await repository.save(qr, blog);
             }
 
             // such simple query should work on all platforms, isn't it? If no - make requests specifically to platforms
             const query = `SELECT MAX(${connection.driver.escape("blog")}.${connection.driver.escape("counter")}) as ${connection.driver.escape("max")} ` +
                 ` FROM ${connection.driver.escape("blog")} ${connection.driver.escape("blog")}`;
-            const result = await repository.query(query);
+            const result = await repository.query(qr, query);
             result[0].should.not.be.undefined;
             result[0].max.should.not.be.undefined;
+            await qr.release();
         })));
 
     });
@@ -611,16 +650,16 @@ describe("repository > basic methods", () => {
 
         it("executed queries must success", () => Promise.all(connections.map(async connection => {
             const repository = connection.getRepository(Blog);
-            let blogs = await repository.find();
+            let blogs = await repository.find(qr);
             blogs.should.be.eql([]);
 
             const blog = new Blog();
             blog.title = "hello blog title";
             blog.text = "hello blog text";
-            await repository.save(blog);
+            await repository.save(qr, blog);
             blogs.should.be.eql([]);
 
-            blogs = await repository.find();
+            blogs = await repository.find(qr);
             blogs.length.should.be.equal(1);
 
             await repository.transaction(async () => {
@@ -630,30 +669,30 @@ describe("repository > basic methods", () => {
                     blog.title = "hello blog";
                     blog.text = "hello blog #" + i;
                     blog.counter = i * 100;
-                    promises.push(repository.save(blog));
+                    promises.push(repository.save(qr, blog));
                 }
                 await Promise.all(promises);
 
-                blogs = await repository.find();
+                blogs = await repository.find(qr);
                 blogs.length.should.be.equal(101);
             });
 
-            blogs = await repository.find();
+            blogs = await repository.find(qr);
             blogs.length.should.be.equal(101);
         })));
 
         it("executed queries must rollback in the case if error in transaction", () => Promise.all(connections.map(async connection => {
             const repository = connection.getRepository(Blog);
-            let blogs = await repository.find();
+            let blogs = await repository.find(qr);
             blogs.should.be.eql([]);
 
             const blog = new Blog();
             blog.title = "hello blog title";
             blog.text = "hello blog text";
-            await repository.save(blog);
+            await repository.save(qr, blog);
             blogs.should.be.eql([]);
 
-            blogs = await repository.find();
+            blogs = await repository.find(qr);
             blogs.length.should.be.equal(1);
 
             await repository.transaction(async () => {
@@ -663,18 +702,18 @@ describe("repository > basic methods", () => {
                     blog.title = "hello blog";
                     blog.text = "hello blog #" + i;
                     blog.counter = i * 100;
-                    promises.push(repository.save(blog));
+                    promises.push(repository.save(qr, blog));
                 }
                 await Promise.all(promises);
 
-                blogs = await repository.find();
+                blogs = await repository.find(qr);
                 blogs.length.should.be.equal(101);
 
                 // now send the query that will crash all for us
                 throw new Error("this error will cancel all persist operations");
             }).should.be.rejected;
 
-            blogs = await repository.find();
+            blogs = await repository.find(qr);
             blogs.length.should.be.equal(1);
         })));
 

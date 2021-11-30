@@ -19,15 +19,17 @@ describe("github issues > #3112 default:null should inserts nulls to database", 
 
     it("should insert null when no value specified", () => Promise.all(connections.map(async connection => {
         const UserRepository = connection.manager.getRepository(User);
+        const qr = connection.createQueryRunner();
 
         const user1 = new User();
 
-        await UserRepository.save(user1);
-        const loadedUser = await UserRepository.find();
+        await UserRepository.save(qr, user1);
+        const loadedUser = await UserRepository.find(qr);
 
         expect(loadedUser[0].first).to.be.null;
         expect(loadedUser[0].second).to.be.null;
 
+        await qr.release();
     })));
 
 

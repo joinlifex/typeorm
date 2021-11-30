@@ -16,6 +16,7 @@ describe("github issues > #4513 CockroachDB support for onConflict", () => {
   after(() => closeTestingConnections(connections));
 
   it("should insert if no conflict", () => Promise.all(connections.map(async connection => {
+    const qr = connection.createQueryRunner();
     const user1 = new User();
     user1.name = "example";
     user1.email = "example@example.com";
@@ -25,7 +26,7 @@ describe("github issues > #4513 CockroachDB support for onConflict", () => {
       .insert()
       .into(User)
       .values(user1)
-      .execute();
+      .execute(qr);
 
     const user2 = new User();
     user2.name = "example2";
@@ -37,12 +38,14 @@ describe("github issues > #4513 CockroachDB support for onConflict", () => {
       .into(User)
       .values(user2)
       .onConflict(`("name", "email") DO NOTHING`)
-      .execute();
+      .execute(qr);
 
-    await connection.manager.find(User).should.eventually.have.lengthOf(2);
+    await connection.manager.find(qr, User).should.eventually.have.lengthOf(2);
+    await qr.release();
   })));
 
   it("should update on conflict with do update", () => Promise.all(connections.map(async connection => {
+    const qr = connection.createQueryRunner();
     const user1 = new User();
     user1.name = "example";
     user1.email = "example@example.com";
@@ -52,7 +55,7 @@ describe("github issues > #4513 CockroachDB support for onConflict", () => {
       .insert()
       .into(User)
       .values(user1)
-      .execute();
+      .execute(qr);
 
     const user2 = new User();
     user2.name = "example";
@@ -64,16 +67,18 @@ describe("github issues > #4513 CockroachDB support for onConflict", () => {
       .into(User)
       .values(user2)
       .onConflict(`("name", "email") DO UPDATE SET age = EXCLUDED.age`)
-      .execute();
+      .execute(qr);
 
-    await connection.manager.findOne(User, { name: "example", email: "example@example.com" }).should.eventually.be.eql({
+    await connection.manager.findOne(qr, User, { name: "example", email: "example@example.com" }).should.eventually.be.eql({
       name: "example",
       email: "example@example.com",
       age: 42,
     });
+    await qr.release();
   })));
 
   it("should not update on conflict with do nothing", () => Promise.all(connections.map(async connection => {
+    const qr = connection.createQueryRunner();
     const user1 = new User();
     user1.name = "example";
     user1.email = "example@example.com";
@@ -83,7 +88,7 @@ describe("github issues > #4513 CockroachDB support for onConflict", () => {
       .insert()
       .into(User)
       .values(user1)
-      .execute();
+      .execute(qr);
 
     const user2 = new User();
     user2.name = "example";
@@ -95,16 +100,18 @@ describe("github issues > #4513 CockroachDB support for onConflict", () => {
       .into(User)
       .values(user2)
       .onConflict(`("name", "email") DO NOTHING`)
-      .execute();
+      .execute(qr);
 
-    await connection.manager.findOne(User, { name: "example", email: "example@example.com" }).should.eventually.be.eql({
+    await connection.manager.findOne(qr, User, { name: "example", email: "example@example.com" }).should.eventually.be.eql({
       name: "example",
       email: "example@example.com",
       age: 30,
     });
+    await qr.release();
   })));
 
   it("should update with orUpdate", () => Promise.all(connections.map(async connection => {
+    const qr = connection.createQueryRunner();
     const user1 = new User();
     user1.name = "example";
     user1.email = "example@example.com";
@@ -114,7 +121,7 @@ describe("github issues > #4513 CockroachDB support for onConflict", () => {
       .insert()
       .into(User)
       .values(user1)
-      .execute();
+      .execute(qr);
 
     const user2 = new User();
     user2.name = "example";
@@ -126,12 +133,13 @@ describe("github issues > #4513 CockroachDB support for onConflict", () => {
       .into(User)
       .values(user2)
       .orUpdate(["age"], ["name", "email"])
-      .execute();
+      .execute(qr);
 
-    await connection.manager.findOne(User, { name: "example", email: "example@example.com" }).should.eventually.be.eql({
+    await connection.manager.findOne(qr, User, { name: "example", email: "example@example.com" }).should.eventually.be.eql({
       name: "example",
       email: "example@example.com",
       age: 42,
     });
+    await qr.release();
   })));
 });

@@ -23,23 +23,26 @@ describe("insertion", function() {
 
     it("basic insert functionality", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const queryRunner = connection.createQueryRunner();
 
         let newPost = new Post();
         newPost.text = "Hello post";
         newPost.title = "this is post title";
         newPost.likesCount = 0;
-        const savedPost = await postRepository.save(newPost);
+        const savedPost = await postRepository.save(queryRunner, newPost);
 
         savedPost.should.be.equal(newPost);
         expect(savedPost.id).not.to.be.undefined;
 
-        const insertedPost = await postRepository.findOne(savedPost.id);
+        const insertedPost = await postRepository.findOne(queryRunner, savedPost.id);
         insertedPost!.should.be.eql({
             id: savedPost.id,
             text: "Hello post",
             title: "this is post title",
             likesCount: 0
         });
+        
+        queryRunner.release();
     })));
 
 });

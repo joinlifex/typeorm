@@ -18,7 +18,7 @@ describe("github issues > #2376 Naming single column unique constraint with deco
         const queryRunner = connection.createQueryRunner();
 
         const table = await queryRunner.getTable("user");
-        await queryRunner.release()
+        await queryRunner.release();
 
         let unique1 = table!.uniques.find(it => it.name === "unique-email");
         let unique2 = table!.uniques.find(it => it.name === "unique-email-nickname");
@@ -28,8 +28,8 @@ describe("github issues > #2376 Naming single column unique constraint with deco
             unique2 = table!.indices.find(it => it.name === "unique-email-nickname");
         }
 
-        expect(unique1).to.be.not.undefined
-        expect(unique2).to.be.not.undefined
+        expect(unique1).to.be.not.undefined;
+        expect(unique2).to.be.not.undefined;
 
     })));
 });

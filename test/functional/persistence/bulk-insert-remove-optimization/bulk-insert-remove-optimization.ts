@@ -22,6 +22,7 @@ describe("persistence > bulk-insert-remove-optimization", function() {
 
     it("should group multiple insert and remove queries", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const category1 = new Category();
         category1.name = "cat#1";
 
@@ -32,11 +33,13 @@ describe("persistence > bulk-insert-remove-optimization", function() {
         post.title = "about post";
         post.categories = [category1, category2];
 
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
-        await connection.manager.remove([post, category2, category1]);
+        await connection.manager.remove(qr, [post, category2, category1]);
 
         // todo: finish test, e.g. check actual queries
+    
+        await qr.release();
     })));
 
 });

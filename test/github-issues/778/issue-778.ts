@@ -22,18 +22,20 @@ describe("github issues > #778 TypeORM is ignoring the `type` field when set on 
         const questionTable = await queryRunner.getTable("question");
         await queryRunner.release();
 
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.name = "Post #1";
-        await connection.getRepository(Post).save(post);
+        await connection.getRepository(Post).save(qr, post);
 
         const category = new Category();
         category.name = "Category #1";
-        await connection.getRepository(Category).save(category);
+        await connection.getRepository(Category).save(qr, category);
 
         const question = new Question();
         question.name = "Question #1";
-        await connection.getRepository(Question).save(question);
+        await connection.getRepository(Question).save(qr, question);
 
+        await qr.release();
         postTable!.findColumnByName("id")!.type.should.be.equal("integer");
         categoryTable!.findColumnByName("id")!.type.should.be.equal("bigint");
         questionTable!.findColumnByName("id")!.type.should.be.equal("smallint");

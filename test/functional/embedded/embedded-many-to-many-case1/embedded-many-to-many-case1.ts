@@ -19,21 +19,21 @@ describe("embedded > embedded-many-to-many-case1", () => {
     describe("owner side", () => {
 
         it("should insert, load, update and remove entities with embeddeds when embedded entity having ManyToMany relation", () => Promise.all(connections.map(async connection => {
-
+            const qr = connection.createQueryRunner();
             const user1 = new User();
             user1.id = 1;
             user1.name = "Alice";
-            await connection.getRepository(User).save(user1);
+            await connection.getRepository(User).save(qr, user1);
 
             const user2 = new User();
             user2.id = 2;
             user2.name = "Bob";
-            await connection.getRepository(User).save(user2);
+            await connection.getRepository(User).save(qr, user2);
 
             const user3 = new User();
             user3.id = 3;
             user3.name = "Clara";
-            await connection.getRepository(User).save(user3);
+            await connection.getRepository(User).save(qr, user3);
 
             const postRepository = connection.getRepository(Post);
 
@@ -49,7 +49,7 @@ describe("embedded > embedded-many-to-many-case1", () => {
             post1.counters.subcounters = new Subcounters();
             post1.counters.subcounters.version = 1;
             post1.counters.subcounters.watches = 5;
-            await postRepository.save(post1);
+            await postRepository.save(qr, post1);
 
             const post2 = new Post();
             post2.id = 2;
@@ -63,14 +63,14 @@ describe("embedded > embedded-many-to-many-case1", () => {
             post2.counters.subcounters = new Subcounters();
             post2.counters.subcounters.version = 1;
             post2.counters.subcounters.watches = 10;
-            await postRepository.save(post2);
+            await postRepository.save(qr, post2);
 
             const loadedPosts = await connection.manager
                 .createQueryBuilder(Post, "post")
                 .leftJoinAndSelect("post.counters.likedUsers", "likedUser")
                 .orderBy("post.id")
                 .addOrderBy("likedUser.id")
-                .getMany();
+                .getMany(qr);
 
             expect(loadedPosts[0].should.be.eql(
                 {
@@ -126,7 +126,7 @@ describe("embedded > embedded-many-to-many-case1", () => {
                 .leftJoinAndSelect("post.counters.likedUsers", "likedUser")
                 .orderBy("likedUser.id")
                 .where("post.id = :id", {id: 1})
-                .getOne();
+                .getOne(qr);
 
             expect(loadedPost!.should.be.eql(
                 {
@@ -158,14 +158,14 @@ describe("embedded > embedded-many-to-many-case1", () => {
             loadedPost!.counters.favorites += 1;
             loadedPost!.counters.subcounters.watches += 1;
             loadedPost!.counters.likedUsers = [user1];
-            await postRepository.save(loadedPost!);
+            await postRepository.save(qr, loadedPost!);
 
             const loadedPost2 = await connection.manager
                 .createQueryBuilder(Post, "post")
                 .leftJoinAndSelect("post.counters.likedUsers", "likedUser")
                 .orderBy("likedUser.id")
                 .where("post.id = :id", {id: 1})
-                .getOne();
+                .getOne(qr);
 
             expect(loadedPost2!.should.be.eql(
                 {
@@ -190,11 +190,13 @@ describe("embedded > embedded-many-to-many-case1", () => {
                 }
             ));
 
-            await postRepository.remove(loadedPost2!);
+            await postRepository.remove(qr, loadedPost2!);
 
-            const loadedPosts2 = (await postRepository.find())!;
+            const loadedPosts2 = (await postRepository.find(qr))!;
             expect(loadedPosts2.length).to.be.equal(1);
             expect(loadedPosts2[0].title).to.be.equal("About airplanes");
+            
+            await qr.release();
         })));
     });
 
@@ -202,6 +204,7 @@ describe("embedded > embedded-many-to-many-case1", () => {
 
         it("should insert, load, update and remove entities with embeddeds when embedded entity having ManyToMany relation", () => Promise.all(connections.map(async connection => {
 
+            const qr = connection.createQueryRunner();
             const post1 = new Post();
             post1.id = 1;
             post1.title = "About cars";
@@ -213,7 +216,7 @@ describe("embedded > embedded-many-to-many-case1", () => {
             post1.counters.subcounters = new Subcounters();
             post1.counters.subcounters.version = 1;
             post1.counters.subcounters.watches = 5;
-            await connection.getRepository(Post).save(post1);
+            await connection.getRepository(Post).save(qr, post1);
 
             const post2 = new Post();
             post2.id = 2;
@@ -226,32 +229,32 @@ describe("embedded > embedded-many-to-many-case1", () => {
             post2.counters.subcounters = new Subcounters();
             post2.counters.subcounters.version = 1;
             post2.counters.subcounters.watches = 10;
-            await connection.getRepository(Post).save(post2);
+            await connection.getRepository(Post).save(qr, post2);
 
             const user1 = new User();
             user1.id = 1;
             user1.name = "Alice";
             user1.likedPosts = [post1, post2];
-            await connection.getRepository(User).save(user1);
+            await connection.getRepository(User).save(qr, user1);
 
             const user2 = new User();
             user2.id = 2;
             user2.name = "Bob";
             user2.likedPosts = [post1];
-            await connection.getRepository(User).save(user2);
+            await connection.getRepository(User).save(qr, user2);
 
             const user3 = new User();
             user3.id = 3;
             user3.name = "Clara";
             user3.likedPosts = [post2];
-            await connection.getRepository(User).save(user3);
+            await connection.getRepository(User).save(qr, user3);
 
             const loadedUsers = await connection.manager
                 .createQueryBuilder(User, "user")
                 .leftJoinAndSelect("user.likedPosts", "likedPost")
                 .orderBy("user.id")
                 .addOrderBy("likedPost.id")
-                .getMany();
+                .getMany(qr);
 
             expect(loadedUsers[0].should.be.eql(
                 {
@@ -339,7 +342,7 @@ describe("embedded > embedded-many-to-many-case1", () => {
                 .leftJoinAndSelect("user.likedPosts", "likedPost")
                 .orderBy("likedPost.id")
                 .where("user.id = :id", {id: 1})
-                .getOne();
+                .getOne(qr);
 
             expect(loadedUser!.should.be.eql(
                 {
@@ -380,14 +383,14 @@ describe("embedded > embedded-many-to-many-case1", () => {
 
             loadedUser!.name = "Anna";
             loadedUser!.likedPosts = [post1];
-            await connection.getRepository(User).save(loadedUser!);
+            await connection.getRepository(User).save(qr, loadedUser!);
 
             const loadedUser2 = await connection.manager
                 .createQueryBuilder(User, "user")
                 .leftJoinAndSelect("user.likedPosts", "likedPost")
                 .orderBy("likedPost.id")
                 .where("user.id = :id", {id: 1})
-                .getOne();
+                .getOne(qr);
 
             expect(loadedUser2!.should.be.eql(
                 {
@@ -412,12 +415,14 @@ describe("embedded > embedded-many-to-many-case1", () => {
                 }
             ));
 
-            await connection.getRepository(User).remove(loadedUser2!);
+            await connection.getRepository(User).remove(qr, loadedUser2!);
 
-            const loadedUsers2 = (await connection.getRepository(User).find())!;
+            const loadedUsers2 = (await connection.getRepository(User).find(qr))!;
             expect(loadedUsers2.length).to.be.equal(2);
             expect(loadedUsers2[0].name).to.be.equal("Bob");
             expect(loadedUsers2[1].name).to.be.equal("Clara");
+            
+            await qr.release();
         })));
 
     });

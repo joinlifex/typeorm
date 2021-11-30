@@ -349,7 +349,7 @@ export class PostgresDriver implements Driver {
      */
     async afterConnect(): Promise<void> {
         const extensionsMetadata = await this.checkMetadataForExtensions();
-        const [ connection, release ] = await this.obtainMasterConnection()
+        const [ connection, release ] = await this.obtainMasterConnection();
 
         const installExtensions = this.options.installExtensions === undefined || this.options.installExtensions;
         if (installExtensions && extensionsMetadata.hasExtensions) {
@@ -364,7 +364,7 @@ export class PostgresDriver implements Driver {
         const versionString = results.rows[0].server_version;
         this.isGeneratedColumnsSupported = VersionUtils.isGreaterOrEqual(versionString, "12.0");
 
-        await release()
+        await release();
     }
 
     protected async enableExtensions(extensionsMetadata: any, connection: any) {
@@ -483,8 +483,8 @@ export class PostgresDriver implements Driver {
     /**
      * Creates a query runner used to execute database queries.
      */
-    createQueryRunner(mode: ReplicationMode): QueryRunner {
-        return new PostgresQueryRunner(this, mode);
+    createQueryRunner(mode: ReplicationMode, ctx?: number|string): QueryRunner {
+        return new PostgresQueryRunner(this, mode, ctx);
     }
 
     /**

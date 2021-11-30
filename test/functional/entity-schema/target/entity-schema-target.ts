@@ -14,23 +14,29 @@ describe("entity schemas > target option", () => {
     after(() => closeTestingConnections(connections));
 
     it("should create instance of the target", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const postRepository = connection.getRepository(Post);
-        const post = postRepository.create({
+        const post = postRepository.create(qr, {
             title: "First Post",
             text: "About first post",
         });
         post.should.be.instanceof(Post);
+        await qr.release();
+        
     })));
 
     it("should find instances of the target", () => Promise.all(connections.map(async connection => {
-        const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
+            const postRepository = connection.getRepository(Post);
         const post = new Post();
         post.title = "First Post";
         post.text = "About first post";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = await postRepository.findOne({ title: "First Post" });
+        const loadedPost = await postRepository.findOne(qr, { title: "First Post" });
         loadedPost!.should.be.instanceof(Post);
+    
+        await qr.release();
     })));
 
 });

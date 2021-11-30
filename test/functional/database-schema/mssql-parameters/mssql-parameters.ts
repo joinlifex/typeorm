@@ -19,15 +19,16 @@ describe("database schema > mssql-parameters", () => {
     it("should correctly insert/update/delete entities on SqlServer driver", () => Promise.all(connections.map(async connection => {
 
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         const post1 = new Post();
         post1.id = 1;
         post1.name = "Post #1";
         post1.category = "posts";
         post1.text = "This is post";
-        await postRepository.save(post1);
+        await postRepository.save(qr, post1);
 
-        let loadedPost1 = (await postRepository.findOne(1))!;
+        let loadedPost1 = (await postRepository.findOne(qr, 1))!;
 
         loadedPost1.id.should.be.equal(post1.id);
         loadedPost1.name.should.be.equal(post1.name);
@@ -36,14 +37,14 @@ describe("database schema > mssql-parameters", () => {
 
         loadedPost1.name = "Updated Post #1";
         loadedPost1.text = "This is updated post";
-        await postRepository.save(loadedPost1);
+        await postRepository.save(qr, loadedPost1);
 
-        loadedPost1 = (await postRepository.findOne(1))!;
+        loadedPost1 = (await postRepository.findOne(qr, 1))!;
         loadedPost1.name.should.be.equal("Updated Post #1");
         loadedPost1.text.should.be.equal("This is updated post");
 
-        await postRepository.remove(loadedPost1);
-        loadedPost1 = (await postRepository.findOne(1))!;
+        await postRepository.remove(qr, loadedPost1);
+        loadedPost1 = (await postRepository.findOne(qr, 1))!;
         expect(loadedPost1).to.not.exist;
 
         const post2 = new Post();
@@ -56,9 +57,9 @@ describe("database schema > mssql-parameters", () => {
             .insert()
             .into(Post)
             .values(post2)
-            .execute();
+            .execute(qr);
 
-        let loadedPost2 = (await postRepository.findOne(2))!;
+        let loadedPost2 = (await postRepository.findOne(qr, 2))!;
         loadedPost2.id.should.be.equal(post2.id);
         loadedPost2.name.should.be.equal(post2.name);
         loadedPost2.category.should.be.equal(post2.category);
@@ -68,20 +69,21 @@ describe("database schema > mssql-parameters", () => {
             .update(Post)
             .set({ name: "Updated Post #2" })
             .where("id = :id", { id: 2 })
-            .execute();
+            .execute(qr);
 
-        loadedPost2 = (await postRepository.findOne(2))!;
+        loadedPost2 = (await postRepository.findOne(qr, 2))!;
         loadedPost2.name.should.be.equal("Updated Post #2");
 
         await connection.createQueryBuilder()
             .delete()
             .from(Post)
             .where("id = :id", { id: "2" })
-            .execute();
+            .execute(qr);
 
-        loadedPost2 = (await postRepository.findOne(2))!;
+        loadedPost2 = (await postRepository.findOne(qr, 2))!;
         expect(loadedPost2).to.not.exist;
 
+        await qr.release();
     })));
 
 });

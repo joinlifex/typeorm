@@ -14,6 +14,7 @@ describe("github issues > #904 Using closure tables without @TreeLevelColumn wil
 
     it("should work correctly when saving using parent category", () => Promise.all(connections.map(async connection => {
         const categoryRepository = connection.getTreeRepository(Category);
+        const queryRunner = connection.createQueryRunner();
 
         const a1 = new Category();
         a1.name = "a1";
@@ -33,13 +34,13 @@ describe("github issues > #904 Using closure tables without @TreeLevelColumn wil
         c11.parentCategory = c1;
         c12.parentCategory = c1;
 
-        await categoryRepository.save(a1);
-        await categoryRepository.save(b1);
-        await categoryRepository.save(c1);
-        await categoryRepository.save(c11);
-        await categoryRepository.save(c12);
+        await categoryRepository.save(queryRunner, a1);
+        await categoryRepository.save(queryRunner, b1);
+        await categoryRepository.save(queryRunner, c1);
+        await categoryRepository.save(queryRunner, c11);
+        await categoryRepository.save(queryRunner, c12);
 
-        const roots = await categoryRepository.findRoots();
+        const roots = await categoryRepository.findRoots(queryRunner);
         roots.should.be.eql([
             {
                 id: 1,
@@ -55,7 +56,7 @@ describe("github issues > #904 Using closure tables without @TreeLevelColumn wil
             },
         ]);
 
-        const c1Tree = await categoryRepository.findDescendantsTree(c1);
+        const c1Tree = await categoryRepository.findDescendantsTree(queryRunner, c1);
         c1Tree.should.be.equal(c1);
         c1Tree!.should.be.eql({
             id: 3,
@@ -71,10 +72,12 @@ describe("github issues > #904 Using closure tables without @TreeLevelColumn wil
             }]
         });
 
+        queryRunner.release();
     })));
 
     it("should work correctly when saving using children categories", () => Promise.all(connections.map(async connection => {
         const categoryRepository = connection.getTreeRepository(Category);
+        const queryRunner = connection.createQueryRunner();
 
         const a1 = new Category();
         a1.name = "a1";
@@ -93,16 +96,16 @@ describe("github issues > #904 Using closure tables without @TreeLevelColumn wil
 
         c1.childCategories = [c11];
 
-        await categoryRepository.save(a1);
-        await categoryRepository.save(b1);
-        await categoryRepository.save(c1);
+        await categoryRepository.save(queryRunner, a1);
+        await categoryRepository.save(queryRunner, b1);
+        await categoryRepository.save(queryRunner, c1);
 
         c1.childCategories.push(c12);
-        await categoryRepository.save(c1);
-        // await categoryRepository.save(c11);
-        // await categoryRepository.save(c12);
+        await categoryRepository.save(queryRunner, c1);
+        // await categoryRepository.save(qr, c11);
+        // await categoryRepository.save(qr, c12);
 
-        const roots = await categoryRepository.findRoots();
+        const roots = await categoryRepository.findRoots(queryRunner);
         roots.should.be.eql([
             {
                 id: 1,
@@ -118,7 +121,7 @@ describe("github issues > #904 Using closure tables without @TreeLevelColumn wil
             },
         ]);
 
-        const c1Tree = await categoryRepository.findDescendantsTree(c1);
+        const c1Tree = await categoryRepository.findDescendantsTree(queryRunner, c1);
         c1Tree.should.be.equal(c1);
         c1Tree!.should.be.eql({
             id: 3,
@@ -134,10 +137,12 @@ describe("github issues > #904 Using closure tables without @TreeLevelColumn wil
             }]
         });
 
+        queryRunner.release();
     })));
 
     it("should be able to retrieve the whole tree", () => Promise.all(connections.map(async connection => {
         const categoryRepository = connection.getTreeRepository(Category);
+        const queryRunner = connection.createQueryRunner();
 
         const a1 = new Category();
         a1.name = "a1";
@@ -156,14 +161,14 @@ describe("github issues > #904 Using closure tables without @TreeLevelColumn wil
 
         c1.childCategories = [c11];
 
-        await categoryRepository.save(a1);
-        await categoryRepository.save(b1);
-        await categoryRepository.save(c1);
+        await categoryRepository.save(queryRunner, a1);
+        await categoryRepository.save(queryRunner, b1);
+        await categoryRepository.save(queryRunner, c1);
 
         c1.childCategories.push(c12);
-        await categoryRepository.save(c1);
+        await categoryRepository.save(queryRunner, c1);
 
-        const tree = await categoryRepository.findTrees();
+        const tree = await categoryRepository.findTrees(queryRunner);
         tree!.should.be.eql(
             [
                 {
@@ -191,6 +196,7 @@ describe("github issues > #904 Using closure tables without @TreeLevelColumn wil
                 }
             ]);
 
+            queryRunner.release();
     })));
 
 

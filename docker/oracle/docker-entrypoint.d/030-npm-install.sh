@@ -19,6 +19,6 @@ if [[ $INSTALL == 0 ]] && ! md5sum --check ./node_modules/.md5; then
 fi
 
 if [[ $INSTALL == 1 ]]; then
-    npm ci --no-optional --ignore-scripts
+    npm install
     md5sum ./package-lock.json > ./node_modules/.md5
 fi

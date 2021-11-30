@@ -168,7 +168,6 @@ export function setupSingleTestingConnection(driverType: DatabaseType, options: 
  */
 export function getTypeOrmConfig(): TestingConnectionOptions[] {
     try {
-
         try {
             // first checks build/compiled
             // useful for docker containers in order to provide a custom config
@@ -250,7 +249,6 @@ export async function createTestingConnections(options?: TestingOptions): Promis
             if (metadata.database && databases.indexOf(metadata.database) === -1)
                 databases.push(metadata.database);
         });
-
         const queryRunner = connection.createQueryRunner();
 
         for (const database of databases) {

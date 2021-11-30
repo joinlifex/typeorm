@@ -17,24 +17,27 @@ describe("github issues > #1123 load relation eagerly by setting isEager propert
   after(() => closeTestingConnections(connections));
 
   async function prepareData(connection: Connection) {
+    const qr = connection.createQueryRunner();
     const author = new Author();
     author.id = 1;
     author.name = "Jane Doe";
-    await connection.manager.save(author);
+    await connection.manager.save(qr, author);
 
     const post = new Post();
     post.id = 1;
     post.title = "Post 1";
     post.author = author;
-    await connection.manager.save(post);
+    await connection.manager.save(qr, post);
+    await qr.release();
   }
 
   it("should load all eager relations when object is loaded", () =>
     Promise.all(
       connections.map(async connection => {
         await prepareData(connection);
+        const qr = connection.createQueryRunner();
 
-        const loadedPost = await connection.manager.findOne(Post, 1);
+        const loadedPost = await connection.manager.findOne(qr, Post, 1);
         loadedPost!.should.be.eql({
           id: 1,
           title: "Post 1",
@@ -43,6 +46,7 @@ describe("github issues > #1123 load relation eagerly by setting isEager propert
             name: "Jane Doe"
           }
         });
+        await qr.release();
       })
     ));
 
@@ -50,16 +54,18 @@ describe("github issues > #1123 load relation eagerly by setting isEager propert
     Promise.all(
       connections.map(async connection => {
         await prepareData(connection);
+        const qr = connection.createQueryRunner();
 
         const loadedPost = await connection.manager
           .createQueryBuilder("Post", "post")
           .where("post.id = :id", { id: 1 })
-          .getOne() as Post;
+          .getOne(qr) as Post;
 
         loadedPost!.should.be.eql({
           id: 1,
           title: "Post 1"
         });
+        await qr.release();
       })
     ));
 });

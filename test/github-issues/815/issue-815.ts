@@ -16,16 +16,17 @@ describe("github issues > #815 @RelationId properties are not updated after enti
 
     it("should work perfectly with many-to-one relation", () => Promise.all(connections.map(async connection => {
 
+        const queryRunner = connection.createQueryRunner();
         const post = new Post();
         post.title = "About relation id";
-        await connection.manager.save(post);
+        await connection.manager.save(queryRunner, post);
 
         const category = new Category();
         category.firstId = 2;
         category.secondId = 3;
         category.name = "relation-id-category";
         category.post = post;
-        await connection.manager.save(category);
+        await connection.manager.save(queryRunner, category);
 
         expect(post).to.be.eql({
             id: 1,
@@ -44,7 +45,7 @@ describe("github issues > #815 @RelationId properties are not updated after enti
         });
 
         category.post = null;
-        await connection.manager.save(category);
+        await connection.manager.save(queryRunner, category);
 
         expect(category).to.be.eql({
             firstId: 2,
@@ -54,26 +55,28 @@ describe("github issues > #815 @RelationId properties are not updated after enti
             postId: null
         });
 
+        queryRunner.release();
     })));
 
     it("should work perfectly with one-to-many relation", () => Promise.all(connections.map(async connection => {
 
+        const queryRunner = connection.createQueryRunner();
         const category1 = new Category();
         category1.firstId = 2;
         category1.secondId = 3;
         category1.name = "relation-id-category1";
-        await connection.manager.save(category1);
+        await connection.manager.save(queryRunner, category1);
 
         const category2 = new Category();
         category2.firstId = 2;
         category2.secondId = 4;
         category2.name = "relation-id-category2";
-        await connection.manager.save(category2);
+        await connection.manager.save(queryRunner, category2);
 
         const post = new Post();
         post.title = "About relation id";
         post.categories = [category1, category2];
-        await connection.manager.save(post);
+        await connection.manager.save(queryRunner, post);
 
         expect(category1).to.be.eql({
             firstId: 2,
@@ -108,17 +111,19 @@ describe("github issues > #815 @RelationId properties are not updated after enti
             }]
         });
 
+        queryRunner.release();
     })));
 
     it("should work perfectly with many-to-many relation", () => Promise.all(connections.map(async connection => {
 
+        const queryRunner = connection.createQueryRunner();
         const post1 = new Post();
         post1.title = "About relation id1";
-        await connection.manager.save(post1);
+        await connection.manager.save(queryRunner, post1);
 
         const post2 = new Post();
         post2.title = "About relation id2";
-        await connection.manager.save(post2);
+        await connection.manager.save(queryRunner, post2);
 
         const category1 = new Category();
         category1.firstId = 2;
@@ -131,7 +136,7 @@ describe("github issues > #815 @RelationId properties are not updated after enti
         category2.secondId = 4;
         category2.name = "relation-id-category2";
         category2.manyPosts = [post2];
-        await connection.manager.save([category1, category2]);
+        await connection.manager.save(queryRunner, [category1, category2]);
 
         expect(post1).to.be.eql({
             id: 1,
@@ -169,26 +174,28 @@ describe("github issues > #815 @RelationId properties are not updated after enti
             manyPostIds: [2]
         });
 
+        queryRunner.release();
     })));
 
     it("should work perfectly with many-to-many relation (inverse side)", () => Promise.all(connections.map(async connection => {
 
+        const queryRunner = connection.createQueryRunner();
         const category1 = new Category();
         category1.firstId = 2;
         category1.secondId = 3;
         category1.name = "relation-id-category1";
-        await connection.manager.save(category1);
+        await connection.manager.save(queryRunner, category1);
 
         const category2 = new Category();
         category2.firstId = 2;
         category2.secondId = 4;
         category2.name = "relation-id-category2";
-        await connection.manager.save(category2);
+        await connection.manager.save(queryRunner, category2);
 
         const post = new Post();
         post.title = "About relation id";
         post.manyCategories = [category1, category2];
-        await connection.manager.save(post);
+        await connection.manager.save(queryRunner, post);
 
         expect(category1).to.be.eql({
             firstId: 2,
@@ -223,6 +230,7 @@ describe("github issues > #815 @RelationId properties are not updated after enti
             }]
         });
 
+        queryRunner.release();
     })));
 
 });

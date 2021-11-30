@@ -8,8 +8,6 @@ services:
       - .:/typeorm
       - /typeorm/build
       - /typeorm/node_modules
-    networks:
-      - typeorm
 
 networks:
-  typeorm:
+  typeorm: null

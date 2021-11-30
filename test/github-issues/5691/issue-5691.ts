@@ -9,9 +9,10 @@ import {Shared} from "./enity/Shared";
 
 describe("github issues > #5691 RelationId is too slow", () => {
     const setupFixtures = async (connection: Connection, allChild2: Array<Child2>): Promise<void> => {
+        const qr = connection.createQueryRunner();
         const root = new Root();
         root.allChild2 = allChild2;
-        await connection.getRepository(Root).save(root);
+        await connection.getRepository(Root).save(qr, root);
 
         const rootAllShared: Array<Shared> = [];
         for (let indexShared = 0; indexShared < allChild2.length; indexShared ++) {
@@ -19,28 +20,29 @@ describe("github issues > #5691 RelationId is too slow", () => {
             rootShared.root = root;
             rootAllShared.push(rootShared);
         }
-        await connection.getRepository(Shared).save(rootAllShared);
+        await connection.getRepository(Shared).save(qr, rootAllShared);
 
         for (let indexChild1 = 0; indexChild1 < allChild2.length; indexChild1 ++) {
             const rootChild1 = new Child1();
             rootChild1.root = root;
-            await connection.getRepository(Child1).save(rootChild1);
+            await connection.getRepository(Child1).save(qr, rootChild1);
 
             for (const child2 of allChild2) {
                 const rootChild1Child2 = new Shared();
                 rootChild1Child2.root = root;
                 rootChild1Child2.child1 = rootChild1;
                 rootChild1Child2.child2 = child2;
-                await connection.getRepository(Shared).save(rootChild1Child2);
+                await connection.getRepository(Shared).save(qr, rootChild1Child2);
             }
             for (const shared of rootAllShared) {
                 const rootChild1Shared = new Shared();
                 rootChild1Shared.root = root;
                 rootChild1Shared.child1 = rootChild1;
                 rootChild1Shared.shared = shared;
-                await connection.getRepository(Shared).save(rootChild1Shared);
+                await connection.getRepository(Shared).save(qr, rootChild1Shared);
             }
         }
+        await qr.release();
     };
 
     let connections: Connection[];
@@ -58,17 +60,18 @@ describe("github issues > #5691 RelationId is too slow", () => {
     after(() => closeTestingConnections(connections));
 
     it("should be as fast as separate queries", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const child21 = new Child2();
         const child22 = new Child2();
         const child23 = new Child2();
         const child24 = new Child2();
         const child25 = new Child2();
 
-        await connection.getRepository(Child2).save(child21);
-        await connection.getRepository(Child2).save(child22);
-        await connection.getRepository(Child2).save(child23);
-        await connection.getRepository(Child2).save(child24);
-        await connection.getRepository(Child2).save(child25);
+        await connection.getRepository(Child2).save(qr, child21);
+        await connection.getRepository(Child2).save(qr, child22);
+        await connection.getRepository(Child2).save(qr, child23);
+        await connection.getRepository(Child2).save(qr, child24);
+        await connection.getRepository(Child2).save(qr, child25);
 
         await setupFixtures(connection, [child21, child22, child23]);
         // To understand the problem deeper add more fixtures.
@@ -85,7 +88,7 @@ describe("github issues > #5691 RelationId is too slow", () => {
 
         const test1Start = new Date().getTime();
         // 54 rows for 1 root
-        await connection.getRepository(Root).find({
+        await connection.getRepository(Root).find(qr, {
             relations: [
                 "allChild1",
                 "allChild1.allShared",
@@ -93,7 +96,7 @@ describe("github issues > #5691 RelationId is too slow", () => {
             ],
         });
         // 21 rows 1 root
-        await connection.getRepository(Root).find({
+        await connection.getRepository(Root).find(qr, {
             relations: [
                 "allShared",
             ],
@@ -102,7 +105,7 @@ describe("github issues > #5691 RelationId is too slow", () => {
 
         const test2Start = new Date().getTime();
         // 1134 rows 1 root
-        await connection.getRepository(Root).find({
+        await connection.getRepository(Root).find(qr, {
             relations: [
                 "allChild1",
                 "allChild1.allShared",
@@ -116,5 +119,6 @@ describe("github issues > #5691 RelationId is too slow", () => {
             (test1End - test1Start) * 15, // yes, even 15 times slower, because amount of data requires more time.
             "a single call should be not as more as 15 times slower than multi calls",
         );
+        await qr.release();
     })));
 });

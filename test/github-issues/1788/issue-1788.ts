@@ -21,25 +21,27 @@ describe("github issues > #1788 One to One does not load relationships.", () => 
             const personalizationRepository = connection.getRepository(
                 Personalization
             );
+            const qr = connection.createQueryRunner();
             const providerRepository = connection.getRepository(Provider);
-            const personalization = personalizationRepository.create({
+            const personalization = personalizationRepository.create(qr, {
                 logo: "https://typeorm.io/logo.png"
             });
-            await personalizationRepository.save(personalization);
+            await personalizationRepository.save(qr, personalization);
 
-            const provider = providerRepository.create({
+            const provider = providerRepository.create(qr, {
                 name: "Provider",
                 description: "Desc",
                 personalization
             });
 
-            await providerRepository.save(provider);
+            await providerRepository.save(qr, provider);
 
-            const dbProvider = await providerRepository.find({
+            const dbProvider = await providerRepository.find(qr, {
                 relations: ["personalization"]
             });
 
             expect(dbProvider[0].personalization).to.not.eql(undefined);
+            await qr.release();
         })
     ));
 });

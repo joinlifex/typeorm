@@ -17,44 +17,48 @@ describe("other issues > mongodb entity change in subscribers should affect pers
 
     it("if entity was changed, subscriber should be take updated columns", () => Promise.all(connections.map(async function(connection) {
 
+        const queryRunner = connection.createQueryRunner();
         const post = new Post();
         post.title = "hello world";
-        await connection.manager.save(post);
+        await connection.manager.save(queryRunner, post);
 
         // check if it was inserted correctly
-        const loadedPost = await connection.manager.findOne(Post);
+        const loadedPost = await connection.manager.findOne(queryRunner, Post);
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.active.should.be.equal(false);
 
         // now update some property and let update subscriber trigger
         loadedPost!.active = true;
         loadedPost!.title += "!";
-        await connection.manager.save(loadedPost!);
+        await connection.manager.save(queryRunner, loadedPost!);
 
         // check if subscriber was triggered and entity was really taken changed columns in the subscriber
-        const loadedUpdatedPost = await connection.manager.findOne(Post);
+        const loadedUpdatedPost = await connection.manager.findOne(queryRunner, Post);
         expect(loadedUpdatedPost).not.to.be.undefined;
         expect(loadedUpdatedPost!.title).to.equals("hello world!");
         expect(loadedUpdatedPost!.updatedColumns).to.equals(4); // it actually should be 3, but ObjectId column always added
 
-        await connection.manager.save(loadedPost!);
+        await connection.manager.save(queryRunner, loadedPost!);
 
+        queryRunner.release();
     })));
 
     it("if entity was loaded, loaded property should be changed", () => Promise.all(connections.map(async function(connection) {
 
+        const queryRunner = connection.createQueryRunner();
         const post = new Post();
         post.title = "hello world";
-        await connection.manager.save(post);
+        await connection.manager.save(queryRunner, post);
 
         // check if it was inserted correctly
-        const loadedPost = await connection.manager.findOne(Post);
+        const loadedPost = await connection.manager.findOne(queryRunner, Post);
 
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.loaded.should.be.equal(true);
 
-        await connection.manager.save(loadedPost!);
+        await connection.manager.save(queryRunner, loadedPost!);
 
+        queryRunner.release();
     })));
 
 });

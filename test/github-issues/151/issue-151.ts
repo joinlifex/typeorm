@@ -23,9 +23,10 @@ describe("github issues > #151 joinAndSelect can't find entity from inverse side
         post.title = "Hello post";
         post.category = category;
 
-        await connection.manager.save(post);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, post);
 
-        const loadedPost = await connection.manager.findOne(Post, 1, {
+        const loadedPost = await connection.manager.findOne(qr, Post, 1, {
             join: {
                 alias: "post",
                 innerJoinAndSelect: {
@@ -44,6 +45,7 @@ describe("github issues > #151 joinAndSelect can't find entity from inverse side
             }
         });
 
+        await qr.release();
     })));
 
 });

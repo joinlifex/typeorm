@@ -17,18 +17,21 @@ describe("entity schemas > basic functionality", () => {
     after(() => closeTestingConnections(connections));
 
     it("should perform basic operations with entity", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+            
         const postRepository = connection.getRepository(PostEntity);
-        const post = postRepository.create({
+        const post = postRepository.create(qr, {
             title: "First Post",
             text: "About first post",
         });
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = await connection.manager.findOne(PostEntity, { title: "First Post" });
+        const loadedPost = await connection.manager.findOne(qr, PostEntity, { title: "First Post" });
         loadedPost!.id.should.be.equal(post.id);
         loadedPost!.title.should.be.equal("First Post");
         loadedPost!.text.should.be.equal("About first post");
+    
+        await qr.release();
     })));
 
 });

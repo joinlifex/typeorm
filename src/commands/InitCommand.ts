@@ -310,20 +310,20 @@ export class UserController {
     private userRepository = getRepository(User);
 
     async all(request: Request, response: Response, next: NextFunction) {
-        return this.userRepository.find();
+        return this.userRepository.find(qr);
     }
 
     async one(request: Request, response: Response, next: NextFunction) {
-        return this.userRepository.findOne(request.params.id);
+        return this.userRepository.findOne(qr, request.params.id);
     }
 
     async save(request: Request, response: Response, next: NextFunction) {
-        return this.userRepository.save(request.body);
+        return this.userRepository.save(qr, request.body);
     }
 
     async remove(request: Request, response: Response, next: NextFunction) {
-        let userToRemove = await this.userRepository.findOne(request.params.id);
-        await this.userRepository.remove(userToRemove);
+        let userToRemove = await this.userRepository.findOne(qr, request.params.id);
+        await this.userRepository.remove(qr, userToRemove);
     }
 
 }`;
@@ -368,12 +368,12 @@ createConnection().then(async connection => {
     app.listen(3000);
 
     // insert new users for test
-    await connection.manager.save(connection.manager.create(User, {
+    await connection.manager.save(qr, connection.manager.create(qr, User, {
         firstName: "Timber",
         lastName: "Saw",
         age: 27
     }));
-    await connection.manager.save(connection.manager.create(User, {
+    await connection.manager.save(qr, connection.manager.create(qr, User, {
         firstName: "Phantom",
         lastName: "Assassin",
         age: 24
@@ -396,11 +396,11 @@ createConnection().then(async connection => {
     user.firstName = "Timber";
     user.lastName = "Saw";
     user.age = 25;
-    await connection.manager.save(user);
+    await connection.manager.save(qr, user);
     console.log("Saved a new user with id: " + user.id);
 
     console.log("Loading users from the database...");
-    const users = await connection.manager.find(User);
+    const users = await connection.manager.find(qr, User);
     console.log("Loaded users: ", users);
 
     console.log("Here you can setup and run express/koa/any other framework.");

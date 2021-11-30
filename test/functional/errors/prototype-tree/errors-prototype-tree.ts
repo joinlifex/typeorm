@@ -1,6 +1,6 @@
 import {expect} from "chai";
 
-import {AlreadyHasActiveConnectionError} from "../../../../src/error/AlreadyHasActiveConnectionError"
+import {AlreadyHasActiveConnectionError} from "../../../../src/error/AlreadyHasActiveConnectionError";
 import {CannotGetEntityManagerNotConnectedError} from "../../../../src/error/CannotGetEntityManagerNotConnectedError";
 
 describe("errors > prototype tree", () => {

@@ -20,38 +20,41 @@ describe("github issues > #7932  non-ascii characters assigned to var/char colum
 
     it("should store non-ascii characters in var/char without data loss", () => Promise.all(connections.map(async connection => {
         const repo = connection.getRepository(Example);
+        const qr = connection.createQueryRunner();
 
         const entity = new Example();
-        entity.content = '\u2021';
-        entity.fixedLengthContent = '\u2022';
+        entity.content = "\u2021";
+        entity.fixedLengthContent = "\u2022";
 
-        await repo.save(entity);
+        await repo.save(qr, entity);
         const savedEntity =
-            await repo.findOne({ order: { created: 'DESC' } });
+            await repo.findOne(qr, { order: { created: "DESC" } });
 
+            await qr.release();
         expect(savedEntity?.content).to.be.equal(entity.content);
-        expect(savedEntity?.fixedLengthContent).to.be.equal('\u2022         ');
+        expect(savedEntity?.fixedLengthContent).to.be.equal("\u2022         ");
     })));
 
     // TODO: we need to fix this test, it was incorrectly awaited from the beginning
     it.skip("should throw an error if characters in a string are too long to store", () => Promise.all(connections.map(async connection => {
         const repo = connection.getRepository(Example);
-
+        const qr = connection.createQueryRunner();
         const entity = new Example();
-        entity.content = '💖';
-        entity.fixedLengthContent = '🏍';
+        entity.content = "💖";
+        entity.fixedLengthContent = "🏍";
 
-        await expect(repo.save(entity)).to.eventually.be.rejectedWith(Error);
+        await expect(repo.save(qr, entity)).to.eventually.be.rejectedWith(Error);
+        await qr.release();
     })));
 
     it("should not change char or varchar column types to nchar or nvarchar", () => Promise.all(connections.map(async connection => {
         const repo = connection.getRepository(Example);
 
         const columnMetadata = repo.metadata.ownColumns;
-        const contentColumnType = columnMetadata.find(m => m.propertyName === 'content')?.type;
-        const fixedLengthContentColumnType = columnMetadata.find(m => m.propertyName === 'fixedLengthContent')?.type;
+        const contentColumnType = columnMetadata.find(m => m.propertyName === "content")?.type;
+        const fixedLengthContentColumnType = columnMetadata.find(m => m.propertyName === "fixedLengthContent")?.type;
 
-        expect(contentColumnType).to.be.equal('varchar');
-        expect(fixedLengthContentColumnType).to.be.equal('char');
+        expect(contentColumnType).to.be.equal("varchar");
+        expect(fixedLengthContentColumnType).to.be.equal("char");
     })));
 });

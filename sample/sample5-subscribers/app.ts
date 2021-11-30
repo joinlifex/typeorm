@@ -19,6 +19,7 @@ const options: ConnectionOptions = {
 };
 
 createConnection(options).then(connection => {
+    const qr = connection.createQueryRunner();
 
     let category1 = new PostCategory();
     category1.name = "post category #1";
@@ -38,10 +39,10 @@ createConnection(options).then(connection => {
     let postRepository = connection.getRepository(Post);
 
     postRepository
-        .save(post)
+        .save(qr, post)
         .then(post => {
             console.log("Post has been saved");
-            return postRepository.findOne(post.id);
+            return postRepository.findOne(qr, post.id);
         })
         .then(loadedPost => {
             console.log("---------------------------");
@@ -51,19 +52,19 @@ createConnection(options).then(connection => {
                 .leftJoinAndSelect("p.author", "author")
                 .leftJoinAndSelect("p.categories", "categories")
                 .where("p.id = :id", { id: loadedPost!.id })
-                .getOne();
+                .getOne(qr);
         })
         .then(loadedPost => {
             console.log("---------------------------");
             console.log("load finished. Now lets update entity");
             loadedPost!.text = "post updated";
             loadedPost!.author.name = "Bakha";
-            return postRepository.save(loadedPost!);
+            return postRepository.save(qr, loadedPost!);
         })
         .then(loadedPost => {
             console.log("---------------------------");
             console.log("update finished. Now lets remove entity");
-            return postRepository.remove(loadedPost);
+            return postRepository.remove(qr, loadedPost);
         })
         .then(loadedPost => {
             console.log("---------------------------");

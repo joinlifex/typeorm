@@ -17,6 +17,7 @@ describe("decorators > embedded", () => {
 
         it("should persist and load entities with embeddeds properly", () => Promise.all(connections.map(async connection => {
             const postRepository = connection.getRepository(Post);
+            const qr = connection.createQueryRunner();
 
             const post = new Post();
             post.title = "Hello post";
@@ -26,10 +27,10 @@ describe("decorators > embedded", () => {
             post.counters.favorites = 2;
             post.counters.likes = 1;
 
-            await postRepository.save(post);
+            await postRepository.save(qr, post);
 
             // now load it
-            const loadedPost = (await postRepository.findOne(post.id))!;
+            const loadedPost = (await postRepository.findOne(qr, post.id))!;
             loadedPost.id.should.be.equal(post.id);
             loadedPost.title.should.be.equal("Hello post");
             loadedPost.text.should.be.equal("This is text about the post");
@@ -39,10 +40,12 @@ describe("decorators > embedded", () => {
                 likes: 1
             });
 
+            await qr.release();
         })));
 
         it("should be used with prop", () => Promise.all(connections.map(async connection => {
             const postRepository = connection.getRepository(Post);
+            const qr = connection.createQueryRunner();
 
             const post1 = new Post();
             post1.title = "Hello post #1";
@@ -52,7 +55,7 @@ describe("decorators > embedded", () => {
             post1.counters.favorites = 2;
             post1.counters.likes = 1;
 
-            await postRepository.save(post1);
+            await postRepository.save(qr, post1);
 
             const post2 = new Post();
             post2.title = "Hello post #2";
@@ -62,13 +65,13 @@ describe("decorators > embedded", () => {
             post2.counters.favorites = 1;
             post2.counters.likes = 2;
 
-            await postRepository.save(post2);
+            await postRepository.save(qr, post2);
 
             // now load it
             const sortedPosts1 = await postRepository
                 .createQueryBuilder("post")
                 .orderBy("post.counters.comments", "DESC")
-                .getMany();
+                .getMany(qr);
 
             sortedPosts1.should.be.eql([{
                 id: post2.id,
@@ -94,7 +97,7 @@ describe("decorators > embedded", () => {
             const sortedPosts2 = await postRepository
                 .createQueryBuilder("post")
                 .orderBy("post.counters.favorites", "DESC")
-                .getMany();
+                .getMany(qr);
 
             sortedPosts2.should.be.eql([{
                 id: post1.id,
@@ -116,6 +119,7 @@ describe("decorators > embedded", () => {
                 }
             }]);
 
+            await qr.release();
         })));
 
     });

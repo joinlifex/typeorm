@@ -21,13 +21,14 @@ describe("database schema > column collation > mysql", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new Post();
         post.id = 1;
         post.name = "Post";
         post.title = "Post #1";
         post.description = "This is post";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         table!.findColumnByName("name")!.charset!.should.be.equal("ascii");
         table!.findColumnByName("name")!.collation!.should.be.equal("ascii_general_ci");
@@ -35,6 +36,7 @@ describe("database schema > column collation > mysql", () => {
         table!.findColumnByName("title")!.collation!.should.be.equal("utf8_general_ci");
         table!.findColumnByName("description")!.charset!.should.be.equal("cp852");
         table!.findColumnByName("description")!.collation!.should.be.equal("cp852_general_ci");
+        await qr.release();
 
     })));
 

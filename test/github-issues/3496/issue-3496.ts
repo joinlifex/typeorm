@@ -18,14 +18,15 @@ describe("github issues > #3496 jsonb comparison doesn't work", () => {
     it("the entity should not be updated a second time", () => Promise.all(connections.map(async connection => {
         await connection.synchronize();
         const repository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         const problems = [{"message": "", "attributeKey": "", "level": ""}];
         const post = new Post();
         post.problems = problems.slice();
 
-        const savedPost1 = await repository.save(post);
-        const savedPost2 = await repository.save(
-            repository.create({
+        const savedPost1 = await repository.save(qr,post);
+        const savedPost2 = await repository.save(qr,
+            repository.create(qr, {
                 id: savedPost1.id,
                 version: savedPost1.version,
                 problems: problems.slice()
@@ -33,5 +34,6 @@ describe("github issues > #3496 jsonb comparison doesn't work", () => {
         );
 
         savedPost1!.version.should.be.equal(savedPost2!.version);
+        await qr.release();
     })));
 });

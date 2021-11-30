@@ -15,6 +15,7 @@ const options: ConnectionOptions = {
 };
 
 createConnection(options).then(connection => {
+    const qr = connection.createQueryRunner();
 
     let author = new PostAuthor();
     author.name = "Umed";
@@ -27,7 +28,7 @@ createConnection(options).then(connection => {
     let postRepository = connection.getRepository(Post);
 
     postRepository
-        .save(post)
+        .save(qr, post)
         .then(post => console.log("Post has been saved"))
         .catch(error => console.log("Cannot save. Error: ", error));
 

@@ -25,11 +25,14 @@ describe("github issues > #966 Inheritance in embeddables", () => {
         const user = new User();
         user.info = info;
 
-        await repository.save(user);
+        const queryRunner = connection.createQueryRunner();
+        await repository.save(queryRunner, user);
 
-        const loadedUser = await repository.findOne(user.id);
+        const loadedUser = await repository.findOne(queryRunner, user.id);
 
         expect(info).to.deep.equal(loadedUser!.info);
+        
+        queryRunner.release();
     })));
 
 });

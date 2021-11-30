@@ -8,17 +8,17 @@ describe("github issues > #6580 DeepPartial does not handle `any` and `{[k: stri
 
     it("DeepPartial should correctly handle any", () => {
         attemptDeepPartial({
-            any: {
-                foo: 'bar',
+            "any": {
+                foo: "bar",
             }
-        })
+        });
     });
 
     it("DeepPartial should correctly handle {[k: string]: any}", () => {
         attemptDeepPartial({
             object: {
-                foo: 'bar'
+                foo: "bar"
             },
-        })
+        });
     });
 });

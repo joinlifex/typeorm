@@ -21,41 +21,42 @@ describe("query builder > relation-id > many-to-many > basic-functionality", () 
     after(() => closeTestingConnections(connections));
 
     it("should not load ids when RelationId decorator is not specified", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const tag = new Tag();
         tag.name = "kids";
-        await connection.manager.save(tag);
+        await connection.manager.save(qr, tag);
 
         const category1 = new Category();
         category1.name = "kids";
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "future";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const category3 = new Category();
         category3.name = "cars";
-        await connection.manager.save(category3);
+        await connection.manager.save(qr, category3);
 
         const post = new Post();
         post.title = "about kids";
         post.categories = [category1, category2];
         post.tag = tag;
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         const post2 = new Post();
         post2.title = "about BMW";
         post2.categories = [category3];
         post2.tag = tag;
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post2);
 
         let loadedPosts = await connection.manager
             .createQueryBuilder(Post, "post")
             .leftJoinAndSelect("post.tag", "tag")
             .leftJoinAndSelect("post.categories", "categories")
             .addOrderBy("post.id, tag.id, categories.id")
-            .getMany();
+            .getMany(qr);
 
         expect(loadedPosts![0].tag).to.not.be.undefined;
         expect(loadedPosts![0].tagId).to.be.undefined;
@@ -72,39 +73,41 @@ describe("query builder > relation-id > many-to-many > basic-functionality", () 
             .leftJoinAndSelect("post.categories", "categories")
             .addOrderBy("post.id, tag.id, categories.id")
             .where("post.id = :id", { id: post.id })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost!.tag).to.not.be.undefined;
         expect(loadedPost!.tagId).to.be.undefined;
         expect(loadedPost!.categories).to.not.be.eql([]);
         expect(loadedPost!.categoryIds).to.be.undefined;
 
+        await qr.release();
     })));
 
     it("should load ids when loadRelationIdAndMap used on ManyToMany owner side", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const category1 = new Category();
         category1.name = "kids";
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "future";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const post = new Post();
         post.title = "about kids";
         post.categories = [category1, category2];
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         const post2 = new Post();
         post2.title = "about kids";
         post2.categories = [category1, category2];
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post2);
 
         let loadedPosts = await connection.manager
             .createQueryBuilder(Post, "post")
             .loadRelationIdAndMap("post.categoryIds", "post.categories")
-            .getMany();
+            .getMany(qr);
 
         expect(loadedPosts![0].categoryIds).to.not.be.undefined;
         expect(loadedPosts![0].categoryIds[0]).to.be.equal(1);
@@ -117,47 +120,51 @@ describe("query builder > relation-id > many-to-many > basic-functionality", () 
             .createQueryBuilder(Post, "post")
             .loadRelationIdAndMap("post.categoryIds", "post.categories")
             .where("post.id = :id", { id: post.id })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost!.categoryIds).to.not.be.undefined;
         expect(loadedPost!.categoryIds[0]).to.be.equal(1);
         expect(loadedPost!.categoryIds[1]).to.be.equal(2);
 
+        await qr.release();
     })));
 
     it("should load ids when loadRelationIdAndMap used on ManyToMany owner side without inverse side", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const category1 = new Category();
         category1.name = "kids";
 
         const category2 = new Category();
         category2.name = "future";
 
-        await connection.manager.save(category1);
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category1);
+        await connection.manager.save(qr, category2);
 
         const post = new Post();
         post.title = "about kids";
         post.subcategories = [category1, category2];
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         let loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
             .loadRelationIdAndMap("post.categoryIds", "post.subcategories")
             .where("post.id = :id", { id: post.id })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost!.categoryIds).to.not.be.undefined;
         expect(loadedPost!.categoryIds[0]).to.be.equal(1);
         expect(loadedPost!.categoryIds[1]).to.be.equal(2);
 
+        await qr.release();
     })));
 
     it("should load ids when loadRelationIdAndMap used on ManyToMany inverse side", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const category = new Category();
         category.name = "cars";
-        await connection.manager.save(category);
+        await connection.manager.save(qr, category);
 
         const post1 = new Post();
         post1.title = "about BMW";
@@ -167,80 +174,86 @@ describe("query builder > relation-id > many-to-many > basic-functionality", () 
         post2.title = "about Audi";
         post2.categories = [category];
 
-        await connection.manager.save(post1);
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post1);
+        await connection.manager.save(qr, post2);
 
         let loadedCategory = await connection.manager
             .createQueryBuilder(Category, "category")
             .loadRelationIdAndMap("category.postIds", "category.posts")
             .where("category.id = :id", { id: category.id })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedCategory!.postIds).to.not.be.undefined;
         expect(loadedCategory!.postIds[0]).to.be.equal(1);
         expect(loadedCategory!.postIds[1]).to.be.equal(2);
 
+        await qr.release();
     })));
 
     it("should load ids when loadRelationIdAndMap used on ManyToMany owning side with additional condition", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const category1 = new Category();
         category1.name = "kids";
 
         const category2 = new Category();
         category2.name = "future";
 
-        await connection.manager.save(category1);
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category1);
+        await connection.manager.save(qr, category2);
 
         const post = new Post();
         post.title = "about kids";
         post.categories = [category1, category2];
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         let loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
             .loadRelationIdAndMap("post.categoryIds", "post.categories", "categories", qb => qb.andWhere("categories.id = :categoryId", { categoryId: 1 }))
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost!.categoryIds).to.not.be.undefined;
         expect(loadedPost!.categoryIds.length).to.be.equal(1);
         expect(loadedPost!.categoryIds[0]).to.be.equal(1);
 
+        await qr.release();
     })));
 
     it("should load ids when loadRelationIdAndMap used on ManyToMany owning side without inverse side and with additional condition", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const category1 = new Category();
         category1.name = "kids";
 
         const category2 = new Category();
         category2.name = "future";
 
-        await connection.manager.save(category1);
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category1);
+        await connection.manager.save(qr, category2);
 
         const post = new Post();
         post.title = "about kids";
         post.subcategories = [category1, category2];
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         let loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
             .loadRelationIdAndMap("post.categoryIds", "post.subcategories", "subCategories", qb => qb.andWhere("subCategories.id = :categoryId", { categoryId: 1 }))
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost!.categoryIds).to.not.be.undefined;
         expect(loadedPost!.categoryIds.length).to.be.equal(1);
         expect(loadedPost!.categoryIds[0]).to.be.equal(1);
 
+        await qr.release();
     })));
 
     it("should load ids when loadRelationIdAndMap used on ManyToMany inverse side with additional condition", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const category = new Category();
         category.name = "cars";
-        await connection.manager.save(category);
+        await connection.manager.save(qr, category);
 
         const post1 = new Post();
         post1.title = "about BMW";
@@ -250,45 +263,47 @@ describe("query builder > relation-id > many-to-many > basic-functionality", () 
         post2.title = "about Audi";
         post2.categories = [category];
 
-        await connection.manager.save(post1);
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post1);
+        await connection.manager.save(qr, post2);
 
         let loadedCategory = await connection.manager
             .createQueryBuilder(Category, "category")
             .loadRelationIdAndMap("category.postIds", "category.posts", "posts", qb => qb.andWhere("posts.id = :postId", { postId: 1 }))
             .where("category.id = :id", { id: category.id })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedCategory!.postIds).to.not.be.undefined;
         expect(loadedCategory!.postIds.length).to.be.equal(1);
         expect(loadedCategory!.postIds[0]).to.be.equal(1);
 
+        await qr.release();
     })));
 
     it("should load ids when loadRelationIdAndMap used on nested relation", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const image1 = new Image();
         image1.name = "photo1";
 
         const image2 = new Image();
         image2.name = "photo2";
 
-        await connection.manager.save(image1);
-        await connection.manager.save(image2);
+        await connection.manager.save(qr, image1);
+        await connection.manager.save(qr, image2);
 
         const category1 = new Category();
         category1.name = "cars";
         category1.images = [image1, image2];
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "BMW";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const post = new Post();
         post.title = "about BMW";
         post.categories = [category1, category2];
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         let loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
@@ -297,7 +312,7 @@ describe("query builder > relation-id > many-to-many > basic-functionality", () 
             .loadRelationIdAndMap("categories.imageIds", "categories.images")
             .where("post.id = :id", { id: post.id })
             .addOrderBy("post.id, categories.id")
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost!.categories).to.not.be.eql([]);
         expect(loadedPost!.categoryIds).to.not.be.undefined;
@@ -309,32 +324,34 @@ describe("query builder > relation-id > many-to-many > basic-functionality", () 
         expect(loadedPost!.categories[0].imageIds[0]).to.be.equal(1);
         expect(loadedPost!.categories[0].imageIds[1]).to.be.equal(2);
 
+        await qr.release();
     })));
 
     it("should load ids when loadRelationIdAndMap used on nested relation with additional conditions", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const image1 = new Image();
         image1.name = "photo1";
 
         const image2 = new Image();
         image2.name = "photo2";
 
-        await connection.manager.save(image1);
-        await connection.manager.save(image2);
+        await connection.manager.save(qr, image1);
+        await connection.manager.save(qr, image2);
 
         const category1 = new Category();
         category1.name = "cars";
         category1.images = [image1, image2];
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "BMW";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const post = new Post();
         post.title = "about BMW";
         post.categories = [category1, category2];
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         let loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
@@ -343,7 +360,7 @@ describe("query builder > relation-id > many-to-many > basic-functionality", () 
             .loadRelationIdAndMap("categories.imageIds", "categories.images", "images", qb => qb.andWhere("images.id = :imageId", { imageId: 1 }))
             .where("post.id = :id", { id: post.id })
             .addOrderBy("post.id, categories.id")
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost!.categories).to.not.be.eql([]);
         expect(loadedPost!.categoryIds).to.not.be.undefined;
@@ -353,28 +370,30 @@ describe("query builder > relation-id > many-to-many > basic-functionality", () 
         expect(loadedPost!.categories[0].imageIds.length).to.be.equal(1);
         expect(loadedPost!.categories[0].imageIds[0]).to.be.equal(1);
 
+        await qr.release();
     })));
 
     it("should not load ids of nested relations when loadRelationIdAndMap used on inherit relation and parent relation was not found", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const image1 = new Image();
         image1.name = "photo1";
 
         const image2 = new Image();
         image2.name = "photo2";
 
-        await connection.manager.save(image1);
-        await connection.manager.save(image2);
+        await connection.manager.save(qr, image1);
+        await connection.manager.save(qr, image2);
 
         const category1 = new Category();
         category1.name = "cars";
         category1.images = [image1, image2];
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const post = new Post();
         post.title = "about BMW";
         post.categories = [category1];
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         let loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
@@ -383,10 +402,11 @@ describe("query builder > relation-id > many-to-many > basic-functionality", () 
             .where("post.id = :id", { id: post.id })
             .setParameter("categoryId", 2)
             .addOrderBy("post.id, categories.id")
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost!.categories).to.be.eql([]);
 
+        await qr.release();
     })));
 
 });

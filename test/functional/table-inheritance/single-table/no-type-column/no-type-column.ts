@@ -23,36 +23,38 @@ describe("table-inheritance > single-table > no-type-column", () => {
         // -------------------------------------------------------------------------
         // Create
         // -------------------------------------------------------------------------
+        const qr = connection.createQueryRunner();
 
         const employee = new Employee();
         employee.name = "alicefoo";
         employee.employeeName = "Alice Foo";
-        await connection.getRepository(Employee).save(employee);
+        await connection.getRepository(Employee).save(qr, employee);
 
         const author = new Author();
         author.name = "bobbar";
         author.authorName = "Bob Bar";
-        await connection.getRepository(Author).save(author);
+        await connection.getRepository(Author).save(qr, author);
 
-        await postItRepo.insert({ postItNoteLabel: "A post-it note", owner: employee } as PostItNote);
-        await stickyRepo.insert({ stickyNoteLabel: "A sticky note", owner: author } as StickyNote);
+        await postItRepo.insert(qr, { postItNoteLabel: "A post-it note", owner: employee } as PostItNote);
+        await stickyRepo.insert(qr, { stickyNoteLabel: "A sticky note", owner: author } as StickyNote);
 
         // -------------------------------------------------------------------------
         // Select
         // -------------------------------------------------------------------------
 
-        const postIt = await postItRepo.findOne({ relations: [ "owner" ] }) as PostItNote;
+        const postIt = await postItRepo.findOne(qr, { relations: [ "owner" ] }) as PostItNote;
 
         postIt.owner.should.be.an.instanceOf(Employee);
         postIt.owner.name.should.be.equal("alicefoo");
         postIt.owner.employeeName.should.be.equal("Alice Foo");
 
-        const sticky = await stickyRepo.findOne({ relations: [ "owner" ] }) as StickyNote;
+        const sticky = await stickyRepo.findOne(qr, { relations: [ "owner" ] }) as StickyNote;
 
         sticky.owner.should.be.an.instanceOf(Author);
         sticky.owner.name.should.be.equal("bobbar");
         sticky.owner.authorName.should.be.equal("Bob Bar");
 
+        await qr.release();
     })));
 
 });

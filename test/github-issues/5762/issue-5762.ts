@@ -29,8 +29,10 @@ describe("github issues > #5762 `Using URL as a rich column type breaks", () => 
             user.id = 1;
             user.url = url;
 
-            const promise = userRepository.save(user);
+            const qr = connection.createQueryRunner();
+            const promise = userRepository.save(qr, user);
 
+            await qr.release();
             return expect(promise).to.eventually.be.deep.equal(user)
                 .and.to.have.property("url").be.instanceOf(URL)
                 .and.to.have.nested.property("href").equal(url.href);

@@ -15,11 +15,14 @@ describe("github issues > #131 Error with single table inheritance query without
     after(() => closeTestingConnections(connections));
 
     it("should not fail when querying for single table inheritance model without additional conditions", () => Promise.all(connections.map(async connection => {
-        const employees = await connection.getRepository(Employee).find();
+        
+        const qr = connection.createQueryRunner();
+        const employees = await connection.getRepository(Employee).find(qr);
         expect(employees).not.to.be.undefined;
 
-        const students = await connection.getRepository(Student).find();
+        const students = await connection.getRepository(Student).find(qr);
         expect(students).not.to.be.undefined;
+        await qr.release();
     })));
 
 });

@@ -17,19 +17,21 @@ describe("github issues > #3350 ER_DUP_FIELDNAME with simple find", () => {
     after(() => closeTestingConnections(connections));
 
     it("should find without errors", () => Promise.all(connections.map(async function(connection) {
+        const qr = connection.createQueryRunner();
 
         const post = new Post();
         post.category = new Category();
         post.category.name = "new category";
-        await connection.manager.save(post.category);
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post.category);
+        await connection.manager.save(qr, post);
 
         const loadedPost = await connection
             .getRepository(Post)
-            .findOne(1, { relations: ["category"] });
+            .findOne(qr, 1, { relations: ["category"] });
         expect(loadedPost).to.be.not.empty;
         expect(loadedPost!.category).to.be.not.empty;
 
+        await qr.release();
     })));
 
 });

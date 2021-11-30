@@ -15,10 +15,13 @@ describe("postgres specific options", () => {
   after(() => closeTestingConnections(connections));
 
   it("should set application_name", () => Promise.all(connections.map(async connection => {
-    const result = await connection.query(
+    const qr = connection.createQueryRunner();
+    const result = await connection.query(qr, 
       "select current_setting('application_name') as application_name"
     );
     expect(result.length).equals(1);
     expect(result[0].application_name).equals("some test name");
+    
+    await qr.release();
   })));
 });

@@ -15,26 +15,27 @@ describe("repository > soft-delete", () => {
 
     it("should perform soft deletion and restoration correctly", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const postRepository = connection.getRepository(Post);
 
         // save a new posts
-        const newPost1 = postRepository.create({
+        const newPost1 = postRepository.create(qr, {
             id: 1,
             name: "post#1"
         });
-        const newPost2 = postRepository.create({
+        const newPost2 = postRepository.create(qr, {
             id: 2,
             name: "post#2"
         });
 
-        await postRepository.save(newPost1);
-        await postRepository.save(newPost2);
+        await postRepository.save(qr, newPost1);
+        await postRepository.save(qr, newPost2);
 
         // soft-delete one
-        await postRepository.softDelete({ id: 1, name: "post#1" });
+        await postRepository.softDelete(qr,{ id: 1, name: "post#1" });
 
         // load to check
-        const loadedPosts = await postRepository.find({ withDeleted: true });
+        const loadedPosts = await postRepository.find(qr, { withDeleted: true });
 
         // assert
         loadedPosts.length.should.be.equal(2);
@@ -49,9 +50,9 @@ describe("repository > soft-delete", () => {
         expect(loadedPost2!.name).to.equals("post#2");
 
         // restore one
-        await postRepository.restore({ id: 1, name: "post#1" });
+        await postRepository.restore(qr,{ id: 1, name: "post#1" });
         // load to check
-        const restoredPosts = await postRepository.find({ withDeleted: true });
+        const restoredPosts = await postRepository.find(qr, { withDeleted: true });
 
         // assert
         restoredPosts.length.should.be.equal(2);
@@ -65,6 +66,7 @@ describe("repository > soft-delete", () => {
         expect(restoredPost2!.deletedAt).to.equals(null);
         expect(restoredPost2!.name).to.equals("post#2");
 
+        await qr.release();
     })));
 
 });

@@ -24,30 +24,34 @@ describe("github issues > #7041 When requesting nested relations on foreign key 
     it("should return null when requested nested relations are empty on OneToOne relation", () =>
         Promise.all(
             connections.map(async (connection) => {
+                const qr = connection.createQueryRunner();
                 const userRepo = connection.getRepository(User);
                 const testUser = new User();
                 testUser.randomField = "foo";
-                await userRepo.save(testUser);
-                const foundUser = await userRepo.findOne(testUser.id, {
+                await userRepo.save(qr, testUser);
+                const foundUser = await userRepo.findOne(qr, testUser.id, {
                     relations: ["admin", "admin.organization"],
                 });
                 expect(foundUser?.randomField).eq("foo");
                 expect(foundUser?.admin).eq(null);
+                await qr.release();
             })
         ));
 
     it("should return [] when requested nested relations are empty on OneToMany relation", () =>
         Promise.all(
             connections.map(async (connection) => {
+                const qr = connection.createQueryRunner();
                 const userRepo = connection.getRepository(User);
                 const testUser = new User();
                 testUser.randomField = "foo";
-                await userRepo.save(testUser);
-                const foundUser = await userRepo.findOne(testUser.id, {
+                await userRepo.save(qr, testUser);
+                const foundUser = await userRepo.findOne(qr, testUser.id, {
                     relations: ["membership", "membership.organization"],
                 });
                 expect(foundUser?.randomField).eq("foo");
                 expect(foundUser?.membership).eql([]);
+                await qr.release();
             })
         ));
 });

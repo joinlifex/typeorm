@@ -1,6 +1,7 @@
 import {EntityMetadata} from "../../metadata/EntityMetadata";
 import {ObjectLiteral} from "../../common/ObjectLiteral";
 import {EmbeddedMetadata} from "../../metadata/EmbeddedMetadata";
+import { QueryRunner } from "../..";
 
 /**
  * Transforms raw document into entity object.
@@ -23,12 +24,12 @@ export class DocumentToEntityTransformer {
     // Public Methods
     // -------------------------------------------------------------------------
 
-    transformAll(documents: ObjectLiteral[], metadata: EntityMetadata) {
-        return documents.map(document => this.transform(document, metadata));
+    transformAll(queryRunner: QueryRunner, documents: ObjectLiteral[], metadata: EntityMetadata) {
+        return documents.map(document => this.transform(queryRunner, document, metadata));
     }
 
-    transform(document: any, metadata: EntityMetadata) {
-        const entity: any = metadata.create(undefined, { fromDeserializer: true });
+    transform(queryRunner: QueryRunner, document: any, metadata: EntityMetadata) {
+        const entity: any = metadata.create(queryRunner, { fromDeserializer: true });
         let hasData = false;
 
         // handle _id property the special way

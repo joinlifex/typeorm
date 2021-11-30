@@ -44,6 +44,7 @@ describe("github issues > #3120 Add relation option \"createForeignKeyConstraint
 
     describe("relation with createForeignKeyConstraints equal false", () => {
         it("should work perfectly", () => Promise.all(connections.map(async connection => {
+            const qr = connection.createQueryRunner();
             const fakeAddresses: Address[] = [];
             for (let i = 0; i < 8; i++) {
                 const fakeRecord = new Address();
@@ -52,7 +53,7 @@ describe("github issues > #3120 Add relation option \"createForeignKeyConstraint
                 fakeRecord.street = "Fake Address #" + i;
                 fakeAddresses.push(fakeRecord);
             }
-            await connection.manager.save(fakeAddresses);
+            await connection.manager.save(qr, fakeAddresses);
             
             const fakePeople: Person[] = [];
             for (let i = 0; i < 8; i++) {
@@ -60,7 +61,7 @@ describe("github issues > #3120 Add relation option \"createForeignKeyConstraint
                 fakeRecord.name = "Fake Person #" + i;
                 fakePeople.push(fakeRecord);
             }
-            await connection.manager.save(fakePeople);
+            await connection.manager.save(qr, fakePeople);
             
             const fakeDetails: ActionDetails[] = [];
             for (let i = 0; i < 8; i++) {
@@ -68,7 +69,7 @@ describe("github issues > #3120 Add relation option \"createForeignKeyConstraint
                 fakeRecord.description = "Fake Details #" + i;
                 fakeDetails.push(fakeRecord);
             }
-            await connection.manager.save(fakeDetails);
+            await connection.manager.save(qr, fakeDetails);
             
             const fakeLogs: ActionLog[] = [];
             for (let i = 0; i < 8; i++) {
@@ -77,7 +78,7 @@ describe("github issues > #3120 Add relation option \"createForeignKeyConstraint
                 fakeRecord.action = "Fake Log #" + i;
                 fakeLogs.push(fakeRecord);
             }
-            await connection.manager.save(fakeLogs);
+            await connection.manager.save(qr, fakeLogs);
 
             const testAddresses: Address[] = [];
             for (let i = 0; i < 3; i++) {
@@ -87,15 +88,15 @@ describe("github issues > #3120 Add relation option \"createForeignKeyConstraint
                 testRecord.street = "Test Address #" + i;
                 testAddresses.push(testRecord);
             }
-            await connection.manager.save(testAddresses);
+            await connection.manager.save(qr, testAddresses);
 
             const testPerson = new Person();
             testPerson.name = "Test Person #1";
-            await connection.manager.save(testPerson);
+            await connection.manager.save(qr, testPerson);
 
             const testDetail = new ActionDetails();
             testDetail.description = "Test Details #1";
-            await connection.manager.save(testDetail);
+            await connection.manager.save(qr, testDetail);
 
             const testLog = new ActionLog();
             testLog.date = new Date();
@@ -103,9 +104,9 @@ describe("github issues > #3120 Add relation option \"createForeignKeyConstraint
             testLog.person = testPerson;
             testLog.addresses = testAddresses;
             testLog.actionDetails = testDetail;
-            await connection.manager.save(testLog);
+            await connection.manager.save(qr, testLog);
 
-            const loadedLog = await connection.manager.findOneOrFail(ActionLog, {
+            const loadedLog = await connection.manager.findOneOrFail(qr, ActionLog, {
                 where: { action: "Test Log #1" },
                 relations: ["person", "actionDetails", "addresses"]
             });
@@ -113,6 +114,7 @@ describe("github issues > #3120 Add relation option \"createForeignKeyConstraint
             loadedLog.person.name.should.be.equal("Test Person #1");
             loadedLog.actionDetails.description.should.be.equal("Test Details #1");
             loadedLog.addresses.length.should.be.equal(3);
+            await qr.release();
         })));
     });
 });

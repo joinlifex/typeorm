@@ -20,20 +20,22 @@ describe("github issue > #1569 updateById generates wrong SQL with arrays inside
         const embedded = new EmbeddedItem();
         embedded.arrayInsideEmbedded = [1, 2, 3];
         item.embedded = embedded;
+        const qr = connection.createQueryRunner();
 
-        await connection.getRepository(Item).save(item);
+        await connection.getRepository(Item).save(qr, item);
 
-        await connection.getRepository(Item).update(item.id, {
+        await connection.getRepository(Item).update(qr, item.id, {
             someText: "some2",
             embedded: {
                 arrayInsideEmbedded: [1, 2],
             },
         });
 
-        const loadedItem = await connection.getRepository(Item).findOne(item.id);
+        const loadedItem = await connection.getRepository(Item).findOne(qr, item.id);
 
         expect(loadedItem!.embedded.arrayInsideEmbedded).to.eql([1, 2]);
 
+        await qr.release();
     })));
 
 });

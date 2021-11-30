@@ -13,6 +13,7 @@ const options: ConnectionOptions = {
 
 createConnection(options).then(async connection => {
 
+    const qr = connection.createQueryRunner();
     let postRepository = connection.getRepository(Post);
 
     let post1 = new Post("Me", "hello me", [
@@ -37,10 +38,10 @@ createConnection(options).then(async connection => {
     ]);
 
     console.log("saving posts");
-    await postRepository.save([post1, post2, post3, post4]);
+    await postRepository.save(qr, [post1, post2, post3, post4]);
 
     console.log("loading the post. pay attention on order: ");
-    const allPosts = await postRepository.find();
+    const allPosts = await postRepository.find(qr);
     console.log(allPosts);
 
 }).catch(error => console.log("Error: ", error));

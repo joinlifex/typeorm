@@ -25,8 +25,8 @@ describe("query runner > rename table", () => {
     it("should correctly rename table and revert rename", () => Promise.all(connections.map(async connection => {
 
         const sequenceQuery = (name: string) => {
-            return `SELECT COUNT(*) FROM information_schema.sequences WHERE sequence_schema = 'public' and sequence_name = '${name}'`
-        }
+            return `SELECT COUNT(*) FROM information_schema.sequences WHERE sequence_schema = 'public' and sequence_name = '${name}'`;
+        };
 
         // CockroachDB does not support renaming constraints and removing PK.
         if (connection.driver instanceof CockroachDriver)

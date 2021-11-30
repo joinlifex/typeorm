@@ -16,6 +16,7 @@ describe("github issues > #762 Nullable @Embedded inside @Embedded", () => {
 
     it("should work perfectly with all data set", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const foo = new Foo();
         foo.name = "Apple";
         foo.metadata = new FooMetadata();
@@ -23,9 +24,10 @@ describe("github issues > #762 Nullable @Embedded inside @Embedded", () => {
         foo.metadata.child = new FooChildMetadata();
         foo.metadata.child.something = 2;
         foo.metadata.child.somethingElse = 3;
-        await connection.manager.save(foo);
+        await connection.manager.save(qr, foo);
 
-        const loadedFoo = await connection.getRepository(Foo).findOne({ name: "Apple" });
+        const loadedFoo = await connection.getRepository(Foo).findOne(qr, { name: "Apple" });
+        await qr.release();
         loadedFoo!.should.be.eql({
             id: 1,
             name: "Apple",
@@ -41,15 +43,17 @@ describe("github issues > #762 Nullable @Embedded inside @Embedded", () => {
 
     it("should work perfectly with some data not set", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const foo = new Foo();
         foo.name = "Apple";
         foo.metadata = new FooMetadata();
         foo.metadata.bar = 1;
         foo.metadata.child = new FooChildMetadata();
         foo.metadata.child.somethingElse = 3;
-        await connection.manager.save(foo);
+        await connection.manager.save(qr, foo);
 
-        const loadedFoo = await connection.getRepository(Foo).findOne({ name: "Apple" });
+        const loadedFoo = await connection.getRepository(Foo).findOne(qr, { name: "Apple" });
+        await qr.release();
         loadedFoo!.should.be.eql({
             id: 1,
             name: "Apple",
@@ -67,9 +71,10 @@ describe("github issues > #762 Nullable @Embedded inside @Embedded", () => {
         foo2.metadata = new FooMetadata();
         foo2.metadata.child = new FooChildMetadata();
         foo2.metadata.child.something = 2;
-        await connection.manager.save(foo2);
+        await connection.manager.save(qr, foo2);
 
-        const loadedFoo2 = await connection.getRepository(Foo).findOne({ name: "Apple2" });
+        const loadedFoo2 = await connection.getRepository(Foo).findOne(qr, { name: "Apple2" });
+        await qr.release();
         loadedFoo2!.should.be.eql({
             id: 2,
             name: "Apple2",
@@ -85,9 +90,10 @@ describe("github issues > #762 Nullable @Embedded inside @Embedded", () => {
         const foo3 = new Foo();
         foo3.name = "Apple3";
         foo3.metadata = new FooMetadata();
-        await connection.manager.save(foo3);
+        await connection.manager.save(qr, foo3);
 
-        const loadedFoo3 = await connection.getRepository(Foo).findOne({ name: "Apple3" });
+        const loadedFoo3 = await connection.getRepository(Foo).findOne(qr, { name: "Apple3" });
+        await qr.release();
         loadedFoo3!.should.be.eql({
             id: 3,
             name: "Apple3",
@@ -103,11 +109,13 @@ describe("github issues > #762 Nullable @Embedded inside @Embedded", () => {
     })));
 
     it("should work perfectly without any data set", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const foo = new Foo();
         foo.name = "Orange";
-        await connection.manager.save(foo);
+        await connection.manager.save(qr, foo);
 
-        const loadedFoo = await connection.getRepository(Foo).findOne({ name: "Orange" });
+        const loadedFoo = await connection.getRepository(Foo).findOne(qr, { name: "Orange" });
+        await qr.release();
         loadedFoo!.should.be.eql({
             id: 1,
             name: "Orange",

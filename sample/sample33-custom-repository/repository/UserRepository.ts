@@ -1,3 +1,4 @@
+import { QueryRunner } from "../../../src";
 import {EntityRepository} from "../../../src/decorator/EntityRepository";
 import {EntityManager} from "../../../src/entity-manager/EntityManager";
 import {User} from "../entity/User";
@@ -11,16 +12,16 @@ export class UserRepository {
     constructor(private manager: EntityManager) {
     }
 
-    async createAndSave(firstName: string, lastName: string) {
-        const user = await this.manager.create(User, { firstName, lastName });
-        return this.manager.save(user);
+    async createAndSave(queryRunner: QueryRunner, firstName: string, lastName: string) {
+        const user = await this.manager.create(queryRunner, User, { firstName, lastName });
+        return this.manager.save(queryRunner, user);
     }
 
-    async findByName(firstName: string, lastName: string) {
+    async findByName(queryRunner: QueryRunner, firstName: string, lastName: string) {
         return this.manager.createQueryBuilder(User, "user")
             .where("user.firstName = :firstName AND user.lastName = :lastName")
             .setParameters({ firstName, lastName })
-            .getOne();
+            .getOne(queryRunner);
     }
 
 }

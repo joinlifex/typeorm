@@ -2,6 +2,7 @@ import {ObjectLiteral} from "../../common/ObjectLiteral";
 import {EntityMetadata} from "../../metadata/EntityMetadata";
 import {EntityManager} from "../../entity-manager/EntityManager";
 import {RelationMetadata} from "../../metadata/RelationMetadata";
+import { QueryRunner } from "../..";
 
 /**
  */
@@ -79,7 +80,7 @@ class LoadMap {
  */
 export class PlainObjectToDatabaseEntityTransformer {
 
-    constructor(private manager: EntityManager) {
+    constructor(private manager: EntityManager, private queryRunner: QueryRunner) {
     }
 
     // -------------------------------------------------------------------------
@@ -107,7 +108,7 @@ export class PlainObjectToDatabaseEntityTransformer {
         // load all entities and store them in the load map
         await Promise.all(loadMap.groupByTargetIds().map(targetWithIds => { // todo: fix type hinting
             return this.manager
-                .findByIds<ObjectLiteral>(targetWithIds.target as any, targetWithIds.ids)
+                .findByIds<ObjectLiteral>(this.queryRunner, targetWithIds.target as any, targetWithIds.ids)
                 .then(entities => loadMap.fillEntities(targetWithIds.target, entities));
         }));
 

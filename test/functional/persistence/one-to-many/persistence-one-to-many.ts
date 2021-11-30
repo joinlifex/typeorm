@@ -25,70 +25,76 @@ describe("persistence > one-to-many", function() {
     // -------------------------------------------------------------------------
 
     it("should add exist element to exist object with empty one-to-many relation and save it", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+            
         const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
-        const newCategory = categoryRepository.create();
+        const newCategory = categoryRepository.create(qr);
         newCategory.name = "Animals";
-        await categoryRepository.save(newCategory);
+        await categoryRepository.save(qr, newCategory);
 
-        const newPost = postRepository.create();
+        const newPost = postRepository.create(qr);
         newPost.title = "All about animals";
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         newPost.categories = [newCategory];
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
-        const loadedPost = await postRepository.findOne(newPost.id, { relations: ["categories"] });
+        const loadedPost = await postRepository.findOne(qr, newPost.id, { relations: ["categories"] });
         expect(loadedPost!).not.to.be.undefined;
         expect(loadedPost!.categories).not.to.be.undefined;
         expect(loadedPost!.categories![0]).not.to.be.undefined;
 
+        await qr.release();
     })));
 
     it("should add exist element to new object with empty one-to-many relation and save it", () => Promise.all(connections.map(async connection => {
-        const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
+            const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
-        const newCategory = categoryRepository.create();
+        const newCategory = categoryRepository.create(qr);
         newCategory.name = "Animals";
-        await categoryRepository.save(newCategory);
+        await categoryRepository.save(qr, newCategory);
 
-        const newPost = postRepository.create();
+        const newPost = postRepository.create(qr);
         newPost.title = "All about animals";
         newPost.categories = [newCategory];
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
-        const loadedPost = await postRepository.findOne(newPost.id, { relations: ["categories"] });
+        const loadedPost = await postRepository.findOne(qr, newPost.id, { relations: ["categories"] });
         expect(loadedPost).not.to.be.undefined;
         expect(loadedPost!.categories).not.to.be.undefined;
         expect(loadedPost!.categories![0]).not.to.be.undefined;
+        
+        await qr.release();
     })));
 
     it("should remove exist element from one-to-many relation and save it", () => Promise.all(connections.map(async connection => {
-        const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
+            const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
-        const firstNewCategory = categoryRepository.create();
+        const firstNewCategory = categoryRepository.create(qr);
         firstNewCategory.name = "Animals";
-        await categoryRepository.save(firstNewCategory);
+        await categoryRepository.save(qr, firstNewCategory);
 
-        const secondNewCategory = categoryRepository.create();
+        const secondNewCategory = categoryRepository.create(qr);
         secondNewCategory.name = "Insects";
-        await categoryRepository.save(secondNewCategory);
+        await categoryRepository.save(qr, secondNewCategory);
 
-        const newPost = postRepository.create();
+        const newPost = postRepository.create(qr);
         newPost.title = "All about animals";
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         newPost.categories = [firstNewCategory, secondNewCategory];
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         newPost.categories = [firstNewCategory];
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
-        const loadedPost = await postRepository.findOne(newPost.id, {
+        const loadedPost = await postRepository.findOne(qr, newPost.id, {
             join: {
                 alias: "post",
                 innerJoinAndSelect: {
@@ -100,31 +106,34 @@ describe("persistence > one-to-many", function() {
         expect(loadedPost!.categories).not.to.be.undefined;
         expect(loadedPost!.categories![0]).not.to.be.undefined;
         expect(loadedPost!.categories![1]).to.be.undefined;
+        
+        await qr.release();
     })));
 
     it("should remove all elements from one-to-many relation and save it", () => Promise.all(connections.map(async connection => {
-        const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
+            const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
-        let firstNewCategory = categoryRepository.create();
+        let firstNewCategory = categoryRepository.create(qr);
         firstNewCategory.name = "Animals";
-        await categoryRepository.save(firstNewCategory);
+        await categoryRepository.save(qr, firstNewCategory);
 
-        let secondNewCategory = categoryRepository.create();
+        let secondNewCategory = categoryRepository.create(qr);
         secondNewCategory.name = "Insects";
-        await categoryRepository.save(secondNewCategory);
+        await categoryRepository.save(qr, secondNewCategory);
 
-        let newPost = postRepository.create();
+        let newPost = postRepository.create(qr);
         newPost.title = "All about animals";
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         newPost.categories = [firstNewCategory, secondNewCategory];
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         newPost.categories = [];
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
-        const loadedPost = await postRepository.findOne(newPost.id, {
+        const loadedPost = await postRepository.findOne(qr, newPost.id, {
             join: {
                 alias: "post",
                 leftJoinAndSelect: {
@@ -134,31 +143,34 @@ describe("persistence > one-to-many", function() {
         });
         expect(loadedPost).not.to.be.undefined;
         expect(loadedPost!.categories).to.be.eql([]);
+        
+        await qr.release();
     })));
 
     it("set relation to null (elements exist there) from one-to-many relation and save it", () => Promise.all(connections.map(async connection => {
-        const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
+            const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
-        let firstNewCategory = categoryRepository.create();
+        let firstNewCategory = categoryRepository.create(qr);
         firstNewCategory.name = "Animals";
-        await categoryRepository.save(firstNewCategory);
+        await categoryRepository.save(qr, firstNewCategory);
 
-        let secondNewCategory = categoryRepository.create();
+        let secondNewCategory = categoryRepository.create(qr);
         secondNewCategory.name = "Insects";
-        await categoryRepository.save(secondNewCategory);
+        await categoryRepository.save(qr, secondNewCategory);
 
-        let newPost = postRepository.create();
+        let newPost = postRepository.create(qr);
         newPost.title = "All about animals";
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         newPost.categories = [firstNewCategory, secondNewCategory];
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         newPost.categories = null;
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
-        const loadedPost = (await postRepository.findOne(newPost.id, {
+        const loadedPost = (await postRepository.findOne(qr, newPost.id, {
             join: {
                 alias: "post",
                 leftJoinAndSelect: {
@@ -168,6 +180,8 @@ describe("persistence > one-to-many", function() {
         }))!;
         expect(loadedPost).not.to.be.undefined;
         expect(loadedPost.categories).to.be.eql([]);
+        
+        await qr.release();
     })));
 
 });

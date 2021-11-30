@@ -369,13 +369,14 @@ export class Connection {
      * Wraps given function execution (and all operations made there) into a transaction.
      * All database operations must be executed using provided entity manager.
      */
-    async transaction<T>(runInTransaction: (entityManager: EntityManager) => Promise<T>): Promise<T>;
-    async transaction<T>(isolationLevel: IsolationLevel, runInTransaction: (entityManager: EntityManager) => Promise<T>): Promise<T>;
+    async transaction<T>(queryRunner: QueryRunner, runInTransaction: (queryRunner: QueryRunner) => Promise<T>): Promise<T>;
+    async transaction<T>(queryRunner: QueryRunner, isolationLevel: IsolationLevel, runInTransaction: (queryRunner: QueryRunner) => Promise<T>): Promise<T>;
     async transaction<T>(
-        isolationOrRunInTransaction: IsolationLevel | ((entityManager: EntityManager) => Promise<T>),
-        runInTransactionParam?: (entityManager: EntityManager) => Promise<T>
+        queryRunner: QueryRunner, 
+        isolationOrRunInTransaction: IsolationLevel | ((queryRunner: QueryRunner) => Promise<T>),
+        runInTransactionParam?: (queryRunner: QueryRunner) => Promise<T>
     ): Promise<any> {
-        return this.manager.transaction(
+        return this.manager.transaction(queryRunner,
             isolationOrRunInTransaction as any,
             runInTransactionParam as any
         );
@@ -384,49 +385,41 @@ export class Connection {
     /**
      * Executes raw SQL query and returns raw database results.
      */
-    async query(query: string, parameters?: any[], queryRunner?: QueryRunner): Promise<any> {
+    async query(queryRunner: QueryRunner, query: string, parameters?: any[]): Promise<any> {
         if (this instanceof MongoEntityManager)
             throw new TypeORMError(`Queries aren't supported by MongoDB.`);
 
         if (queryRunner && queryRunner.isReleased)
             throw new QueryRunnerProviderAlreadyReleasedError();
 
-        const usedQueryRunner = queryRunner || this.createQueryRunner();
-
-        try {
-            return await usedQueryRunner.query(query, parameters);  // await is needed here because we are using finally
-
-        } finally {
-            if (!queryRunner)
-                await usedQueryRunner.release();
-        }
+        return await queryRunner.query(query, parameters);  // await is needed here because we are using finally
     }
 
     /**
      * Creates a new query builder that can be used to build a sql query.
      */
-    createQueryBuilder<Entity>(entityClass: EntityTarget<Entity>, alias: string, queryRunner?: QueryRunner): SelectQueryBuilder<Entity>;
+    createQueryBuilder<Entity>(entityClass?: EntityTarget<Entity>, alias?: string): SelectQueryBuilder<Entity>;
 
     /**
      * Creates a new query builder that can be used to build a sql query.
      */
-    createQueryBuilder(queryRunner?: QueryRunner): SelectQueryBuilder<any>;
+    createQueryBuilder(): SelectQueryBuilder<any>;
 
     /**
      * Creates a new query builder that can be used to build a sql query.
      */
-    createQueryBuilder<Entity>(entityOrRunner?: EntityTarget<Entity>|QueryRunner, alias?: string, queryRunner?: QueryRunner): SelectQueryBuilder<Entity> {
+    createQueryBuilder<Entity>(entityOrRunner?: EntityTarget<Entity>, alias?: string): SelectQueryBuilder<Entity> {
         if (this instanceof MongoEntityManager)
             throw new TypeORMError(`Query Builder is not supported by MongoDB.`);
 
         if (alias) {
             const metadata = this.getMetadata(entityOrRunner as EntityTarget<Entity>);
-            return new SelectQueryBuilder(this, queryRunner)
+            return new SelectQueryBuilder(this)
                 .select(alias)
                 .from(metadata.target, alias);
 
         } else {
-            return new SelectQueryBuilder(this, entityOrRunner as QueryRunner|undefined);
+            return new SelectQueryBuilder(this);
         }
     }
 
@@ -440,9 +433,9 @@ export class Connection {
      * If you perform writes you must use master database,
      * if you perform reads you can use slave databases.
      */
-    createQueryRunner(mode: ReplicationMode = "master"): QueryRunner {
-        const queryRunner = this.driver.createQueryRunner(mode);
-        const manager = this.createEntityManager(queryRunner);
+    createQueryRunner(mode: ReplicationMode = "master", ctx?: number|string): QueryRunner {
+        const queryRunner = this.driver.createQueryRunner(mode, ctx);
+        const manager = this.createEntityManager();
         Object.assign(queryRunner, { manager: manager });
         return queryRunner;
     }
@@ -464,8 +457,8 @@ export class Connection {
     /**
      * Creates an Entity Manager for the current connection with the help of the EntityManagerFactory.
      */
-    createEntityManager(queryRunner?: QueryRunner): EntityManager {
-        return new EntityManagerFactory().create(this, queryRunner);
+    createEntityManager(): EntityManager {
+        return new EntityManagerFactory().create(this);
     }
 
     // -------------------------------------------------------------------------

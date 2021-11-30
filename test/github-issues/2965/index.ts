@@ -18,17 +18,18 @@ describe("github issues > #2965 Reuse preloaded lazy relations", () => {
 
         const repoPerson = connection.getRepository(Person);
         const repoNote = connection.getRepository(Note);
+        const qr = connection.createQueryRunner();
 
-        const personA = await repoPerson.create({ name: "personA" });
-        const personB = await repoPerson.create({ name: "personB" });
+        const personA = await repoPerson.create(qr, { name: "personA" });
+        const personB = await repoPerson.create(qr, { name: "personB" });
 
-        await repoPerson.save([
+        await repoPerson.save(qr, [
             personA,
             personB,
         ]);
 
-        await repoNote.insert({ label: "note1", owner: personA });
-        await repoNote.insert({ label: "note2", owner: personB });
+        await repoNote.insert(qr, { label: "note1", owner: personA });
+        await repoNote.insert(qr, { label: "note2", owner: personB });
 
         const originalLoad: (...args: any[]) => Promise<any[]> = connection.relationLoader.load;
         let loadCalledCounter = 0;
@@ -38,18 +39,19 @@ describe("github issues > #2965 Reuse preloaded lazy relations", () => {
         };
 
         {
-            const res = await repoPerson.find({ relations: ["notes"] });
+            const res = await repoPerson.find(qr, { relations: ["notes"] });
             const personANotes = await res[0].notes;
             loadCalledCounter.should.be.equal(0);
             personANotes[0].label.should.be.equal("note1");
         }
 
         {
-            const res = await repoPerson.find();
+            const res = await repoPerson.find(qr);
             const personBNotes = await res[1].notes;
             loadCalledCounter.should.be.equal(1);
             personBNotes[0].label.should.be.equal("note2");
         }
+        await qr.release();
     })));
 
 });

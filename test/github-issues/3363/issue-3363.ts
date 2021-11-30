@@ -23,71 +23,75 @@ describe("github issues > #3363 Isolation Level in transaction() from Connection
             return;
 
         let postId: number|undefined = undefined, categoryId: number|undefined = undefined;
+        const qr = connection.createQueryRunner();
 
-        await connection.transaction("READ UNCOMMITTED", async transaction => {
+        await connection.transaction(qr, "READ UNCOMMITTED", async queryRunner => {
 
             const post = new Post();
             post.title = "Post #1";
-            await transaction.save(post);
+            await queryRunner.manager.save(queryRunner, post);
 
             const category = new Category();
             category.name = "Category #1";
-            await transaction.save(category);
+            await queryRunner.manager.save(queryRunner, category);
 
             postId = post.id;
             categoryId = category.id;
 
         });
 
-        const post = await connection.manager.findOne(Post, { where: { title: "Post #1" }});
+        const post = await connection.manager.findOne(qr, Post, { where: { title: "Post #1" }});
         expect(post).not.to.be.undefined;
         post!.should.be.eql({
             id: postId,
             title: "Post #1"
         });
 
-        const category = await connection.manager.findOne(Category, { where: { name: "Category #1" }});
+        const category = await connection.manager.findOne(qr, Category, { where: { name: "Category #1" }});
         expect(category).not.to.be.undefined;
         category!.should.be.eql({
             id: categoryId,
             name: "Category #1"
         });
 
+        await qr.release();
     })));
 
     it("should execute operations in SERIALIZABLE isolation level", () => Promise.all(connections.map(async connection => {
 
         let postId: number|undefined = undefined, categoryId: number|undefined = undefined;
 
-        await connection.transaction("SERIALIZABLE", async entityManager => {
+        const qr = connection.createQueryRunner();
+        await connection.transaction(qr, "SERIALIZABLE", async queryRunner => {
 
             const post = new Post();
             post.title = "Post #1";
-            await entityManager.save(post);
+            await queryRunner.manager.save(queryRunner, post);
 
             const category = new Category();
             category.name = "Category #1";
-            await entityManager.save(category);
+            await queryRunner.manager.save(queryRunner, category);
 
             postId = post.id;
             categoryId = category.id;
 
         });
 
-        const post = await connection.manager.findOne(Post, { where: { title: "Post #1" }});
+        const post = await connection.manager.findOne(qr, Post, { where: { title: "Post #1" }});
         expect(post).not.to.be.undefined;
         post!.should.be.eql({
             id: postId,
             title: "Post #1"
         });
 
-        const category = await connection.manager.findOne(Category, { where: { name: "Category #1" }});
+        const category = await connection.manager.findOne(qr, Category, { where: { name: "Category #1" }});
         expect(category).not.to.be.undefined;
         category!.should.be.eql({
             id: categoryId,
             name: "Category #1"
         });
 
+        await qr.release();
     })));
 
 });

@@ -26,14 +26,15 @@ describe("github issues > #57 cascade insert not working with OneToOne relations
         user.access_token = token; // this is not necessary at all
         token.user = user; // this is necessary to cascades to work because we are saving token, not user
 
+        const qr = connection.createQueryRunner();
         // save
-        await connection.getRepository(AccessToken).save(token);
+        await connection.getRepository(AccessToken).save(qr, token);
 
         // get to check
         const tokens = await connection.getRepository(AccessToken)
             .createQueryBuilder("token")
             .innerJoinAndSelect("token.user", "user")
-            .getMany();
+            .getMany(qr);
 
         expect(tokens).not.to.be.undefined;
         tokens.should.be.eql([{
@@ -49,7 +50,7 @@ describe("github issues > #57 cascade insert not working with OneToOne relations
         const users = await connection.getRepository(User)
             .createQueryBuilder("user")
             .innerJoinAndSelect("user.access_token", "token")
-            .getMany();
+            .getMany(qr);
 
         expect(users).not.to.be.undefined;
         users.should.be.eql([{
@@ -61,6 +62,7 @@ describe("github issues > #57 cascade insert not working with OneToOne relations
             }
         }]);
 
+        await qr.release();
     })));
 
 });

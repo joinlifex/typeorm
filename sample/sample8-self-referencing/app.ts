@@ -25,8 +25,8 @@ createConnection(options).then(connection => {
     mainCategory.oneCategory = category1;
     mainCategory.manyCategories.push(category1);
     mainCategory.oneManyCategory = category1;
-
-    categoryRepository.save(mainCategory)
+    const qr = connection.createQueryRunner();
+    categoryRepository.save(qr, mainCategory)
         .then(savedCategory => {
             console.log("saved category: ", savedCategory);
         })

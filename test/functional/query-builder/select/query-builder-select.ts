@@ -19,6 +19,7 @@ describe("query builder > select", () => {
     after(() => closeTestingConnections(connections));
 
     it("should append all entity mapped columns from main selection to select statement", () => Promise.all(connections.map(async connection => {
+        
         const sql = connection.manager.createQueryBuilder(Post, "post")
             .disableEscaping()
             .getSql();
@@ -34,6 +35,7 @@ describe("query builder > select", () => {
     })));
 
     it("should append all entity mapped columns from main selection to SELECT DISTINCT statement", () => Promise.all(connections.map(async connection => {
+        
         const sql = connection.manager.createQueryBuilder(Post, "post")
             .distinct()
             .disableEscaping()
@@ -50,6 +52,7 @@ describe("query builder > select", () => {
     })));
 
     it("should append all entity mapped columns from both main selection and join selections to select statement", () => Promise.all(connections.map(async connection => {
+
         const sql = connection.createQueryBuilder(Post, "post")
             .leftJoinAndSelect("category", "category")
             .disableEscaping()
@@ -70,6 +73,7 @@ describe("query builder > select", () => {
     })));
 
     it("should append entity mapped columns from both main alias and join aliases to select statement", () => Promise.all(connections.map(async connection => {
+
         const sql = connection.createQueryBuilder(Post, "post")
             .select("post.id")
             .addSelect("category.name")
@@ -84,6 +88,7 @@ describe("query builder > select", () => {
 
 
     it("should append entity mapped columns to select statement, if they passed as array", () => Promise.all(connections.map(async connection => {
+
         const sql = connection.createQueryBuilder(Post, "post")
             .select(["post.id", "post.title"])
             .disableEscaping()
@@ -93,6 +98,7 @@ describe("query builder > select", () => {
     })));
 
     it("should append raw sql to select statement", () => Promise.all(connections.map(async connection => {
+
         const sql = connection.createQueryBuilder(Post, "post")
             .select("COUNT(*) as cnt")
             .disableEscaping()
@@ -102,6 +108,7 @@ describe("query builder > select", () => {
     })));
 
     it("should append raw sql and entity mapped column to select statement", () => Promise.all(connections.map(async connection => {
+
         const sql = connection.createQueryBuilder(Post, "post")
             .select(["COUNT(*) as cnt", "post.title"])
             .disableEscaping()
@@ -111,6 +118,7 @@ describe("query builder > select", () => {
     })));
 
     it("should not create alias for selection, which is not entity mapped column", () => Promise.all(connections.map(async connection => {
+
         const sql = connection.createQueryBuilder(Post, "post")
             .select("post.name")
             .disableEscaping()
@@ -124,7 +132,8 @@ describe("query builder > select", () => {
             it("should craft query with exact value", () => Promise.all(connections.map(async connection => {
                 // For github issues #2707
 
-                const [sql, params] = connection.createQueryBuilder(Post, "post")
+
+            const [sql, params] = connection.createQueryBuilder(Post, "post")
                     .select("post.id")
                     .leftJoin("post.category", "category_join")
                     .where({
@@ -144,6 +153,7 @@ describe("query builder > select", () => {
             })));
 
             it("should craft query with FindOperator", () => Promise.all(connections.map(async connection => {
+
                 const [sql, params] = connection.createQueryBuilder(Post, "post")
                     .select("post.id")
                     .leftJoin("post.category", "category_join")
@@ -165,6 +175,7 @@ describe("query builder > select", () => {
 
             it("should craft query with Raw", () => Promise.all(connections.map(async connection => {
                 // For github issue #6264
+
                 const [sql, params] = connection.createQueryBuilder(Post, "post")
                     .select("post.id")
                     .leftJoin("post.category", "category_join")
@@ -183,11 +194,12 @@ describe("query builder > select", () => {
 
                 expect(params).to.eql([]);
             })));
-        })
+        });
 
         describe("one-to-many", () => {
             it("should craft query with exact value", () => Promise.all(connections.map(async connection => {
                 expect(() => {
+
                     connection.createQueryBuilder(Category, "category")
                         .select("category.id")
                         .leftJoin("category.posts", "posts")
@@ -202,6 +214,7 @@ describe("query builder > select", () => {
 
             it("should craft query with FindOperator", () => Promise.all(connections.map(async connection => {
                 // For github issue #6647
+
 
                 expect(() => {
                     connection.createQueryBuilder(Category, "category")
@@ -347,98 +360,110 @@ describe("query builder > select", () => {
 
     describe("query execution and retrieval", () => {
         it("should return a single entity for getOne when found", () => Promise.all(connections.map(async connection => {
-            await connection.getRepository(Post).save({ id: 1, title: "Hello", description: "World", rating: 0 });
+            const qr = connection.createQueryRunner();
+            await connection.getRepository(Post).save(qr, { id: 1, title: "Hello", description: "World", rating: 0 });
 
             const entity = await connection.createQueryBuilder(Post, "post")
                 .where("post.id = :id", { id: 1 })
-                .getOne();
+                .getOne(qr);
 
             expect(entity).not.to.be.undefined;
             expect(entity!.id).to.equal(1);
             expect(entity!.title).to.equal("Hello");
+        
+            await qr.release();
         })));
 
         it("should return undefined for getOne when not found", () => Promise.all(connections.map(async connection => {
-            await connection.getRepository(Post).save({ id: 1, title: "Hello", description: "World", rating: 0 });
+            const qr = connection.createQueryRunner();
+            await connection.getRepository(Post).save(qr, { id: 1, title: "Hello", description: "World", rating: 0 });
 
             const entity = await connection.createQueryBuilder(Post, "post")
                 .where("post.id = :id", { id: 2 })
-                .getOne();
+                .getOne(qr);
 
             expect(entity).to.be.undefined;
+        
+            await qr.release();
         })));
 
         it("should return a single entity for getOneOrFail when found", () => Promise.all(connections.map(async connection => {
-            await connection.getRepository(Post).save({ id: 1, title: "Hello", description: "World", rating: 0 });
+            const qr = connection.createQueryRunner();
+            await connection.getRepository(Post).save(qr, { id: 1, title: "Hello", description: "World", rating: 0 });
 
             const entity = await connection.createQueryBuilder(Post, "post")
                 .where("post.id = :id", { id: 1 })
-                .getOneOrFail();
+                .getOneOrFail(qr);
 
             expect(entity.id).to.equal(1);
             expect(entity.title).to.equal("Hello");
+        
+            await qr.release();
         })));
 
         it("should throw an Error for getOneOrFail when not found", () => Promise.all(connections.map(async connection => {
-            await connection.getRepository(Post).save({ id: 1, title: "Hello", description: "World", rating: 0 });
+            const qr = connection.createQueryRunner();
+            await connection.getRepository(Post).save(qr, { id: 1, title: "Hello", description: "World", rating: 0 });
 
             await expect(
                 connection.createQueryBuilder(Post, "post")
                     .where("post.id = :id", { id: 2 })
-                    .getOneOrFail()
+                    .getOneOrFail(qr)
             ).to.be.rejectedWith(EntityNotFoundError);
+        
+            await qr.release();
         })));
 
-    })
+    });
 
     describe("where-in-ids", () => {
         it("should create expected query with simple primary keys", () => Promise.all(connections.map(async connection => {
-            const [sql, params] = connection.createQueryBuilder(Post, "post")
+        const [sql, params] = connection.createQueryBuilder(Post, "post")
                 .select("post.id")
                 .whereInIds([ 1, 2, 5, 9 ])
                 .disableEscaping()
                 .getQueryAndParameters();
 
-            expect(sql).to.equal("SELECT post.id AS post_id FROM post post WHERE post.id IN (?, ?, ?, ?)")
-            expect(params).to.eql([ 1, 2, 5, 9 ])
-        })))
+            expect(sql).to.equal("SELECT post.id AS post_id FROM post post WHERE post.id IN (?, ?, ?, ?)");
+            expect(params).to.eql([ 1, 2, 5, 9 ]);
+        })));
 
         it("should create expected query with composite primary keys", () => Promise.all(connections.map(async connection => {
-            const [sql, params] = connection.createQueryBuilder(ExternalPost, "post")
+        const [sql, params] = connection.createQueryBuilder(ExternalPost, "post")
                 .select("post.id")
                 .whereInIds([ { outlet: "foo", id: 1 }, { outlet: "bar", id: 2 }, { outlet: "baz", id: 5 } ])
                 .disableEscaping()
                 .getQueryAndParameters();
 
             expect(sql).to.equal(
-                'SELECT post.id AS post_id FROM external_post post WHERE ' +
-                '(((post.outlet = ? AND post.id = ?)) OR ' +
-                '((post.outlet = ? AND post.id = ?)) OR ' +
-                '((post.outlet = ? AND post.id = ?)))'
-            )
-            expect(params).to.eql([ "foo", 1, "bar", 2, "baz", 5 ])
-        })))
+                "SELECT post.id AS post_id FROM external_post post WHERE " +
+                "(((post.outlet = ? AND post.id = ?)) OR " +
+                "((post.outlet = ? AND post.id = ?)) OR " +
+                "((post.outlet = ? AND post.id = ?)))"
+            );
+            expect(params).to.eql([ "foo", 1, "bar", 2, "baz", 5 ]);
+        })));
 
         it("should create expected query with composite primary keys with missing value", () => Promise.all(connections.map(async connection => {
-            const [sql, params] = connection.createQueryBuilder(ExternalPost, "post")
+        const [sql, params] = connection.createQueryBuilder(ExternalPost, "post")
                 .select("post.id")
                 .whereInIds([ { outlet: "foo", id: 1 }, { outlet: "bar", id: 2 }, { id: 5 } ])
                 .disableEscaping()
                 .getQueryAndParameters();
 
             expect(sql).to.equal(
-                'SELECT post.id AS post_id FROM external_post post WHERE ' +
-                '(((post.outlet = ? AND post.id = ?)) OR ' +
-                '((post.outlet = ? AND post.id = ?)) OR ' +
-                '(post.id = ?))'
-            )
-            expect(params).to.eql([ "foo", 1, "bar", 2, 5 ])
-        })))
-    })
+                "SELECT post.id AS post_id FROM external_post post WHERE " +
+                "(((post.outlet = ? AND post.id = ?)) OR " +
+                "((post.outlet = ? AND post.id = ?)) OR " +
+                "(post.id = ?))"
+            );
+            expect(params).to.eql([ "foo", 1, "bar", 2, 5 ]);
+        })));
+    });
 
     it("Support max execution time", () => Promise.all(connections.map(async connection => {
         // MAX_EXECUTION_TIME supports only in MySQL
-        if (!(connection.driver instanceof MysqlDriver)) return
+        if (!(connection.driver instanceof MysqlDriver)) return;
 
         const sql = connection
             .createQueryBuilder(Post, "post")

@@ -21,10 +21,12 @@ describe("github issues > #3847 FEATURE REQUEST - Naming strategy foreign key ov
     after(() => closeTestingConnections(connections));
 
     it("NamingStrategyUnderTest#", () => Promise.all(connections.map(async connection => {
-        await connection.getRepository(Animal).find();
+        const qr = connection.createQueryRunner();
+        await connection.getRepository(Animal).find(qr);
 
         let metadata = connection.getMetadata(Animal);
         
         expect(metadata.foreignKeys[0].name).to.eq("fk_animal_category_categoryId");
+        await qr.release();
     })));
 });

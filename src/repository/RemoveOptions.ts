@@ -28,5 +28,4 @@ export interface RemoveOptions {
      * This option is needed to perform very big insertions when you have issues with underlying driver parameter number limitation.
      */
     chunk?: number;
-
 }

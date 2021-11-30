@@ -17,6 +17,7 @@ const options: ConnectionOptions = {
 };
 
 createConnection(options).then(connection => {
+    const qr = connection.createQueryRunner();
 
     let postRepository = connection.getRepository(Post);
 
@@ -36,10 +37,10 @@ createConnection(options).then(connection => {
     post.categories = [category1, category2];
 
     postRepository
-        .save(post)
+        .save(qr, post)
         .then(post => {
             console.log("Post has been saved. Lets load it now.");
-            return postRepository.find({
+            return postRepository.find(qr, {
                 join: {
                     alias: "post",
                     leftJoinAndSelect: {

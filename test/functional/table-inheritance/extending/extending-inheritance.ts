@@ -14,17 +14,18 @@ describe("table inheritance > regular inheritance using extends keyword", () => 
     after(() => closeTestingConnections(connections));
 
     it("should work correctly", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
 
         const post = new Post();
         post.name = "Super title";
         post.text = "About this post";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         const loadedPost = await connection
             .manager
             .createQueryBuilder(Post, "post")
             .where("post.id = :id", { id: 1 })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost).not.to.be.undefined;
         expect(loadedPost!.name).not.to.be.undefined;
@@ -32,6 +33,7 @@ describe("table inheritance > regular inheritance using extends keyword", () => 
         loadedPost!.name.should.be.equal("Super title");
         loadedPost!.text.should.be.equal("About this post");
 
+        await qr.release();
     })));
 
 });

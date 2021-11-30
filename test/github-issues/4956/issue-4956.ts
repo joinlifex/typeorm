@@ -42,6 +42,8 @@ describe("github issues > #4956 create typeorm_metatable when running migrations
                     await queryRunner.hasTable(typeormMetadataTableName);
 
                 expect(hasPostMigrationMetadataTable).to.be.true;
+                
+                queryRunner.release();
             })
         );
     });
@@ -72,6 +74,8 @@ describe("github issues > #4956 create typeorm_metatable when running migrations
                     await queryRunner.hasTable(typeormMetadataTableName);
 
                 expect(hasPostMigrationMetadataTable).to.be.false;
+
+                queryRunner.release();
             })
         );
     });

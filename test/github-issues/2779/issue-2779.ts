@@ -30,15 +30,17 @@ describe("github issues > #2779 Could we add support for the MySQL/MariaDB SET d
   it("should persist and hydrate sets", () => Promise.all(connections.map(async connection => {
 
     const targetValue = [Role.Support, Role.Developer];
+    const qr = connection.createQueryRunner();
 
     const post = new Post();
     post.roles = targetValue;
-    await connection.manager.save(post);
+    await connection.manager.save(qr, post);
     post.roles.should.be.deep.equal(targetValue);
 
-    const loadedPost = await connection.manager.findOne(Post);
+    const loadedPost = await connection.manager.findOne(qr, Post);
     expect(loadedPost).not.to.be.undefined;
     loadedPost!.roles.should.be.deep.equal(targetValue);
+    await qr.release();
   })));
 
 });

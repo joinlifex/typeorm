@@ -15,22 +15,23 @@ describe("github issues > #929 sub-queries should set their own parameters on ex
 
     it("should persist successfully and return persisted entity", () => Promise.all(connections.map(async connection => {
 
+        const queryRunner = connection.createQueryRunner();
         // create objects to save
         const testEntity1 = new TestEntity();
         testEntity1.name = "Entity #1";
-        await connection.manager.save(testEntity1);
+        await connection.manager.save(queryRunner, testEntity1);
 
         const testEntity2 = new TestEntity();
         testEntity2.name = "Entity #2";
-        await connection.manager.save(testEntity2);
+        await connection.manager.save(queryRunner, testEntity2);
 
         const testEntity3 = new TestEntity();
         testEntity3.name = "Entity #3";
-        await connection.manager.save(testEntity3);
+        await connection.manager.save(queryRunner, testEntity3);
 
         const testEntity4 = new TestEntity();
         testEntity4.name = "Entity #4";
-        await connection.manager.save(testEntity4);
+        await connection.manager.save(queryRunner, testEntity4);
 
         const queryBuilder = connection.manager.createQueryBuilder(TestEntity, "testEntity");
 
@@ -43,10 +44,12 @@ describe("github issues > #929 sub-queries should set their own parameters on ex
         const results = await queryBuilder
             .select("testEntity")
             .where(`testEntity.id IN ${subQuery.getQuery()}`)
-            .getMany();
+            .getMany(queryRunner);
 
         expect(results.length).to.be.equal(1);
         expect(results).to.eql([{ id: 1, name: "Entity #1" }]);
+        
+        queryRunner.release();
     })));
 
 });

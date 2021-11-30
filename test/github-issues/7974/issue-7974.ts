@@ -20,7 +20,8 @@ describe("github issues > #7974 Adding relations option to findTrees()", () => {
     for (let connection of connections) {
       let categoryRepo = connection.getRepository(Category);
       let siteRepo = connection.getRepository(Site);
-
+      const qr = connection.createQueryRunner();
+    
       let c1: Category = new Category();
       c1.title = "Category 1";
       c1.parentCategory = null;
@@ -69,24 +70,25 @@ describe("github issues > #7974 Adding relations option to findTrees()", () => {
       s5.parentCategory = c4;
 
       // Create the categories
-      await categoryRepo.save(c1);
-      await categoryRepo.save(c2);
-      await categoryRepo.save(c3);
-      await categoryRepo.save(c4);
+      await categoryRepo.save(qr, c1);
+      await categoryRepo.save(qr, c2);
+      await categoryRepo.save(qr, c3);
+      await categoryRepo.save(qr, c4);
 
       // Create the sites
 
-      await siteRepo.save(s1);
-      await siteRepo.save(s2);
-      await siteRepo.save(s3);
-      await siteRepo.save(s4);
-      await siteRepo.save(s5);
+      await siteRepo.save(qr, s1);
+      await siteRepo.save(qr, s2);
+      await siteRepo.save(qr, s3);
+      await siteRepo.save(qr, s4);
+      await siteRepo.save(qr, s5);
 
       // Set the just created relations correctly
       c1.sites = [s1, s2];
       c2.sites = [];
       c3.sites = [s3, s4];
       c4.sites = [s5];
+      await qr.release();
     }
   });
 
@@ -94,8 +96,10 @@ describe("github issues > #7974 Adding relations option to findTrees()", () => {
 
   it("should return tree without sites relations", async () => await Promise.all(connections.map(async connection => {
 
-    let result = await connection.getTreeRepository(Category).findTrees();
+    const qr = connection.createQueryRunner();
+    let result = await connection.getTreeRepository(Category).findTrees(qr);
 
+    await qr.release();
     // The complete tree should exist but other relations than the parent- / child-relations should not be loaded
     expect(result).to.have.lengthOf(2);
     expect(result[0].sites).equals(undefined);
@@ -107,8 +111,10 @@ describe("github issues > #7974 Adding relations option to findTrees()", () => {
 
   it("should return tree with sites relations", async () => await Promise.all(connections.map(async connection => {
 
-    let result = await connection.getTreeRepository(Category).findTrees({ relations: ["sites"] });
+    const qr = connection.createQueryRunner();
+    let result = await connection.getTreeRepository(Category).findTrees(qr, { relations: ["sites"] });
 
+    await qr.release();
     // The complete tree should exist and site relations should not be loaded for every category
     expect(result).to.have.lengthOf(2);
     expect(result[0].sites).lengthOf(2);

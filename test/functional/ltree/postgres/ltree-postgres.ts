@@ -26,7 +26,7 @@ describe("ltree-postgres", () => {
                 const schema = await queryRunner.getTable("post");
                 await queryRunner.release();
                 expect(schema).not.to.be.undefined;
-                const ltreeColumn = schema!.columns.find(
+                const ltreeColumn = schema!.columns.find( 
                     tableColumn =>
                         tableColumn.name === "path" &&
                         tableColumn.type === "ltree" &&
@@ -39,96 +39,108 @@ describe("ltree-postgres", () => {
     it("should persist ltree correctly", () =>
         Promise.all(
             connections.map(async connection => {
-                const path = 'News.Featured.Opinion';
+                const qr = connection.createQueryRunner();
+                const path = "News.Featured.Opinion";
                 const postRepo = connection.getRepository(Post);
                 const post = new Post();
                 post.path = path;
-                const persistedPost = await postRepo.save(post);
-                const foundPost = await postRepo.findOne(persistedPost.id);
+                const persistedPost = await postRepo.save(qr, post);
+                const foundPost = await postRepo.findOne(qr, persistedPost.id);
                 expect(foundPost).to.exist;
                 expect(foundPost!.path).to.deep.equal(path);
+                await qr.release();
             })
         ));
 
     it("should update ltree correctly", () =>
         Promise.all(
             connections.map(async connection => {
-                const path = 'News.Featured.Opinion';
-                const path2 = 'News.Featured.Gossip';
+                const qr = connection.createQueryRunner();
+                const path = "News.Featured.Opinion";
+                const path2 = "News.Featured.Gossip";
                 const postRepo = connection.getRepository(Post);
                 const post = new Post();
                 post.path = path;
-                const persistedPost = await postRepo.save(post);
+                const persistedPost = await postRepo.save(qr, post);
 
-                await postRepo.update(
+                await postRepo.update(qr, 
                     { id: persistedPost.id },
                     { path: path2 }
                 );
 
-                const foundPost = await postRepo.findOne(persistedPost.id);
+                const foundPost = await postRepo.findOne(qr, persistedPost.id);
                 expect(foundPost).to.exist;
                 expect(foundPost!.path).to.deep.equal(path2);
+                await qr.release();
             })
         ));
 
     it("should re-save ltree correctly", () =>
         Promise.all(
             connections.map(async connection => {
-                const path = 'News.Featured.Opinion';
-                const path2 = 'News.Featured.Gossip';
+                const qr = connection.createQueryRunner();
+                const path = "News.Featured.Opinion";
+                const path2 = "News.Featured.Gossip";
                 const postRepo = connection.getRepository(Post);
                 const post = new Post();
                 post.path = path;
-                const persistedPost = await postRepo.save(post);
+                const persistedPost = await postRepo.save(qr, post);
 
                 persistedPost.path = path2;
-                await postRepo.save(persistedPost);
+                await postRepo.save(qr, persistedPost);
 
-                const foundPost = await postRepo.findOne(persistedPost.id);
+                const foundPost = await postRepo.findOne(qr, persistedPost.id);
                 expect(foundPost).to.exist;
                 expect(foundPost!.path).to.deep.equal(path2);
+                await qr.release();
             })
         ));
 
     it("should persist ltree correctly with trailing '.'", () =>
         Promise.all(
             connections.map(async connection => {
-                const path = 'News.Featured.Opinion.';
+                const qr = connection.createQueryRunner();
+                const path = "News.Featured.Opinion.";
                 const postRepo = connection.getRepository(Post);
                 const post = new Post();
                 post.path = path;
-                const persistedPost = await postRepo.save(post);
-                const foundPost = await postRepo.findOne(persistedPost.id);
+                const persistedPost = await postRepo.save(qr, post);
+                const foundPost = await postRepo.findOne(qr, persistedPost.id);
                 expect(foundPost).to.exist;
-                expect(foundPost!.path).to.deep.equal('News.Featured.Opinion');
+                expect(foundPost!.path).to.deep.equal("News.Featured.Opinion");
+                await qr.release();
             })
         ));
 
     it("should persist ltree correctly when containing spaces", () =>
         Promise.all(
             connections.map(async connection => {
-                const path = 'News.Featured Story.Opinion';
+                const qr = connection.createQueryRunner();
+                const path = "News.Featured Story.Opinion";
                 const postRepo = connection.getRepository(Post);
                 const post = new Post();
                 post.path = path;
-                const persistedPost = await postRepo.save(post);
-                const foundPost = await postRepo.findOne(persistedPost.id);
+                const persistedPost = await postRepo.save(qr, post);
+                const foundPost = await postRepo.findOne(qr, persistedPost.id);
                 expect(foundPost).to.exist;
-                expect(foundPost!.path).to.deep.equal('News.Featured_Story.Opinion');
+                expect(foundPost!.path).to.deep.equal("News.Featured_Story.Opinion");
+                await qr.release();
             })
         ));
 
     it("should be able to query ltree correctly", () =>
         Promise.all(
             connections.map(async connection => {
-                const path = 'News.Featured.Opinion';
+                const qr = connection.createQueryRunner();
+                const path = "News.Featured.Opinion";
                 const postRepo = connection.getRepository(Post);
                 const post = new Post();
                 post.path = path;
-                await postRepo.save(post);
-                const foundPost = await postRepo.createQueryBuilder().where(`path ~ 'news@.*'`).getOne()
+                await postRepo.save(qr, post);
+                const foundPost = await postRepo.createQueryBuilder().where(`path ~ 'news@.*'`).getOne(qr);
                 expect(foundPost).to.exist;
                 expect(foundPost!.path).to.deep.equal(path);
+                await qr.release();
             })
         ));
 });

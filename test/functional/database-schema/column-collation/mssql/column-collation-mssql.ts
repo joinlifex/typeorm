@@ -17,6 +17,7 @@ describe("database schema > column collation > mssql", () => {
 
     it("should correctly create column with collation option", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const postRepository = connection.getRepository(Post);
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post");
@@ -25,10 +26,11 @@ describe("database schema > column collation > mssql", () => {
         const post = new Post();
         post.id = 1;
         post.name = "Post";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         table!.findColumnByName("name")!.collation!.should.be.equal("French_CI_AS");
 
+        await qr.release();
     })));
 
 });

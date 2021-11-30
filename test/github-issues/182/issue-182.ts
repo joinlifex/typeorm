@@ -21,10 +21,11 @@ describe("github issues > #182 enums are not saved properly", () => {
         post1.status = PostStatus.NEW;
         post1.title = "Hello Post #1";
 
+        const qr = connection.createQueryRunner();
         // persist
-        await connection.manager.save(post1);
+        await connection.manager.save(qr, post1);
 
-        const loadedPosts1 = await connection.manager.findOne(Post, { where: { title: "Hello Post #1" } });
+        const loadedPosts1 = await connection.manager.findOne(qr, Post, { where: { title: "Hello Post #1" } });
         expect(loadedPosts1!).not.to.be.undefined;
         loadedPosts1!.should.be.eql({
             id: 1,
@@ -33,16 +34,16 @@ describe("github issues > #182 enums are not saved properly", () => {
         });
 
         // remove persisted
-        await connection.manager.remove(post1);
+        await connection.manager.remove(qr, post1);
 
         const post2 = new Post();
         post2.status = PostStatus.ACTIVE;
         post2.title = "Hello Post #1";
 
         // persist
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post2);
 
-        const loadedPosts2 = await connection.manager.findOne(Post, { where: { title: "Hello Post #1" } });
+        const loadedPosts2 = await connection.manager.findOne(qr, Post, { where: { title: "Hello Post #1" } });
         expect(loadedPosts2!).not.to.be.undefined;
         loadedPosts2!.should.be.eql({
             id: 2,
@@ -51,16 +52,16 @@ describe("github issues > #182 enums are not saved properly", () => {
         });
 
         // remove persisted
-        await connection.manager.remove(post2);
+        await connection.manager.remove(qr, post2);
 
         const post3 = new Post();
         post3.status = PostStatus.ACHIEVED;
         post3.title = "Hello Post #1";
 
         // persist
-        await connection.manager.save(post3);
+        await connection.manager.save(qr, post3);
 
-        const loadedPosts3 = await connection.manager.findOne(Post, { where: { title: "Hello Post #1" } });
+        const loadedPosts3 = await connection.manager.findOne(qr, Post, { where: { title: "Hello Post #1" } });
         expect(loadedPosts3!).not.to.be.undefined;
         loadedPosts3!.should.be.eql({
             id: 3,
@@ -69,8 +70,9 @@ describe("github issues > #182 enums are not saved properly", () => {
         });
 
         // remove persisted
-        await connection.manager.remove(post3);
+        await connection.manager.remove(qr, post3);
 
+        await qr.release();
     })));
 
 });

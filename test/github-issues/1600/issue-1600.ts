@@ -15,37 +15,40 @@ describe("github issues > #1600 Postgres: QueryBuilder insert with Postgres arra
 
     it("should insert successfully using save method", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const users: User[] = [];
         for (let i = 0; i < 10; i++) {
             const user = new User();
             user.names = ["user #" + i];
             users.push(user);
         }
-        await connection.manager.save(users);
+        await connection.manager.save(qr, users);
 
         const loadedUsers1 = await connection
             .createQueryBuilder(User, "user")
-            .getMany();
+            .getMany(qr);
 
         loadedUsers1.length.should.be.equal(10);
 
         const loadedUsers2 = await connection
             .createQueryBuilder(User, "user")
             .where("user.id IN (:...ids)", { ids: [1, 2, 3, 15] })
-            .getMany();
+            .getMany(qr);
 
         loadedUsers2.length.should.be.equal(3);
 
         const loadedUsers3 = await connection
             .createQueryBuilder(User, "user")
             .where("user.id = ANY(:ids)", { ids: [1, 2, 15] })
-            .getMany();
+            .getMany(qr);
 
         loadedUsers3.length.should.be.equal(2);
+        await qr.release();
     })));
 
     it("should insert successfully using insert method", () => Promise.all(connections.map(async connection => {
-
+ 
+        const qr = connection.createQueryRunner();
         const users: User[] = [];
         for (let i = 0; i < 10; i++) {
             const user = new User();
@@ -58,13 +61,14 @@ describe("github issues > #1600 Postgres: QueryBuilder insert with Postgres arra
             .insert()
             .into(User)
             .values(users)
-            .execute();
+            .execute(qr);
 
         const loadedUsers = await connection
             .createQueryBuilder(User, "user")
-            .getMany();
+            .getMany(qr);
 
         loadedUsers.length.should.be.equal(10);
+        await qr.release();
     })));
 
 });

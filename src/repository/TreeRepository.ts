@@ -6,6 +6,7 @@ import { TypeORMError } from "../error/TypeORMError";
 import { FindTreeOptions } from "../find-options/FindTreeOptions";
 import { FindOptionsUtils } from "../find-options/FindOptionsUtils";
 import { FindTreesOptions } from "./FindTreesOptions";
+import { QueryRunner } from "..";
 
 /**
  * Repository with additional functions to work with trees.
@@ -21,49 +22,48 @@ export class TreeRepository<Entity> extends Repository<Entity> {
     /**
      * Gets complete trees for all roots in the table.
      */
-    async findTrees(options?: FindTreeOptions): Promise<Entity[]> {
-        const roots = await this.findRoots(options);
-        await Promise.all(roots.map(root => this.findDescendantsTree(root, options)));
+    async findTrees(queryRunner: QueryRunner, options?: FindTreeOptions): Promise<Entity[]> {
+        const roots = await this.findRoots(queryRunner, options);
+        await Promise.all(roots.map(root => this.findDescendantsTree(queryRunner, root, options)));
         return roots;
     }
 
     /**
      * Roots are entities that have no ancestors. Finds them all.
      */
-    findRoots(options?: FindTreeOptions): Promise<Entity[]> {
+    findRoots(queryRunner: QueryRunner, options?: FindTreeOptions): Promise<Entity[]> {
         const escapeAlias = (alias: string) => this.manager.connection.driver.escape(alias);
         const escapeColumn = (column: string) => this.manager.connection.driver.escape(column);
         const parentPropertyName = this.manager.connection.namingStrategy.joinColumnName(
             this.metadata.treeParentRelation!.propertyName, this.metadata.primaryColumns[0].propertyName
         );
-
         const qb = this.createQueryBuilder("treeEntity");
         FindOptionsUtils.applyOptionsToTreeQueryBuilder(qb, options);
 
         return qb
             .where(`${escapeAlias("treeEntity")}.${escapeColumn(parentPropertyName)} IS NULL`)
-            .getMany();
+            .getMany(queryRunner);
     }
 
     /**
      * Gets all children (descendants) of the given entity. Returns them all in a flat array.
      */
-    findDescendants(entity: Entity, options?: FindTreeOptions): Promise<Entity[]> {
+    findDescendants(queryRunner: QueryRunner, entity: Entity, options?: FindTreeOptions): Promise<Entity[]> {
         const qb = this.createDescendantsQueryBuilder("treeEntity", "treeClosure", entity);
         FindOptionsUtils.applyOptionsToTreeQueryBuilder(qb, options);
-        return qb.getMany();
+        return qb.getMany(queryRunner);
     }
 
     /**
      * Gets all children (descendants) of the given entity. Returns them in a tree - nested into each other.
      */
-    async findDescendantsTree(entity: Entity, options?: FindTreeOptions): Promise<Entity> {
+    async findDescendantsTree(queryRunner: QueryRunner, entity: Entity, options?: FindTreeOptions): Promise<Entity> {
         // todo: throw exception if there is no column of this relation?
 
         const qb: SelectQueryBuilder<Entity> = this.createDescendantsQueryBuilder("treeEntity", "treeClosure", entity);
         FindOptionsUtils.applyOptionsToTreeQueryBuilder(qb, options);
 
-        const entities = await qb.getRawAndEntities();
+        const entities = await qb.getRawAndEntities(queryRunner);
         const relationMaps = this.createRelationMaps("treeEntity", entities.raw);
         this.buildChildrenEntityTree(entity, entities.entities, relationMaps, {
             depth: -1,
@@ -77,10 +77,10 @@ export class TreeRepository<Entity> extends Repository<Entity> {
     /**
      * Gets number of descendants of the entity.
      */
-    countDescendants(entity: Entity): Promise<number> {
+    countDescendants(queryRunner: QueryRunner, entity: Entity): Promise<number> {
         return this
             .createDescendantsQueryBuilder("treeEntity", "treeClosure", entity)
-            .getCount();
+            .getCount(queryRunner);
     }
 
     /**
@@ -148,21 +148,21 @@ export class TreeRepository<Entity> extends Repository<Entity> {
     /**
      * Gets all parents (ancestors) of the given entity. Returns them all in a flat array.
      */
-    findAncestors(entity: Entity, options?: FindTreeOptions): Promise<Entity[]> {
+    findAncestors(queryRunner: QueryRunner, entity: Entity, options?: FindTreeOptions): Promise<Entity[]> {
         const qb = this.createAncestorsQueryBuilder("treeEntity", "treeClosure", entity);
         FindOptionsUtils.applyOptionsToTreeQueryBuilder(qb, options);
-        return qb.getMany();
+        return qb.getMany(queryRunner);
     }
 
     /**
      * Gets all parents (ancestors) of the given entity. Returns them in a tree - nested into each other.
      */
-    async findAncestorsTree(entity: Entity, options?: FindTreeOptions): Promise<Entity> {
+    async findAncestorsTree(queryRunner: QueryRunner, entity: Entity, options?: FindTreeOptions): Promise<Entity> {
         // todo: throw exception if there is no column of this relation?
         const qb = this.createAncestorsQueryBuilder("treeEntity", "treeClosure", entity);
         FindOptionsUtils.applyOptionsToTreeQueryBuilder(qb, options);
 
-        const entities = await qb.getRawAndEntities();
+        const entities = await qb.getRawAndEntities(queryRunner);
         const relationMaps = this.createRelationMaps("treeEntity", entities.raw);
         this.buildParentEntityTree(entity, entities.entities, relationMaps);
         return entity;
@@ -171,10 +171,10 @@ export class TreeRepository<Entity> extends Repository<Entity> {
     /**
      * Gets number of ancestors of the entity.
      */
-    countAncestors(entity: Entity): Promise<number> {
+    countAncestors(queryRunner: QueryRunner, entity: Entity): Promise<number> {
         return this
             .createAncestorsQueryBuilder("treeEntity", "treeClosure", entity)
-            .getCount();
+            .getCount(queryRunner);
     }
 
     /**

@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { Connection } from "../../../src";
 import { createTestingConnections, closeTestingConnections } from "../../utils/test-utils";
-import { DefaultUpdateDate } from './entity/default-update-date';
+import { DefaultUpdateDate } from "./entity/default-update-date";
 
 describe("github issues > #6995 Generating migrations for UpdateDateColumn should generate on update clause", () => {
 

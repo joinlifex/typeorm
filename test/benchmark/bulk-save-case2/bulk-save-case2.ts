@@ -12,6 +12,7 @@ describe("benchmark > bulk-save > case2", () => {
 
     it("testing bulk save of 10000 objects", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const documents: Document[] = [];
         for (let i = 0; i < 10000; i++) {
             const document = new Document();
@@ -40,12 +41,13 @@ describe("benchmark > bulk-save > case2", () => {
             document.date = new Date();
 
             documents.push(document);
-            // await connection.manager.save(document);
+            // await connection.manager.save(qr, document);
             // await connection.manager.insert(Document, document);
         }
 
-        await connection.manager.save(documents);
+        await connection.manager.save(qr, documents);
         // await connection.manager.insert(Document, documents);
+        await qr.release();
 
     })));
 

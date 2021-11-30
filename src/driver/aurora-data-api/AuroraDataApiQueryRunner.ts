@@ -39,7 +39,7 @@ export class AuroraDataApiQueryRunner extends BaseQueryRunner implements QueryRu
 
     driver: AuroraDataApiDriver;
 
-    protected client: any
+    protected client: any;
 
     // -------------------------------------------------------------------------
     // Protected Properties
@@ -92,12 +92,12 @@ export class AuroraDataApiQueryRunner extends BaseQueryRunner implements QueryRu
         if (this.isTransactionActive)
             throw new TransactionAlreadyStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionStart');
+        await this.broadcaster.broadcast("BeforeTransactionStart");
 
         this.isTransactionActive = true;
         await this.client.startTransaction();
 
-        await this.broadcaster.broadcast('AfterTransactionStart');
+        await this.broadcaster.broadcast("AfterTransactionStart");
     }
 
     /**
@@ -108,12 +108,12 @@ export class AuroraDataApiQueryRunner extends BaseQueryRunner implements QueryRu
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionCommit');
+        await this.broadcaster.broadcast("BeforeTransactionCommit");
 
         await this.client.commitTransaction();
         this.isTransactionActive = false;
 
-        await this.broadcaster.broadcast('AfterTransactionCommit');
+        await this.broadcaster.broadcast("AfterTransactionCommit");
     }
 
     /**
@@ -124,13 +124,13 @@ export class AuroraDataApiQueryRunner extends BaseQueryRunner implements QueryRu
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionRollback');
+        await this.broadcaster.broadcast("BeforeTransactionRollback");
 
         await this.client.rollbackTransaction();
 
         this.isTransactionActive = false;
 
-        await this.broadcaster.broadcast('AfterTransactionRollback');
+        await this.broadcaster.broadcast("AfterTransactionRollback");
     }
 
     /**
@@ -146,11 +146,11 @@ export class AuroraDataApiQueryRunner extends BaseQueryRunner implements QueryRu
 
         result.raw = raw;
 
-        if (raw?.hasOwnProperty('records') && Array.isArray(raw.records)) {
+        if (raw?.hasOwnProperty("records") && Array.isArray(raw.records)) {
             result.records = raw.records;
         }
 
-        if (raw?.hasOwnProperty('numberOfRecordsUpdated')) {
+        if (raw?.hasOwnProperty("numberOfRecordsUpdated")) {
             result.affected = raw.numberOfRecordsUpdated;
         }
 
@@ -733,7 +733,7 @@ export class AuroraDataApiQueryRunner extends BaseQueryRunner implements QueryRu
      */
     async changeColumns(tableOrName: Table|string, changedColumns: { newColumn: TableColumn, oldColumn: TableColumn }[]): Promise<void> {
         for (const {oldColumn, newColumn} of changedColumns) {
-            await this.changeColumn(tableOrName, oldColumn, newColumn)
+            await this.changeColumn(tableOrName, oldColumn, newColumn);
         }
     }
 
@@ -1158,12 +1158,12 @@ export class AuroraDataApiQueryRunner extends BaseQueryRunner implements QueryRu
         }
 
         if (!viewNames) {
-            viewNames = []
+            viewNames = [];
         }
 
         const currentDatabase = await this.getCurrentDatabase();
         const viewsCondition = viewNames.map(tableName => {
-            let { database, tableName: name } = this.driver.parseTableName(tableName)
+            let { database, tableName: name } = this.driver.parseTableName(tableName);
 
             if (!database) {
                 database = currentDatabase;
@@ -1274,8 +1274,8 @@ export class AuroraDataApiQueryRunner extends BaseQueryRunner implements QueryRu
                         return dbIndex["TABLE_NAME"] === dbTable["TABLE_NAME"]
                             && dbIndex["TABLE_SCHEMA"] === dbTable["TABLE_SCHEMA"]
                             && dbIndex["COLUMN_NAME"] === dbColumn["COLUMN_NAME"]
-                            && parseInt(dbIndex["NON_UNIQUE"], 10) === 0
-                    })
+                            && parseInt(dbIndex["NON_UNIQUE"], 10) === 0;
+                    });
 
                     const tableMetadata = this.connection.entityMetadatas.find(metadata => this.getTablePath(table) === this.getTablePath(metadata));
                     const hasIgnoredIndex = columnUniqueIndices.length > 0
@@ -1288,7 +1288,7 @@ export class AuroraDataApiQueryRunner extends BaseQueryRunner implements QueryRu
 
                     const isConstraintComposite = columnUniqueIndices.every((uniqueIndex) => {
                         return dbIndices.some(dbIndex => dbIndex["INDEX_NAME"] === uniqueIndex["INDEX_NAME"] && dbIndex["COLUMN_NAME"] !== dbColumn["COLUMN_NAME"]);
-                    })
+                    });
 
                     const tableColumn = new TableColumn();
                     tableColumn.name = dbColumn["COLUMN_NAME"];

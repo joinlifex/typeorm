@@ -95,13 +95,13 @@ const user = new User();
 user.firstName = "Timber";
 user.lastName = "Saw";
 user.age = 25;
-await repository.save(user);
+await repository.save(qr, user);
 
-const allUsers = await repository.find();
-const firstUser = await repository.findOne(1); // 根据id查找
-const timber = await repository.findOne({ firstName: "Timber", lastName: "Saw" });
+const allUsers = await repository.find(qr);
+const firstUser = await repository.findOne(qr, 1); // 根据id查找
+const timber = await repository.findOne(qr, { firstName: "Timber", lastName: "Saw" });
 
-await repository.remove(timber);
+await repository.remove(qr, timber);
 ```
 
 或者，如果你更喜欢使用 `ActiveRecord` 模式，也可以这样用：
@@ -132,13 +132,13 @@ const user = new User();
 user.firstName = "Timber";
 user.lastName = "Saw";
 user.age = 25;
-await user.save();
+await user.save(qr);
 
-const allUsers = await User.find();
-const firstUser = await User.findOne(1);
-const timber = await User.findOne({ firstName: "Timber", lastName: "Saw" });
+const allUsers = await User.find(qr);
+const firstUser = await User.findOne(qr, 1);
+const timber = await User.findOne(qr, { firstName: "Timber", lastName: "Saw" });
 
-await timber.remove();
+await timber.remove(qr);
 ```
 
 # 入门
@@ -560,7 +560,7 @@ createConnection(/*...*/)
     photo.views = 1;
     photo.isPublished = true;
 
-    return connection.manager.save(photo).then(photo => {
+    return connection.manager.save(qr, photo).then(photo => {
       console.log("Photo has been saved. Photo id is", photo.id);
     });
   })
@@ -586,7 +586,7 @@ createConnection(/*...*/)
     photo.views = 1;
     photo.isPublished = true;
 
-    await connection.manager.save(photo);
+    await connection.manager.save(qr, photo);
     console.log("Photo has been saved");
   })
   .catch(error => console.log(error));
@@ -605,7 +605,7 @@ import { Photo } from "./entity/Photo";
 createConnection(/*...*/)
   .then(async connection => {
     /*...*/
-    let savedPhotos = await connection.manager.find(Photo);
+    let savedPhotos = await connection.manager.find(qr, Photo);
     console.log("All photos from the db: ", savedPhotos);
   })
   .catch(error => console.log(error));
@@ -634,10 +634,10 @@ createConnection(/*...*/)
 
     let photoRepository = connection.getRepository(Photo);
 
-    await photoRepository.save(photo);
+    await photoRepository.save(qr, photo);
     console.log("Photo has been saved");
 
-    let savedPhotos = await photoRepository.find();
+    let savedPhotos = await photoRepository.find(qr);
     console.log("All photos from the db: ", savedPhotos);
   })
   .catch(error => console.log(error));
@@ -656,19 +656,19 @@ import { Photo } from "./entity/Photo";
 createConnection(/*...*/)
   .then(async connection => {
     /*...*/
-    let allPhotos = await photoRepository.find();
+    let allPhotos = await photoRepository.find(qr);
     console.log("All photos from the db: ", allPhotos);
 
-    let firstPhoto = await photoRepository.findOne(1);
+    let firstPhoto = await photoRepository.findOne(qr, 1);
     console.log("First photo from the db: ", firstPhoto);
 
-    let meAndBearsPhoto = await photoRepository.findOne({ name: "Me and Bears" });
+    let meAndBearsPhoto = await photoRepository.findOne(qr, { name: "Me and Bears" });
     console.log("Me and Bears photo from the db: ", meAndBearsPhoto);
 
-    let allViewedPhotos = await photoRepository.find({ views: 1 });
+    let allViewedPhotos = await photoRepository.find(qr, { views: 1 });
     console.log("All viewed photos: ", allViewedPhotos);
 
-    let allPublishedPhotos = await photoRepository.find({ isPublished: true });
+    let allPublishedPhotos = await photoRepository.find(qr, { isPublished: true });
     console.log("All published photos: ", allPublishedPhotos);
 
     let [allPhotos, photosCount] = await photoRepository.findAndCount();
@@ -689,9 +689,9 @@ import { Photo } from "./entity/Photo";
 createConnection(/*...*/)
   .then(async connection => {
     /*...*/
-    let photoToUpdate = await photoRepository.findOne(1);
+    let photoToUpdate = await photoRepository.findOne(qr, 1);
     photoToUpdate.name = "Me, my friends and polar bears";
-    await photoRepository.save(photoToUpdate);
+    await photoRepository.save(qr, photoToUpdate);
   })
   .catch(error => console.log(error));
 ```
@@ -709,8 +709,8 @@ import { Photo } from "./entity/Photo";
 createConnection(/*...*/)
   .then(async connection => {
     /*...*/
-    let photoToRemove = await photoRepository.findOne(1);
-    await photoRepository.remove(photoToRemove);
+    let photoToRemove = await photoRepository.findOne(qr, 1);
+    await photoRepository.remove(qr, photoToRemove);
   })
   .catch(error => console.log(error));
 ```
@@ -806,10 +806,10 @@ createConnection(/*...*/)
     let metadataRepository = connection.getRepository(PhotoMetadata);
 
     // 先保存photo
-    await photoRepository.save(photo);
+    await photoRepository.save(qr, photo);
 
     // 然后保存photo的metadata
-    await metadataRepository.save(metadata);
+    await metadataRepository.save(qr, metadata);
 
     // 完成
     console.log("Metadata is saved, and relation between metadata and photo is created in the database too");
@@ -865,7 +865,7 @@ createConnection(/*...*/)
   .then(async connection => {
     /*...*/
     let photoRepository = connection.getRepository(Photo);
-    let photos = await photoRepository.find({ relations: ["metadata"] });
+    let photos = await photoRepository.find(qr, { relations: ["metadata"] });
   })
   .catch(error => console.log(error));
 ```
@@ -886,7 +886,7 @@ createConnection(/*...*/)
       .getRepository(Photo)
       .createQueryBuilder("photo")
       .innerJoinAndSelect("photo.metadata", "metadata")
-      .getMany();
+      .getMany(qr);
   })
   .catch(error => console.log(error));
 ```
@@ -934,7 +934,7 @@ createConnection(options)
     let photoRepository = connection.getRepository(Photo);
 
     // 保存photo的同时保存metadata
-    await photoRepository.save(photo);
+    await photoRepository.save(qr, photo);
 
     console.log("Photo is saved, photo metadata is saved too.");
   })
@@ -1070,11 +1070,11 @@ let connection = await createConnection(options);
 // 创建一些 albums
 let album1 = new Album();
 album1.name = "Bears";
-await connection.manager.save(album1);
+await connection.manager.save(qr, album1);
 
 let album2 = new Album();
 album2.name = "Me";
-await connection.manager.save(album2);
+await connection.manager.save(qr, album2);
 
 // 创建一些 photos
 let photo = new Photo();
@@ -1082,11 +1082,11 @@ photo.name = "Me and Bears";
 photo.description = "I am near polar bears";
 photo.filename = "photo-with-bears.jpg";
 photo.albums = [album1, album2];
-await connection.manager.save(photo);
+await connection.manager.save(qr, photo);
 
 // 现在我们的`photo`被保存了，并且'albums`被附加到它上面
 // 然后加载它们
-const loadedPhoto = await connection.getRepository(Photo).findOne(1, { relations: ["albums"] });
+const loadedPhoto = await connection.getRepository(Photo).findOne(qr, 1, { relations: ["albums"] });
 ```
 
 `loadedPhoto` 如下所示:
@@ -1123,7 +1123,7 @@ let photos = await connection
   .skip(5)
   .take(10)
   .setParameters({ photoName: "My", bearName: "Mishka" })
-  .getMany();
+  .getMany(qr);
 ```
 
 此查询选择所有 published 的 name 等于"My"或"Mishka"的 photos。它将从结果中的第 5 个（分页偏移）开始，并且仅选择 10 个结果（分页限制）。得到的结果将按 ID 降序排序。photo 的 albums 将被 left-joined，其元数据将被 inner joined。

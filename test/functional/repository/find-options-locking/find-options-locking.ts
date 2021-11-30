@@ -32,57 +32,66 @@ describe("repository > find options > locking", () => {
     it("should throw error if pessimistic lock used without transaction", () => Promise.all(connections.map(async connection => {
         if (connection.driver instanceof AbstractSqliteDriver || connection.driver instanceof SapDriver)
             return;
+        const qr = connection.createQueryRunner();
 
         if (connection.driver instanceof CockroachDriver) {
-            return Promise.all([
+            await Promise.all([
                 connection
                     .getRepository(PostWithVersion)
-                    .findOne(1, { lock: { mode: "pessimistic_write" } })
+                    .findOne(qr, 1, { lock: { mode: "pessimistic_write" } })
                     .should.be.rejectedWith(PessimisticLockTransactionRequiredError),
             ]);
+            await qr.release();
+            return;
         }
 
-        return Promise.all([
+        await Promise.all([
             connection
                 .getRepository(PostWithVersion)
-                .findOne(1, { lock: { mode: "pessimistic_read" } })
+                .findOne(qr, 1, { lock: { mode: "pessimistic_read" } })
                 .should.be.rejectedWith(PessimisticLockTransactionRequiredError),
 
             connection
                 .getRepository(PostWithVersion)
-                .findOne(1, { lock: { mode: "pessimistic_write" } })
+                .findOne(qr, 1, { lock: { mode: "pessimistic_write" } })
                 .should.be.rejectedWith(PessimisticLockTransactionRequiredError),
         ]);
+        await qr.release();
     })));
 
     it("should not throw error if pessimistic lock used with transaction", () => Promise.all(connections.map(async connection => {
         if (connection.driver instanceof AbstractSqliteDriver || connection.driver instanceof SapDriver)
             return;
 
+        const qr = connection.createQueryRunner();
         if (connection.driver instanceof CockroachDriver) {
-            return connection.manager.transaction(entityManager => {
+            const proms = connection.manager.transaction(qr, queryRunner => {
                 return Promise.all([
-                    entityManager
+                    queryRunner.manager
                         .getRepository(PostWithVersion)
-                        .findOne(1, { lock: { mode: "pessimistic_write" } })
+                        .findOne(queryRunner, 1, { lock: { mode: "pessimistic_write" } })
                         .should.not.be.rejected
                 ]);
             });
+            await qr.release();
+            return proms;
         }
 
-        return connection.manager.transaction(entityManager => {
+        await connection.manager.transaction(qr, queryRunner => {
             return Promise.all([
-                entityManager
+                queryRunner.manager
                     .getRepository(PostWithVersion)
-                    .findOne(1, { lock: { mode: "pessimistic_read" } })
+                    .findOne(queryRunner, 1, { lock: { mode: "pessimistic_read" } })
                     .should.not.be.rejected,
 
-                entityManager
+                queryRunner.manager
                     .getRepository(PostWithVersion)
-                    .findOne(1, { lock: { mode: "pessimistic_write" } })
+                    .findOne(queryRunner, 1, { lock: { mode: "pessimistic_write" } })
                     .should.not.be.rejected
             ]);
         });
+        await qr.release();
+        return;
     })));
 
     it("should attach pessimistic read lock statement on query if locking enabled", () => Promise.all(connections.map(async connection => {
@@ -90,17 +99,19 @@ describe("repository > find options > locking", () => {
             return;
 
         const executedSql: string[] = [];
+        const qr = connection.createQueryRunner();
 
-        await connection.manager.transaction(entityManager => {
-            const originalQuery = entityManager.queryRunner!.query.bind(entityManager.queryRunner);
-            entityManager.queryRunner!.query = (...args: any[]) => {
+        await connection.manager.transaction(qr, queryRunner => {
+            const originalQuery = queryRunner.query.bind(queryRunner);
+            queryRunner.query = (...args: any[]) => {
                 executedSql.push(args[0]);
+                // @ts-ignore
                 return originalQuery(...args);
             };
 
-            return entityManager
+            return queryRunner.manager
                 .getRepository(PostWithVersion)
-                .findOne(1, {lock: {mode: "pessimistic_read"}});
+                .findOne(queryRunner, 1, {lock: {mode: "pessimistic_read"}});
         });
 
         if (connection.driver instanceof MysqlDriver) {
@@ -115,6 +126,7 @@ describe("repository > find options > locking", () => {
         } else if (connection.driver instanceof SqlServerDriver) {
             expect(executedSql[0].indexOf("WITH (HOLDLOCK, ROWLOCK)") !== -1).to.be.true;
         }
+        await qr.release();
 
     })));
 
@@ -122,39 +134,44 @@ describe("repository > find options > locking", () => {
         if (!(connection.driver instanceof PostgresDriver))
             return;
 
+        const qr = connection.createQueryRunner();
         const executedSql: string[] = [];
 
-        await connection.manager.transaction(entityManager => {
-            const originalQuery = entityManager.queryRunner!.query.bind(entityManager.queryRunner);
-            entityManager.queryRunner!.query = (...args: any[]) => {
+        await connection.manager.transaction(qr, queryRunner => {
+            const originalQuery = queryRunner.query.bind(queryRunner);
+            queryRunner.query = (...args: any[]) => {
                 executedSql.push(args[0]);
+                // @ts-ignore
                 return originalQuery(...args);
             };
 
-            return entityManager
+            return queryRunner.manager
                 .getRepository(PostWithVersion)
-                .findOne(1, { lock: { mode: "for_no_key_update" } });
+                .findOne(queryRunner, 1, { lock: { mode: "for_no_key_update" } });
         });
 
         expect(executedSql.join(" ").includes("FOR NO KEY UPDATE")).to.be.true;
+        await qr.release();
     })));
 
     it("should attach pessimistic write lock statement on query if locking enabled", () => Promise.all(connections.map(async connection => {
         if (connection.driver instanceof AbstractSqliteDriver || connection.driver instanceof SapDriver)
             return;
+        const qr = connection.createQueryRunner();
 
         const executedSql: string[] = [];
 
-        await connection.manager.transaction(entityManager => {
-            const originalQuery = entityManager.queryRunner!.query.bind(entityManager.queryRunner);
-            entityManager.queryRunner!.query = (...args: any[]) => {
+        await connection.manager.transaction(qr, queryRunner => {
+            const originalQuery = queryRunner.query.bind(queryRunner);
+            queryRunner.query = (...args: any[]) => {
                 executedSql.push(args[0]);
+                // @ts-ignore
                 return originalQuery(...args);
             };
 
-            return entityManager
+            return queryRunner.manager
                 .getRepository(PostWithVersion)
-                .findOne(1, {lock: {mode: "pessimistic_write"}});
+                .findOne(queryRunner, 1, {lock: {mode: "pessimistic_write"}});
         });
 
         if (connection.driver instanceof MysqlDriver || connection.driver instanceof PostgresDriver || connection.driver instanceof OracleDriver) {
@@ -163,6 +180,7 @@ describe("repository > find options > locking", () => {
         } else if (connection.driver instanceof SqlServerDriver) {
             expect(executedSql[0].indexOf("WITH (UPDLOCK, ROWLOCK)") !== -1).to.be.true;
         }
+        await qr.release();
 
     })));
 
@@ -170,71 +188,88 @@ describe("repository > find options > locking", () => {
         if (!(connection.driver instanceof SqlServerDriver)) return;
 
         const executedSql: string[] = [];
+        const qr = connection.createQueryRunner();
 
-        await connection.manager.transaction(entityManager => {
-            const originalQuery = entityManager.queryRunner!.query.bind(entityManager.queryRunner);
-            entityManager.queryRunner!.query = (...args: any[]) => {
+        await connection.manager.transaction(qr, queryRunner => {
+            const originalQuery = queryRunner.query.bind(queryRunner);
+            qr.query = (...args: any[]) => {
                 executedSql.push(args[0]);
                 return originalQuery(...args);
             };
 
-            return entityManager
+            return queryRunner.manager
                 .getRepository(PostWithVersion)
-                .findOne(1, {lock: {mode: "dirty_read"}});
+                .findOne(queryRunner, 1, {lock: {mode: "dirty_read"}});
         });
 
         expect(executedSql[0].indexOf("WITH (NOLOCK)") !== -1).to.be.true;
 
+        await qr.release();
     })));
 
     it("should throw error if optimistic lock used with `find` method", () => Promise.all(connections.map(async connection => {
-       return connection
+       
+        const qr = connection.createQueryRunner();
+        await connection
            .getRepository(PostWithVersion)
-           .find({lock: {mode: "optimistic", version: 1}})
+           .find(qr, {lock: {mode: "optimistic", version: 1}})
            .should.be.rejectedWith(OptimisticLockCanNotBeUsedError);
+        await qr.release();
     })));
 
     it("should not throw error if optimistic lock used with `findOne` method", () => Promise.all(connections.map(async connection => {
-        return connection
+        
+        const qr = connection.createQueryRunner();
+        await connection
             .getRepository(PostWithVersion)
-            .findOne(1, {lock: {mode: "optimistic", version: 1}})
+            .findOne(qr, 1, {lock: {mode: "optimistic", version: 1}})
             .should.not.be.rejected;
+        await qr.release();
+        return;
     })));
 
     it("should throw error if entity does not have version and update date columns", () => Promise.all(connections.map(async connection => {
 
         const post = new PostWithoutVersionAndUpdateDate();
         post.title = "New post";
-        await connection.manager.save(post);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, post);
 
-        return connection
+        await connection
             .getRepository(PostWithoutVersionAndUpdateDate)
-            .findOne(1, {lock: {mode: "optimistic", version: 1}})
+            .findOne(qr, 1, {lock: {mode: "optimistic", version: 1}})
             .should.be.rejectedWith(NoVersionOrUpdateDateColumnError);
+        await qr.release();
     })));
 
     it("should throw error if actual version does not equal expected version", () => Promise.all(connections.map(async connection => {
 
         const post = new PostWithVersion();
         post.title = "New post";
-        await connection.manager.save(post);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, post);
 
-        return connection
+        await connection
             .getRepository(PostWithVersion)
-            .findOne(1, {lock: {mode: "optimistic", version: 2}})
+            .findOne(qr, 1, {lock: {mode: "optimistic", version: 2}})
             .should.be.rejectedWith(OptimisticLockVersionMismatchError);
+        await qr.release();
+        return;
     })));
 
     it("should not throw error if actual version and expected versions are equal", () => Promise.all(connections.map(async connection => {
 
         const post = new PostWithVersion();
         post.title = "New post";
-        await connection.manager.save(post);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, post);
 
-        return connection
+        await connection
             .getRepository(PostWithVersion)
-            .findOne(1, {lock: {mode: "optimistic", version: 1}})
+            .findOne(qr, 1, {lock: {mode: "optimistic", version: 1}})
             .should.not.be.rejected;
+        await qr.release();
+        return;
     })));
 
     it("should throw error if actual updated date does not equal expected updated date", () => Promise.all(connections.map(async connection => {
@@ -245,12 +280,15 @@ describe("repository > find options > locking", () => {
 
         const post = new PostWithUpdateDate();
         post.title = "New post";
-        await connection.manager.save(post);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, post);
 
-        return connection
+        await connection
             .getRepository(PostWithUpdateDate)
-            .findOne(1, {lock: {mode: "optimistic", version: new Date(2017, 1, 1)}})
+            .findOne(qr, 1, {lock: {mode: "optimistic", version: new Date(2017, 1, 1)}})
             .should.be.rejectedWith(OptimisticLockVersionMismatchError);
+        await qr.release();
+        return;
     })));
 
     it("should not throw error if actual updated date and expected updated date are equal", () => Promise.all(connections.map(async connection => {
@@ -261,12 +299,15 @@ describe("repository > find options > locking", () => {
 
         const post = new PostWithUpdateDate();
         post.title = "New post";
-        await connection.manager.save(post);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, post);
 
-        return connection
+        await connection
             .getRepository(PostWithUpdateDate)
-            .findOne(1, {lock: {mode: "optimistic", version: post.updateDate}})
+            .findOne(qr, 1, {lock: {mode: "optimistic", version: post.updateDate}})
             .should.not.be.rejected;
+        await qr.release();
+        return;
     })));
 
     it("should work if both version and update date columns applied", () => Promise.all(connections.map(async connection => {
@@ -277,45 +318,54 @@ describe("repository > find options > locking", () => {
 
         const post = new PostWithVersionAndUpdatedDate();
         post.title = "New post";
-        await connection.manager.save(post);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, post);
 
-        return Promise.all([
+        await Promise.all([
             connection
                 .getRepository(PostWithVersionAndUpdatedDate)
-                .findOne(1, {lock: {mode: "optimistic", version: post.updateDate}})
+                .findOne(qr, 1, {lock: {mode: "optimistic", version: post.updateDate}})
                 .should.not.be.rejected,
             connection
                 .getRepository(PostWithVersionAndUpdatedDate)
-                .findOne(1, {lock: {mode: "optimistic", version: 1}})
+                .findOne(qr, 1, {lock: {mode: "optimistic", version: 1}})
                 .should.not.be.rejected,
         ]);
+        await qr.release();
     })));
 
     it("should throw error if pessimistic locking not supported by given driver", () => Promise.all(connections.map(async connection => {
-        if (connection.driver instanceof AbstractSqliteDriver || connection.driver instanceof SapDriver)
-            return connection.manager.transaction(entityManager => {
+        const qr = connection.createQueryRunner();
+        if (connection.driver instanceof AbstractSqliteDriver || connection.driver instanceof SapDriver){
+            await connection.manager.transaction(qr, queryRunner => {
                 return Promise.all([
-                    entityManager
+                    queryRunner.manager
                         .getRepository(PostWithVersion)
-                        .findOne(1, { lock: { mode: "pessimistic_read" } })
+                        .findOne(queryRunner, 1, { lock: { mode: "pessimistic_read" } })
                         .should.be.rejectedWith(LockNotSupportedOnGivenDriverError),
 
-                    entityManager
+                    queryRunner.manager
                         .getRepository(PostWithVersion)
-                        .findOne(1, { lock: { mode: "pessimistic_write" } })
+                        .findOne(queryRunner, 1, { lock: { mode: "pessimistic_write" } })
                         .should.be.rejectedWith(LockNotSupportedOnGivenDriverError),
                 ]);
             });
+            await qr.release();
+            return;
+        }
 
-        if (connection.driver instanceof CockroachDriver)
-            return connection.manager.transaction(entityManager => {
+        if (connection.driver instanceof CockroachDriver){
+            await connection.manager.transaction(qr, queryRunner => {
                 return Promise.all([
-                    entityManager
+                    queryRunner.manager
                         .getRepository(PostWithVersion)
-                        .findOne(1, { lock: { mode: "pessimistic_read" } })
+                        .findOne(queryRunner, 1, { lock: { mode: "pessimistic_read" } })
                         .should.be.rejectedWith(LockNotSupportedOnGivenDriverError),
                 ]);
             });
+            await qr.release();
+            return;
+        }
 
         return;
     })));
@@ -324,60 +374,72 @@ describe("repository > find options > locking", () => {
         if (!(connection.driver instanceof PostgresDriver || connection.driver instanceof CockroachDriver))
             return;
 
-        return connection.manager.transaction(entityManager => {
+        const qr = connection.createQueryRunner();
+        await connection.manager.transaction(qr, queryRunner => {
             return Promise.all([
-                entityManager.getRepository(Post)
-                    .findOne({
+                queryRunner.manager.getRepository(Post)
+                    .findOne(queryRunner, {
                         lock: {mode: "pessimistic_write", tables: []}
                     }).should.be.rejectedWith("lockTables cannot be an empty array"),
             ]);
         });
+        await qr.release();
+        return;
     })));
 
     it("should throw error when specifying a table that is not part of the query", () => Promise.all(connections.map(async connection => {
         if (!(connection.driver instanceof PostgresDriver || connection.driver instanceof CockroachDriver))
             return;
+        const qr = connection.createQueryRunner();
 
-        return connection.manager.transaction(entityManager => {
+        await connection.manager.transaction(qr, queryRunner => {
             return Promise.all([
-                entityManager.getRepository(Post)
-                    .findOne({
+                queryRunner.manager.getRepository(Post)
+                    .findOne(queryRunner, {
                         relations: ["author"],
                         lock: {mode: "pessimistic_write", tables: ["img"]}
                     }).should.be.rejectedWith('"img" is not part of this query')
             ]);
         });
+        await qr.release();
+        return;
     })));
 
     it("should allow on a left join", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
+
         if (connection.driver instanceof CockroachDriver) {
-            return connection.manager.transaction(entityManager => {
+            await connection.manager.transaction(qr, queryRunner => {
                 return Promise.all([
-                    entityManager.getRepository(Post).findOne({
+                    queryRunner.manager.getRepository(Post).findOne(queryRunner, {
                         relations: ["author"],
                         lock: {mode: "pessimistic_write", tables: ["post"]}
                     }),
-                    entityManager.getRepository(Post).findOne({
+                    queryRunner.manager.getRepository(Post).findOne(queryRunner, {
                         relations: ["author"],
                         lock: {mode: "pessimistic_write"}
                     })
                 ]);
             });
+            await qr.release();
+            return;
         }
 
         if (connection.driver instanceof PostgresDriver) {
-            return connection.manager.transaction(entityManager => {
+            await connection.manager.transaction(qr, queryRunner => {
                 return Promise.all([
-                    entityManager.getRepository(Post).findOne({
+                    queryRunner.manager.getRepository(Post).findOne(queryRunner, {
                         relations: ["author"],
                         lock: {mode: "pessimistic_write", tables: ["post"]}
                     }),
-                    entityManager.getRepository(Post).findOne({
+                    queryRunner.manager.getRepository(Post).findOne(queryRunner, {
                         relations: ["author"],
                         lock: {mode: "pessimistic_write"}
                     }).should.be.rejectedWith("FOR UPDATE cannot be applied to the nullable side of an outer join")
                 ]);
             });
+            await qr.release();
+            return;
         }
 
         return;
@@ -387,41 +449,44 @@ describe("repository > find options > locking", () => {
         if (!(connection.driver instanceof PostgresDriver))
             return;
 
-        return connection.manager.transaction(entityManager => {
+        const qr = connection.createQueryRunner();
+        await connection.manager.transaction(qr, queryRunner => {
 
             return Promise.all([
-                entityManager.getRepository(Post).findOne({
+                queryRunner.manager.getRepository(Post).findOne(queryRunner, {
                     relations: ["author"],
                     lock: {mode: "pessimistic_read", tables: ["post"]}
                 }),
-                entityManager.getRepository(Post).findOne({
+                queryRunner.manager.getRepository(Post).findOne(queryRunner, {
                     relations: ["author"],
                     lock: {mode: "pessimistic_write", tables: ["post"]}
                 }),
-                entityManager.getRepository(Post).findOne({
+                queryRunner.manager.getRepository(Post).findOne(queryRunner, {
                     relations: ["author"],
                     lock: {mode: "pessimistic_partial_write", tables: ["post"]}
                 }),
-                entityManager.getRepository(Post).findOne({
+                queryRunner.manager.getRepository(Post).findOne(queryRunner, {
                     relations: ["author"],
                     lock: {mode: "pessimistic_write_or_fail", tables: ["post"]}
                 }),
-                entityManager.getRepository(Post).findOne({
+                queryRunner.manager.getRepository(Post).findOne(queryRunner, {
                     relations: ["author"],
                     lock: {mode: "for_no_key_update", tables: ["post"]}
                 }),
             ]);
         });
+        await qr.release();
+        return;
     })));
 
     it("should allow locking a relation of a relation", () => Promise.all(connections.map(async connection => {
         if (!(connection.driver instanceof PostgresDriver || connection.driver instanceof CockroachDriver))
             return;
-
-        return connection.manager.transaction(entityManager => {
+        const qr = connection.createQueryRunner();
+        await connection.manager.transaction(qr, queryRunner => {
 
             return Promise.all([
-                entityManager.getRepository(Post).findOne({
+                queryRunner.manager.getRepository(Post).findOne(queryRunner, {
                     join: {
                         alias: "post",
                         innerJoinAndSelect: {
@@ -433,6 +498,8 @@ describe("repository > find options > locking", () => {
                 }),
             ]);
         });
+        await qr.release();
+        return;
     })));
 
 });

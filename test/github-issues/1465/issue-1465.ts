@@ -18,14 +18,16 @@ describe("github issues > #1465 save child and parent entity", () => {
 
     it("account property in accountActivationToken should not be null", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const account = new Account();
         account.username = "test";
         account.password = "123456";
         account.accountActivationToken = new AccountActivationToken("XXXXXXXXXXXXXXXXXX", new Date());
 
-        const savedAccount = await connection.manager.save(account);
+        const savedAccount = await connection.manager.save(qr, account);
         assert.isNotNull(savedAccount.accountActivationToken.account);
 
+        await qr.release();
     })));
 
 });

@@ -16,49 +16,57 @@ describe("github issues > #1929 Select attributes in Find method - mongodb", () 
 
     it("return column on include in select on find",
         () => Promise.all(connections.map(async connection => {
+            const qr = connection.createQueryRunner();
             const productRepository = connection.getMongoRepository(Product);
             let product = new Product("test1", "label1", 10);
-            await productRepository.save(product);
+            await productRepository.save(qr, product);
             product = new Product("test2", "label2", 20);
-            await productRepository.save(product);
+            await productRepository.save(qr, product);
             product = new Product("test3", "label3", 30);
-            await productRepository.save(product);
-            await productRepository.find({select: ["name", "label"], order: {name: 1}});
+            await productRepository.save(qr, product);
+            await productRepository.find(qr, {select: ["name", "label"], order: {name: 1}});
+            await qr.release();
         })));
 
     it("return column on include in select on findAndCount",
         () => Promise.all(connections.map(async connection => {
+            const qr = connection.createQueryRunner();
             const productRepository = connection.getMongoRepository(Product);
             let product = new Product("test1", "label1", 10);
-            await productRepository.save(product);
+            await productRepository.save(qr, product);
             product = new Product("test2", "label2", 20);
-            await productRepository.save(product);
+            await productRepository.save(qr, product);
             product = new Product("test3", "label3", 30);
-            await productRepository.save(product);
-            await productRepository.findAndCount({select: ["name", "label"], order: {name: 1}});
+            await productRepository.save(qr, product);
+            await productRepository.findAndCount(qr, {select: ["name", "label"], order: {name: 1}});
+            await qr.release();
         })));
 
     it("return column on include in select on findByIds",
         () => Promise.all(connections.map(async connection => {
+            const qr = connection.createQueryRunner();
             const productRepository = connection.getMongoRepository(Product);
             let product = new Product("test1", "label1", 10);
-            await productRepository.save(product);
+            await productRepository.save(qr, product);
             product = new Product("test2", "label2", 20);
-            await productRepository.save(product);
+            await productRepository.save(qr, product);
             product = new Product("test3", "label3", 30);
-            const product3 = await productRepository.save(product);
-            await productRepository.findByIds([product3.id], {select: ["name", "label"], order: {name: 1}});
+            const product3 = await productRepository.save(qr, product);
+            await productRepository.findByIds(qr, [product3.id], {select: ["name", "label"], order: {name: 1}});
+            await qr.release();
         })));
 
     it("return column on include in select on findByIds ",
         () => Promise.all(connections.map(async connection => {
+            const qr = connection.createQueryRunner();
             const productRepository = connection.getMongoRepository(Product);
             let product = new Product("test1", "label1", 10);
-            await productRepository.save(product);
+            await productRepository.save(qr, product);
             product = new Product("test2", "label2", 20);
-            await productRepository.save(product);
+            await productRepository.save(qr, product);
             product = new Product("test3", "label3", 30);
-            await productRepository.findOne({where: {name: "test2"}, select: ["name", "label"], order: {name: 1}});
+            await productRepository.findOne(qr, {where: {name: "test2"}, select: ["name", "label"], order: {name: 1}});
+            await qr.release();
         })));
 
 });

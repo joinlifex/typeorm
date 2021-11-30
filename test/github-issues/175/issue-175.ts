@@ -16,24 +16,25 @@ describe("github issues > #175 ManyToMany relation doesn't put an empty array wh
 
     it("should return post with categories if they are attached to the post", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const category1 = new Category();
         category1.name = "category #1";
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "category #2";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const postWithCategories = new Post();
         postWithCategories.title = "post with categories";
         postWithCategories.categories = [category1, category2];
-        await connection.manager.save(postWithCategories);
+        await connection.manager.save(qr, postWithCategories);
 
         const loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
             .leftJoinAndSelect("post.categories", "categories")
             .where("post.title = :title", { title: "post with categories" })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.should.be.eql({
@@ -47,22 +48,24 @@ describe("github issues > #175 ManyToMany relation doesn't put an empty array wh
                 name: "category #2"
             }]
         });
+        await qr.release();
     })));
     
     it("should return post with categories even if post with empty categories was saved", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const category1 = new Category();
         category1.name = "category #1";
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "category #2";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const postWithoutCategories = new Post();
         postWithoutCategories.title = "post without categories";
         postWithoutCategories.categories = [];
-        await connection.manager.save(postWithoutCategories);
+        await connection.manager.save(qr, postWithoutCategories);
 
         const justPost = new Post();
         justPost.title = "just post";
@@ -71,7 +74,7 @@ describe("github issues > #175 ManyToMany relation doesn't put an empty array wh
             .createQueryBuilder(Post, "post")
             .leftJoinAndSelect("post.categories", "categories")
             .where("post.title = :title", { title: "post without categories" })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.should.be.eql({
@@ -79,27 +82,29 @@ describe("github issues > #175 ManyToMany relation doesn't put an empty array wh
             title: "post without categories",
             categories: []
         });
+        await qr.release();
     })));
     
     it("should return post with categories even if post was saved without categories set", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const category1 = new Category();
         category1.name = "category #1";
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "category #2";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const justPost = new Post();
         justPost.title = "just post";
-        await connection.manager.save(justPost);
+        await connection.manager.save(qr, justPost);
 
         const loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
             .leftJoinAndSelect("post.secondaryCategories", "secondaryCategories")
             .where("post.title = :title", { title: "just post" })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.should.be.eql({
@@ -107,6 +112,7 @@ describe("github issues > #175 ManyToMany relation doesn't put an empty array wh
             title: "just post",
             secondaryCategories: []
         });
+        await qr.release();
     })));
 
 });

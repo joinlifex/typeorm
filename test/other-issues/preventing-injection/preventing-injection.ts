@@ -17,24 +17,28 @@ describe("other issues > preventing-injection", () => {
     it("should not allow selection of non-exist columns via FindOptions", () => Promise.all(connections.map(async function(connection) {
         const post = new Post();
         post.title = "hello";
-        await connection.manager.save(post);
+        const queryRunner = connection.createQueryRunner();
+        await connection.manager.save(queryRunner, post);
 
-        const postWithOnlyIdSelected = await connection.manager.find(Post, {
+        const postWithOnlyIdSelected = await connection.manager.find(queryRunner, Post, {
             select: ["id"]
         });
         postWithOnlyIdSelected.should.be.eql([{ id: 1 }]);
 
-        await connection.manager.find(Post, {
+        await connection.manager.find(queryRunner, Post, {
             select: ["(WHERE LIMIT 1)" as any]
         }).should.be.rejected;
+        queryRunner.release();
     })));
 
     it("should throw error for non-exist columns in where expression via FindOptions", () => Promise.all(connections.map(async function(connection) {
+        
+        const queryRunner = connection.createQueryRunner();
         const post = new Post();
         post.title = "hello";
-        await connection.manager.save(post);
+        await connection.manager.save(queryRunner, post);
 
-        const postWithOnlyIdSelected = await connection.manager.find(Post, {
+        const postWithOnlyIdSelected = await connection.manager.find(queryRunner, Post, {
             where: {
                 title: "hello"
             }
@@ -43,7 +47,7 @@ describe("other issues > preventing-injection", () => {
 
         let error: Error | undefined;
         try {
-            await connection.manager.find(Post, {
+            await connection.manager.find(queryRunner, Post, {
                 where: {
                     id: 2,
                     ["(WHERE LIMIT 1)"]: "hello"
@@ -53,43 +57,48 @@ describe("other issues > preventing-injection", () => {
             error = err;
         }
         expect(error).to.be.an.instanceof(EntityColumnNotFound);
+        queryRunner.release();
     })));
 
     it("should not allow selection of non-exist columns via FindOptions", () => Promise.all(connections.map(async function(connection) {
+        
+        const queryRunner = connection.createQueryRunner();
         const post = new Post();
         post.title = "hello";
-        await connection.manager.save(post);
+        await connection.manager.save(queryRunner, post);
 
-        const loadedPosts = await connection.manager.find(Post, {
+        const loadedPosts = await connection.manager.find(queryRunner, Post, {
             order: {
                 title: "DESC"
             }
         });
         loadedPosts.should.be.eql([{ id: 1, title: "hello" }]);
 
-        await connection.manager.find(Post, {
+        await connection.manager.find(queryRunner, Post, {
             order: {
                 ["(WHERE LIMIT 1)" as any]: "DESC"
             }
         }).should.be.rejected;
 
+        queryRunner.release();
     })));
 
     it("should not allow non-numeric values in skip and take via FindOptions", () => Promise.all(connections.map(async function(connection) {
 
-        await connection.manager.find(Post, {
+        const queryRunner = connection.createQueryRunner();
+        await connection.manager.find(queryRunner, Post, {
             take: "(WHERE XXX)" as any
         }).should.be.rejected;
 
-        await connection.manager.find(Post, {
+        await connection.manager.find(queryRunner, Post, {
             skip: "(WHERE LIMIT 1)" as any,
             take: "(WHERE XXX)" as any,
         }).should.be.rejected;
 
+        queryRunner.release();
     })));
 
     it("should not allow non-numeric values in skip and take in QueryBuilder", () => Promise.all(connections.map(async function(connection) {
-
         expect(() => {
             connection.manager
                 .createQueryBuilder(Post, "post")
@@ -105,7 +114,6 @@ describe("other issues > preventing-injection", () => {
     })));
 
     it("should not allow non-allowed values in order by in QueryBuilder", () => Promise.all(connections.map(async function(connection) {
-
         expect(() => {
             connection.manager
                 .createQueryBuilder(Post, "post")

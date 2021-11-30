@@ -17,23 +17,25 @@ describe("github issues > #2809 afterUpdate subscriber entity argument is undefi
 
         let repo = connection.getRepository(Post);
 
-        const insertPost = new Post()
+        const insertPost = new Post();
+        const qr = connection.createQueryRunner();
 
-        await repo.save(insertPost);
+        await repo.save(qr, insertPost);
 
-        const createdPost = await repo.findOne();
+        const createdPost = await repo.findOne(qr);
         expect(createdPost).not.to.be.undefined;
 
-        const { id } = createdPost!
+        const { id } = createdPost!;
 
         // test that the in memory post was touched by afterInsert PostSubscriber event
         expect(insertPost.title).to.equal("set in subscriber after created");
 
-        const updatePost: Partial<Post> = {colToUpdate: 1}
+        const updatePost: Partial<Post> = {colToUpdate: 1};
         // change the entity
-        await repo.update(id, updatePost);
+        await repo.update(qr, id, updatePost);
 
         // test that the in memory post was touched by afterUpdate PostSubscriber event
         expect(updatePost.title).to.equal("set in subscriber after updated");
+        await qr.release();
     })));
 });

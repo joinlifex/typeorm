@@ -49,9 +49,10 @@ describe("github issues > #1510 entity schema does not support mode=objectId", (
 
     it("throws an error because there is no object id defined", () => Promise.all(connections.map(async connection => {
         const repo = connection.getRepository("UserWithoutObjectID");
+        const qr = connection.createQueryRunner();
 
         try {
-            await repo.insert({
+            await repo.insert(qr, {
                 name: "Dotan",
             });
 
@@ -59,18 +60,21 @@ describe("github issues > #1510 entity schema does not support mode=objectId", (
         } catch (e) {
             expect(e.message).to.eq("Cannot read property 'createValueMap' of undefined");
         }
+        await qr.release();
     })));
 
     it("should create entities without throwing an error when objectId is defined", () => Promise.all(connections.map(async connection => {
         const repo = connection.getRepository("User");
+        const qr = connection.createQueryRunner();
 
-        const result: InsertResult = await repo.insert({
+        const result: InsertResult = await repo.insert(qr, {
             name: "Dotan",
         });
 
         const insertedId = result.identifiers[0];
 
         expect(insertedId).not.to.be.undefined;
+        await qr.release();
     })));
 
 });

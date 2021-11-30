@@ -40,16 +40,16 @@ describe("github issues > #7521 Only first \0 is removed in comments, only first
         const col8 = table!.findColumnByName("col8")!;
         const col9 = table!.findColumnByName("col9")!;
 
-        col1.comment!.should.be.equal(`E.g. 'foo', 'bar', or 'baz' etc.`)
-        col2.comment!.should.be.equal(`E.g. '''foo, 'bar''', or baz' etc.`)
-        col3.comment!.should.be.equal(`E.g. "foo", "bar", or "baz" etc.`)
-        col4.comment!.should.be.equal("foo\\bar, bar\\baz, foo\\\\baz")
-        col5.comment!.should.be.equal(`foo: , bar: `)
-        col6.comment!.should.be.equal(`"foo", ""bar""`)
-        col7.comment!.should.be.equal("\"foo\", \"\"bar\"\"")
-        col8.comment!.should.be.equal("foo \r \n \b \t \Z \% \_ bar")
-        col9.comment!.should.be.equal("foo \\r \\n \\b \\t \\Z \\% \\_ bar")
+        col1.comment!.should.be.equal(`E.g. 'foo', 'bar', or 'baz' etc.`);
+        col2.comment!.should.be.equal(`E.g. '''foo, 'bar''', or baz' etc.`);
+        col3.comment!.should.be.equal(`E.g. "foo", "bar", or "baz" etc.`);
+        col4.comment!.should.be.equal("foo\\bar, bar\\baz, foo\\\\baz");
+        col5.comment!.should.be.equal(`foo: , bar: `);
+        col6.comment!.should.be.equal(`"foo", ""bar""`);
+        col7.comment!.should.be.equal("\"foo\", \"\"bar\"\"");
+        col8.comment!.should.be.equal("foo \r \n \b \t \Z \% \_ bar");
+        col9.comment!.should.be.equal("foo \\r \\n \\b \\t \\Z \\% \\_ bar");
 
-        await queryRunner.release()
+        await queryRunner.release();
     })));
 });

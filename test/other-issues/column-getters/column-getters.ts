@@ -15,16 +15,17 @@ describe("other issues > column with getter / setter should work", () => {
 
     it("getters and setters should work correctly", () => Promise.all(connections.map(async connection => {
 
+        let queryRunner = connection.createQueryRunner();
         const post = new Post();
         post.title = "Super title";
         post.text = "About this post";
-        await connection.manager.save(post);
+        await connection.manager.save(queryRunner, post);
 
         const loadedPost = await connection
             .manager
             .createQueryBuilder(Post, "post")
             .where("post.id = :id", { id: 1 })
-            .getOne();
+            .getOne(queryRunner);
 
         expect(loadedPost).not.to.be.undefined;
         expect(loadedPost!.title).not.to.be.undefined;
@@ -32,6 +33,7 @@ describe("other issues > column with getter / setter should work", () => {
         loadedPost!.title.should.be.equal("Super title");
         loadedPost!.text.should.be.equal("About this post");
 
+        queryRunner.release();
     })));
 
 });

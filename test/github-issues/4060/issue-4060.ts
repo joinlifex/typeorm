@@ -19,18 +19,20 @@ describe("github issues > #4060 Fail to insert entity with Buffer type of primar
     after(() => closeTestingConnections(connections));
 
     it("should save entities", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const id = Buffer.from("foobar");
         const foo = new Foo();
         foo.id = id;
         foo.name = "foo";
-        await connection.manager.save(foo);
+        await connection.manager.save(qr, foo);
 
         const bar = new Bar();
         bar.id = id;
         bar.name = "bar";
-        await connection.manager.save(bar);
+        await connection.manager.save(qr, bar);
 
         expect(foo).to.exist;
         expect(bar).to.exist;
+        await qr.release();
     })));
 });

@@ -36,34 +36,36 @@ describe("github issues > #2201 - Create a select query when using a (custom) ju
         User.useConnection(connections[0]);
         Record.useConnection(connections[0]);
         RecordContext.useConnection(connections[0]);
+        const qr = connections[0].createQueryRunner();
 
-        const user = User.create({ id: "user1" });
-        await user.save();
+        const user = User.create(qr, { id: "user1" });
+        await user.save(qr);
 
-        const record = Record.create({ id: "record1", status: "pending" });
-        await record.save();
+        const record = Record.create(qr, { id: "record1", status: "pending" });
+        await record.save(qr);
 
-        const context = RecordContext.create({
+        const context = RecordContext.create(qr, {
             user,
             record,
             userId: user.id,
             recordId: record.id,
             meta: { name: "meta name", description: "meta description" }
         } as RecordContext);
-        await context.save();
+        await context.save(qr);
 
         const query = Record
             .createQueryBuilder("record")
             .leftJoinAndSelect("record.contexts", "context")
             .where("record.id = :recordId", { recordId: record.id });
 
-        const result = (await query.getOne())!;
+        const result = (await query.getOne(qr))!;
 
         result.status = "failed";
 
-        await result.save();
+        await result.save(qr);
         expect(0).to.eql(0);
 
         await closeTestingConnections(connections);
+        await qr.release();
     });
 });

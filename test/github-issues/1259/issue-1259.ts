@@ -16,8 +16,9 @@ describe("github issues > #1259 Can't sort by fields added with addSelect", () =
 
     it("should order by added selects when pagination is used", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const categories = [new Category(), new Category()];
-        await connection.manager.save(categories);
+        await connection.manager.save(qr, categories);
 
         const posts: Post[] = [];
         for (let i = 0; i < 10; i++) {
@@ -31,7 +32,7 @@ describe("github issues > #1259 Can't sort by fields added with addSelect", () =
             post.categories = categories;
             posts.push(post);
         }
-        await connection.manager.save(posts);
+        await connection.manager.save(qr, posts);
 
         const loadedPosts = await connection.manager
             .createQueryBuilder(Post, "post")
@@ -41,19 +42,21 @@ describe("github issues > #1259 Can't sort by fields added with addSelect", () =
             // .addOrderBy("post.id")
             .take(5)
             .setParameter("query", "timber")
-            .getMany();
+            .getMany(qr);
 
         loadedPosts.length.should.be.equal(5);
         loadedPosts[0].id.should.be.equal(7);
         loadedPosts[0].name.should.be.equal("timber");
         loadedPosts[1].id.should.be.equal(8);
         loadedPosts[1].name.should.be.equal("timber");
+        await qr.release();
     })));
 
     it("should order by added selects when pagination is used", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const categories = [new Category(), new Category()];
-        await connection.manager.save(categories);
+        await connection.manager.save(qr, categories);
 
         const posts: Post[] = [];
         for (let i = 0; i < 10; i++) {
@@ -63,7 +66,7 @@ describe("github issues > #1259 Can't sort by fields added with addSelect", () =
             post.categories = categories;
             posts.push(post);
         }
-        await connection.manager.save(posts);
+        await connection.manager.save(qr, posts);
 
         const loadedPosts = await connection.manager
             .createQueryBuilder(Post, "post")
@@ -71,7 +74,7 @@ describe("github issues > #1259 Can't sort by fields added with addSelect", () =
             .leftJoinAndSelect("post.categories", "categories")
             .orderBy("doublecount")
             .take(5)
-            .getMany();
+            .getMany(qr);
 
         loadedPosts.length.should.be.equal(5);
         loadedPosts[0].id.should.be.equal(10);
@@ -79,6 +82,7 @@ describe("github issues > #1259 Can't sort by fields added with addSelect", () =
         loadedPosts[2].id.should.be.equal(8);
         loadedPosts[3].id.should.be.equal(7);
         loadedPosts[4].id.should.be.equal(6);
+        await qr.release();
     })));
 
 });

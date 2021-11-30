@@ -509,7 +509,7 @@ export class MongoQueryRunner implements QueryRunner {
     }
 
     getReplicationMode(): ReplicationMode {
-        return 'master';
+        return "master";
     }
 
     /**

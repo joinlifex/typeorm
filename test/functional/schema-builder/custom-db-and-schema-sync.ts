@@ -73,7 +73,7 @@ describe("schema builder > custom-db-and-schema-sync", () => {
             await queryRunner.release();
 
         })));
-    })
+    });
 
     describe("custom schema", () => {
         let connections: Connection[];
@@ -202,7 +202,7 @@ describe("schema builder > custom-db-and-schema-sync", () => {
 
             await queryRunner.release();
         })));
-    })
+    });
 
     describe("custom database and schema", () => {
         let connections: Connection[];
@@ -277,5 +277,5 @@ describe("schema builder > custom-db-and-schema-sync", () => {
             await queryRunner.release();
 
         })));
-    })
+    });
 });

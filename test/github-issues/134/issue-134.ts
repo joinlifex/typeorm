@@ -17,17 +17,18 @@ describe("github issues > #134 Error TIME is converted to 'HH-mm' instead of 'HH
 
     it("should successfully persist the post with creationDate in HH:mm and return persisted entity", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const postRepository = connection.getRepository(Post);
         const post = new Post();
         const currentDate = new Date();
         post.title = "Hello Post #1";
         post.creationDate = currentDate;
 
-        const savedPost = await postRepository.save(post);
+        const savedPost = await postRepository.save(qr, post);
         const loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
             .where("post.id=:id", { id: savedPost.id })
-            .getOne();
+            .getOne(qr);
 
         // create a correct minutes:hours:seconds string
         let hours = String(currentDate.getHours());
@@ -40,6 +41,7 @@ describe("github issues > #134 Error TIME is converted to 'HH-mm' instead of 'HH
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.creationDate.should.be.equal(hours + ":" + minutes + ":" + seconds);
 
+        await qr.release();
     })));
 
 });

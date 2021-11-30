@@ -19,7 +19,7 @@ export class NestedSetSubjectExecutor {
     // Constructor
     // -------------------------------------------------------------------------
 
-    constructor(protected queryRunner: QueryRunner) {
+    constructor() {
     }
 
     // -------------------------------------------------------------------------
@@ -29,9 +29,9 @@ export class NestedSetSubjectExecutor {
     /**
      * Executes operations when subject is being inserted.
      */
-    async insert(subject: Subject): Promise<void> {
-        const escape = (alias: string) => this.queryRunner.connection.driver.escape(alias);
-        const tableName = this.getTableName(subject.metadata.tablePath);
+    async insert(queryRunner: QueryRunner, subject: Subject): Promise<void> {
+        const escape = (alias: string) => queryRunner.connection.driver.escape(alias);
+        const tableName = this.getTableName(queryRunner, subject.metadata.tablePath);
         const leftColumnName = escape(subject.metadata.nestedSetLeftColumn!.databaseName);
         const rightColumnName = escape(subject.metadata.nestedSetRightColumn!.databaseName);
 
@@ -42,12 +42,12 @@ export class NestedSetSubjectExecutor {
 
         let parentNsRight: number|undefined = undefined;
         if (parentId) {
-            parentNsRight = await this.queryRunner.manager
+            parentNsRight = await queryRunner.manager
                 .createQueryBuilder()
                 .select(subject.metadata.targetName + "." + subject.metadata.nestedSetRightColumn!.propertyPath, "right")
                 .from(subject.metadata.target, subject.metadata.targetName)
                 .whereInIds(parentId)
-                .getRawOne()
+                .getRawOne(queryRunner)
                 .then(result => {
                     const value: any = result ? result["right"] : undefined;
                     // CockroachDB returns numeric types as string
@@ -56,7 +56,7 @@ export class NestedSetSubjectExecutor {
         }
 
         if (parentNsRight !== undefined) {
-            await this.queryRunner.query(`UPDATE ${tableName} SET ` +
+            await queryRunner.query(`UPDATE ${tableName} SET ` +
                 `${leftColumnName} = CASE WHEN ${leftColumnName} > ${parentNsRight} THEN ${leftColumnName} + 2 ELSE ${leftColumnName} END,` +
                 `${rightColumnName} = ${rightColumnName} + 2 ` +
                 `WHERE ${rightColumnName} >= ${parentNsRight}`);
@@ -67,7 +67,7 @@ export class NestedSetSubjectExecutor {
                 subject.metadata.nestedSetRightColumn!.createValueMap(parentNsRight + 1),
             );
         } else {
-            const isUniqueRoot = await this.isUniqueRootEntity(subject, parent);
+            const isUniqueRoot = await this.isUniqueRootEntity(queryRunner, subject, parent);
 
             // Validate if a root entity already exits and throw an exception
             if (!isUniqueRoot)
@@ -84,7 +84,7 @@ export class NestedSetSubjectExecutor {
     /**
      * Executes operations when subject is being updated.
      */
-    async update(subject: Subject): Promise<void> {
+    async update(queryRunner: QueryRunner, subject: Subject): Promise<void> {
         let parent = subject.metadata.treeParentRelation!.getEntityValue(subject.entity!); // if entity was attached via parent
         if (!parent && subject.parentSubject && subject.parentSubject.entity) // if entity was attached via children
             parent = subject.parentSubject.entity;
@@ -111,8 +111,8 @@ export class NestedSetSubjectExecutor {
         }
 
         if (parent) {
-            const escape = (alias: string) => this.queryRunner.connection.driver.escape(alias);
-            const tableName = this.getTableName(subject.metadata.tablePath);
+            const escape = (alias: string) => queryRunner.connection.driver.escape(alias);
+            const tableName = this.getTableName(queryRunner, subject.metadata.tablePath);
             const leftColumnName = escape(subject.metadata.nestedSetLeftColumn!.databaseName);
             const rightColumnName = escape(subject.metadata.nestedSetRightColumn!.databaseName);
 
@@ -120,12 +120,12 @@ export class NestedSetSubjectExecutor {
 
             let entityNs: NestedSetIds | undefined = undefined;
             if (entityId) {
-                entityNs = (await this.getNestedSetIds(subject.metadata, entityId))[0];
+                entityNs = (await this.getNestedSetIds(queryRunner, subject.metadata, entityId))[0];
             }
 
             let parentNs: NestedSetIds | undefined = undefined;
             if (parentId) {
-                parentNs = (await this.getNestedSetIds(subject.metadata, parentId))[0];
+                parentNs = (await this.getNestedSetIds(queryRunner, subject.metadata, parentId))[0];
             }
 
             if (entityNs !== undefined && parentNs !== undefined) {
@@ -152,7 +152,7 @@ export class NestedSetSubjectExecutor {
 
                 // Update the surrounding entities
                 if (isMovingUp) {
-                    await this.queryRunner.query(`UPDATE ${tableName} ` +
+                    await queryRunner.query(`UPDATE ${tableName} ` +
                         `SET ${leftColumnName} = CASE ` +
                             `WHEN ${leftColumnName} > ${entityNs.right} AND ` +
                                 `${leftColumnName} <= ${parentNs.left} ` +
@@ -168,7 +168,7 @@ export class NestedSetSubjectExecutor {
                             `ELSE ${rightColumnName} ` +
                         `END`);
                 } else {
-                    await this.queryRunner.query(`UPDATE ${tableName} ` +
+                    await queryRunner.query(`UPDATE ${tableName} ` +
                         `SET ${leftColumnName} = CASE ` +
                             `WHEN ${leftColumnName} < ${entityNs.left} AND ` +
                                 `${leftColumnName} > ${parentNs.right} ` +
@@ -186,7 +186,7 @@ export class NestedSetSubjectExecutor {
                 }
             }
         } else {
-            const isUniqueRoot = await this.isUniqueRootEntity(subject, parent);
+            const isUniqueRoot = await this.isUniqueRootEntity(queryRunner, subject, parent);
 
             // Validate if a root entity already exits and throw an exception
             if (!isUniqueRoot)
@@ -197,14 +197,14 @@ export class NestedSetSubjectExecutor {
     /**
     * Executes operations when subject is being removed.
     */
-    async remove(subjects: Subject|Subject[]): Promise<void> {
+    async remove(queryRunner: QueryRunner, subjects: Subject|Subject[]): Promise<void> {
         if (!Array.isArray(subjects))
             subjects = [subjects];
 
         const metadata = subjects[0].metadata;
 
-        const escape = (alias: string) => this.queryRunner.connection.driver.escape(alias);
-        const tableName = this.getTableName(metadata.tablePath);
+        const escape = (alias: string) => queryRunner.connection.driver.escape(alias);
+        const tableName = this.getTableName(queryRunner, metadata.tablePath);
         const leftColumnName = escape(metadata.nestedSetLeftColumn!.databaseName);
         const rightColumnName = escape(metadata.nestedSetRightColumn!.databaseName);
 
@@ -217,12 +217,12 @@ export class NestedSetSubjectExecutor {
             }
         }
 
-        let entitiesNs = await this.getNestedSetIds(metadata, entitiesIds);
+        let entitiesNs = await this.getNestedSetIds(queryRunner, metadata, entitiesIds);
 
         for (const entity of entitiesNs) {
             const treeSize = entity.right - entity.left + 1;
 
-            await this.queryRunner.query(`UPDATE ${tableName} ` +
+            await queryRunner.query(`UPDATE ${tableName} ` +
                 `SET ${leftColumnName} = CASE ` +
                     `WHEN ${leftColumnName} > ${entity.left} THEN ${leftColumnName} - ${treeSize} ` +
                     `ELSE ${leftColumnName} ` +
@@ -237,13 +237,13 @@ export class NestedSetSubjectExecutor {
     /**
      * Get the nested set ids for a given entity
      */
-    protected getNestedSetIds(metadata: EntityMetadata, ids: ObjectLiteral | ObjectLiteral[]): Promise<NestedSetIds[]> {
+    protected getNestedSetIds(queryRunner: QueryRunner, metadata: EntityMetadata, ids: ObjectLiteral | ObjectLiteral[]): Promise<NestedSetIds[]> {
         const select = {
             left: `${metadata.targetName}.${metadata.nestedSetLeftColumn!.propertyPath}`,
             right: `${metadata.targetName}.${metadata.nestedSetRightColumn!.propertyPath}`
         };
 
-        const queryBuilder = this.queryRunner.manager.createQueryBuilder();
+        const queryBuilder = queryRunner.manager.createQueryBuilder();
 
         Object.entries(select).forEach(([key, value]) => {
             queryBuilder.addSelect(value, key);
@@ -253,7 +253,7 @@ export class NestedSetSubjectExecutor {
             .from(metadata.target, metadata.targetName)
             .whereInIds(ids)
             .orderBy(select.right, "DESC")
-            .getRawMany()
+            .getRawMany(queryRunner)
             .then(results => {
                 const data: NestedSetIds[] = [];
 
@@ -272,9 +272,9 @@ export class NestedSetSubjectExecutor {
             });
     }
 
-    private async isUniqueRootEntity(subject: Subject, parent: any): Promise<boolean> {
-        const escape = (alias: string) => this.queryRunner.connection.driver.escape(alias);
-        const tableName = this.getTableName(subject.metadata.tablePath);
+    private async isUniqueRootEntity(queryRunner: QueryRunner, subject: Subject, parent: any): Promise<boolean> {
+        const escape = (alias: string) => queryRunner.connection.driver.escape(alias);
+        const tableName = this.getTableName(queryRunner, subject.metadata.tablePath);
         const parameters: any[] = [];
         const whereCondition = subject.metadata.treeParentRelation!.joinColumns.map(column => {
             const columnName = escape(column.databaseName);
@@ -285,12 +285,12 @@ export class NestedSetSubjectExecutor {
             }
 
             parameters.push(parameter);
-            const parameterName = this.queryRunner.connection.driver.createParameter("entity_" + column.databaseName, parameters.length - 1);
+            const parameterName = queryRunner.connection.driver.createParameter("entity_" + column.databaseName, parameters.length - 1);
             return `${columnName} = ${parameterName}`;
         }).join(" AND ");
 
         const countAlias = "count";
-        const result = await this.queryRunner.query(
+        const result = await queryRunner.query(
             `SELECT COUNT(1) AS ${escape(countAlias)} FROM ${tableName} WHERE ${whereCondition}`,
             parameters,
             true
@@ -303,11 +303,11 @@ export class NestedSetSubjectExecutor {
      * Gets escaped table name with schema name if SqlServer or Postgres driver used with custom
      * schema name, otherwise returns escaped table name.
      */
-    protected getTableName(tablePath: string): string {
+    protected getTableName(queryRunner: QueryRunner, tablePath: string): string {
         return tablePath.split(".")
             .map(i => {
                 // this condition need because in SQL Server driver when custom database name was specified and schema name was not, we got `dbName..tableName` string, and doesn't need to escape middle empty string
-                return i === "" ? i : this.queryRunner.connection.driver.escape(i);
+                return i === "" ? i : queryRunner.connection.driver.escape(i);
             }).join(".");
     }
 }

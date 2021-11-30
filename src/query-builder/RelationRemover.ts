@@ -1,6 +1,7 @@
 import {QueryBuilder} from "./QueryBuilder";
 import {ObjectLiteral} from "../common/ObjectLiteral";
 import {QueryExpressionMap} from "./QueryExpressionMap";
+import { QueryRunner } from "..";
 
 /**
  * Allows to work with entity relations and perform specific operations with those relations.
@@ -24,7 +25,7 @@ export class RelationRemover {
     /**
      * Performs remove operation on a relation.
      */
-    async remove(value: any|any[]): Promise<void> {
+    async remove(queryRunner: QueryRunner, value: any|any[]): Promise<void> {
         const relation = this.expressionMap.relationMetadata;
 
         if (relation.isOneToMany) {
@@ -68,7 +69,7 @@ export class RelationRemover {
                 .set(updateSet)
                 .where(condition)
                 .setParameters(parameters)
-                .execute();
+                .execute(queryRunner);
 
         } else { // many to many
 
@@ -104,7 +105,7 @@ export class RelationRemover {
                 .from(junctionMetadata.tableName)
                 .where(condition)
                 .setParameters(parameters)
-                .execute();
+                .execute(queryRunner);
         }
     }
 

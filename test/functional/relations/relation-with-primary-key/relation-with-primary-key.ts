@@ -20,12 +20,13 @@ describe("relations > relation with primary key", () => {
             // create first category and post and save them
             const category1 = new Category();
             category1.name = "Category saved by cascades #1";
+            const qr = connection.createQueryRunner();
 
             const post1 = new Post();
             post1.title = "Hello Post #1";
             post1.category = category1;
 
-            await connection.manager.save(post1);
+            await connection.manager.save(qr, post1);
 
             // create second category and post and save them
             const category2 = new Category();
@@ -35,10 +36,10 @@ describe("relations > relation with primary key", () => {
             post2.title = "Hello Post #2";
             post2.category = category2;
 
-            await connection.manager.save(post2);
+            await connection.manager.save(qr, post2);
 
             // now check
-            const posts = await connection.manager.find(Post, {
+            const posts = await connection.manager.find(qr, Post, {
                 join: {
                     alias: "post",
                     innerJoinAndSelect: {
@@ -63,6 +64,7 @@ describe("relations > relation with primary key", () => {
                     name: "Category saved by cascades #2"
                 }
             }]);
+            await qr.release();
         })));
 
     });

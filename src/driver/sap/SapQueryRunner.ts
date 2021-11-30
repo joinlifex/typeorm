@@ -104,7 +104,7 @@ export class SapQueryRunner extends BaseQueryRunner implements QueryRunner {
         if (this.isTransactionActive)
             throw new TransactionAlreadyStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionStart');
+        await this.broadcaster.broadcast("BeforeTransactionStart");
 
         this.isTransactionActive = true;
 
@@ -112,7 +112,7 @@ export class SapQueryRunner extends BaseQueryRunner implements QueryRunner {
             await this.query(`SET TRANSACTION ISOLATION LEVEL ${isolationLevel || ""}`);
         }
 
-        await this.broadcaster.broadcast('AfterTransactionStart');
+        await this.broadcaster.broadcast("AfterTransactionStart");
     }
 
     /**
@@ -126,12 +126,12 @@ export class SapQueryRunner extends BaseQueryRunner implements QueryRunner {
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionCommit');
+        await this.broadcaster.broadcast("BeforeTransactionCommit");
 
         await this.query("COMMIT");
         this.isTransactionActive = false;
 
-        await this.broadcaster.broadcast('AfterTransactionCommit');
+        await this.broadcaster.broadcast("AfterTransactionCommit");
     }
 
     /**
@@ -145,12 +145,12 @@ export class SapQueryRunner extends BaseQueryRunner implements QueryRunner {
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionRollback');
+        await this.broadcaster.broadcast("BeforeTransactionRollback");
 
         await this.query("ROLLBACK");
         this.isTransactionActive = false;
 
-        await this.broadcaster.broadcast('AfterTransactionRollback');
+        await this.broadcaster.broadcast("AfterTransactionRollback");
     }
 
     /**
@@ -179,7 +179,7 @@ export class SapQueryRunner extends BaseQueryRunner implements QueryRunner {
                 statement.exec(
                     parameters,
                     (err: any, raw: any) => err ? fail(new QueryFailedError(query, parameters, err)) : ok(raw)
-                )
+                );
             });
 
             // log slow queries if maxQueryExecution time is set
@@ -921,7 +921,7 @@ export class SapQueryRunner extends BaseQueryRunner implements QueryRunner {
      */
     async changeColumns(tableOrName: Table|string, changedColumns: { newColumn: TableColumn, oldColumn: TableColumn }[]): Promise<void> {
         for (const {oldColumn, newColumn} of changedColumns) {
-            await this.changeColumn(tableOrName, oldColumn, newColumn)
+            await this.changeColumn(tableOrName, oldColumn, newColumn);
         }
     }
 
@@ -1568,7 +1568,7 @@ export class SapQueryRunner extends BaseQueryRunner implements QueryRunner {
             const getSchemaFromKey = (dbObject: any, key: string) => {
                 return dbObject[key] === currentSchema && (!this.driver.options.schema || this.driver.options.schema === currentSchema)
                     ? undefined
-                    : dbObject[key]
+                    : dbObject[key];
             };
 
             // We do not need to join schema name, when database is by default.
@@ -1592,8 +1592,8 @@ export class SapQueryRunner extends BaseQueryRunner implements QueryRunner {
                         return dbIndex["TABLE_NAME"] === dbTable["TABLE_NAME"]
                             && dbIndex["SCHEMA_NAME"] === dbTable["SCHEMA_NAME"]
                             && dbIndex["COLUMN_NAME"] === dbColumn["COLUMN_NAME"]
-                            && dbIndex["CONSTRAINT"] && dbIndex["CONSTRAINT"].indexOf("UNIQUE") !== -1
-                    })
+                            && dbIndex["CONSTRAINT"] && dbIndex["CONSTRAINT"].indexOf("UNIQUE") !== -1;
+                    });
 
                     const tableMetadata = this.connection.entityMetadatas.find(metadata => this.getTablePath(table) === this.getTablePath(metadata));
                     const hasIgnoredIndex = columnUniqueIndices.length > 0
@@ -1601,12 +1601,12 @@ export class SapQueryRunner extends BaseQueryRunner implements QueryRunner {
                         && tableMetadata.indices.some(index => {
                             return columnUniqueIndices.some(uniqueIndex => {
                                 return index.name === uniqueIndex["INDEX_NAME"] && index.synchronize === false;
-                            })
+                            });
                         });
 
                     const isConstraintComposite = columnUniqueIndices.every((uniqueIndex) => {
                         return dbIndices.some(dbIndex => dbIndex["INDEX_NAME"] === uniqueIndex["INDEX_NAME"] && dbIndex["COLUMN_NAME"] !== dbColumn["COLUMN_NAME"]);
-                    })
+                    });
 
                     const tableColumn = new TableColumn();
                     tableColumn.name = dbColumn["COLUMN_NAME"];

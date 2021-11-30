@@ -33,48 +33,52 @@ describe("indices > fulltext index", () => {
     it("with default parser", () => Promise.all(connections.map(async connection => {
 
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         const text = "This is text";
         const post = new Post();
         post.default = text;
         post.ngram = text;
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         const loadedPost1 = await postRepository
             .createQueryBuilder("post")
             .where("MATCH(post.default) AGAINST (:token)", { token: "text" })
-            .getOne();
+            .getOne(qr);
         expect(loadedPost1).to.be.exist;
 
         const loadedPost2 = await postRepository
             .createQueryBuilder("post")
             .where("MATCH(post.default) AGAINST (:token)", { token: "te" })
-            .getOne();
+            .getOne(qr);
         expect(loadedPost2).to.be.undefined;
+        await qr.release();
     })));
 
     
     it("with ngram parser", () => Promise.all(connections.map(async connection => {
 
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         const text = "This is text";
         const post = new Post();
         post.default = text;
         post.ngram = text;
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         const loadedPost1 = await postRepository
             .createQueryBuilder("post")
             .where("MATCH(post.ngram) AGAINST (:token)", { token: "text" })
-            .getOne();
+            .getOne(qr);
         expect(loadedPost1).to.be.exist;
         
         const loadedPost2 = await postRepository
             .createQueryBuilder("post")
             .where("MATCH(post.ngram) AGAINST (:token)", { token: "te" })
-            .getOne();
+            .getOne(qr);
         expect(loadedPost2).to.be.exist;
+        await qr.release();
     })));
 
 });

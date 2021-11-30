@@ -17,6 +17,7 @@ describe("github issues > #1245 `findByIds` ignores `FindManyOptions`", () => {
 
     it("should filter correctly using findByIds", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         let post1 = new Post();
         post1.name = "some_name";
 
@@ -26,16 +27,18 @@ describe("github issues > #1245 `findByIds` ignores `FindManyOptions`", () => {
         let post3 = new Post();
         post3.name = "other_name";
 
-        await connection.manager.save([post1, post2, post3]);
+        await connection.manager.save(qr,[post1, post2, post3]);
 
-        expect(await connection.manager.findByIds(
+        expect(await connection.manager.findByIds(qr,
           Post, [post2.id, post3.id], { name: "some_name" }
         )).to.eql([post2]);
+        await qr.release();
 
     })));
 
     it("should filter correctly using findByIds", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         let post1 = new Post();
         post1.name = "some_name";
 
@@ -45,12 +48,13 @@ describe("github issues > #1245 `findByIds` ignores `FindManyOptions`", () => {
         let post3 = new Post();
         post3.name = "other_name";
 
-        await connection.manager.save([post1, post2, post3]);
+        await connection.manager.save(qr,[post1, post2, post3]);
 
-        expect(await connection.manager.findByIds(
+        expect(await connection.manager.findByIds(qr,
           Post, [post2.id, post3.id], { where: { name: "some_name" } }
         )).to.eql([post2]);
 
+        await qr.release();
     })));
 
 });

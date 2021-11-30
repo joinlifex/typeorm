@@ -16,17 +16,19 @@ describe("mongodb > indices", () => {
 
     it("should insert entity with indices correctly", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save a post
         const post = new Post();
         post.title = "Post";
         post.name = "About Post";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // check saved post
-        const loadedPost = await postRepository.findOne({ title: "Post" });
+        const loadedPost = await postRepository.findOne(qr, { title: "Post" });
 
         expect(loadedPost).to.be.not.empty;
+        await qr.release();
     })));
 
 });

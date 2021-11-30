@@ -393,11 +393,11 @@ export class MigrationExecutor {
             .toArray();
         } else {
             const migrationsRaw: ObjectLiteral[] = await this.connection.manager
-            .createQueryBuilder(queryRunner)
+            .createQueryBuilder()
             .select()
             .orderBy(this.connection.driver.escape("id"), "DESC")
             .from(this.migrationsTable, this.migrationsTableName)
-            .getRawMany();
+            .getRawMany(queryRunner);
             return migrationsRaw.map(migrationRaw => {
                 return new Migration(parseInt(migrationRaw["id"]), parseInt(migrationRaw["timestamp"]), migrationRaw["name"]);
             });
@@ -468,7 +468,7 @@ export class MigrationExecutor {
             await qb.insert()
                 .into(this.migrationsTable)
                 .values(values)
-                .execute();
+                .execute(queryRunner);
         }
     }
 
@@ -496,7 +496,7 @@ export class MigrationExecutor {
                 .where(`${qb.escape("timestamp")} = :timestamp`)
                 .andWhere(`${qb.escape("name")} = :name`)
                 .setParameters(conditions)
-                .execute();
+                .execute(queryRunner);
         }
 
     }

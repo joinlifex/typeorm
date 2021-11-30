@@ -28,11 +28,12 @@ describe("github issues > #4410 allow custom filepath for FileLogger", () => {
                 createLogger: () => new FileLogger("all"),
             });
         });
-        it("writes to the base path", async () =>
-        Promise.all(connections.map(async (connection) => {
-            const testQuery = `SELECT COUNT(*) FROM ${connection.driver.escape('username')}`;
+        it("writes to the base path", async () => Promise.all(connections.map(async (connection) => {
+            const qr = connection.createQueryRunner();
+            const testQuery = `SELECT COUNT(*) FROM ${connection.driver.escape("username")}`;
 
-            await connection.query(testQuery);
+            await connection.query(qr, testQuery);
+            await qr.release();
             sinon.assert.calledWith(
                 stub,
                 appRootPath.path + "/ormlogs.log",
@@ -50,11 +51,12 @@ describe("github issues > #4410 allow custom filepath for FileLogger", () => {
                 }),
             });
         });
-        it("writes to the given filename", async () =>
-        Promise.all(connections.map(async (connection) => {
-            const testQuery = `SELECT COUNT(*) FROM ${connection.driver.escape('username')}`;
+        it("writes to the given filename", async () => Promise.all(connections.map(async (connection) => {
+            const testQuery = `SELECT COUNT(*) FROM ${connection.driver.escape("username")}`;
 
-            await connection.query(testQuery);
+            const qr = connection.createQueryRunner();
+            await connection.query(qr, testQuery);
+            await qr.release();
             sinon.assert.calledWith(
                 stub,
                 appRootPath.path + "/test.log",
@@ -72,11 +74,12 @@ describe("github issues > #4410 allow custom filepath for FileLogger", () => {
                 }),
             });
         });
-        it("writes to the given path", () =>
-        Promise.all(connections.map(async (connection) => {
-            const testQuery = `SELECT COUNT(*) FROM ${connection.driver.escape('username')}`;
+        it("writes to the given path", () => Promise.all(connections.map(async (connection) => {
+            const testQuery = `SELECT COUNT(*) FROM ${connection.driver.escape("username")}`;
 
-            await connection.query(testQuery);
+            const qr = connection.createQueryRunner();
+            await connection.query(qr, testQuery);
+            await qr.release();
             sinon.assert.calledWith(
                 stub,
                 appRootPath.path + "/test/test.log",

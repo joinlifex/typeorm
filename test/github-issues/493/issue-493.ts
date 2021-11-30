@@ -14,11 +14,12 @@ describe("github issues > #493 pagination should work with string primary keys",
 
     it("should work perfectly with string primary keys", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         for (let i = 0; i < 10; i++) {
             const post = new Post();
             post.id = "post #" + i;
             post.title = "Hello Post #" + i;
-            await connection.manager.save(post);
+            await connection.manager.save(qr, post);
         }
 
         const loadedPosts = await connection.manager
@@ -26,7 +27,7 @@ describe("github issues > #493 pagination should work with string primary keys",
             .take(5)
             .skip(0)
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         loadedPosts.length.should.be.equal(5);
         loadedPosts[0]!.id.should.be.equal("post #0");
@@ -34,6 +35,7 @@ describe("github issues > #493 pagination should work with string primary keys",
         loadedPosts[2]!.id.should.be.equal("post #2");
         loadedPosts[3]!.id.should.be.equal("post #3");
         loadedPosts[4]!.id.should.be.equal("post #4");
+        await qr.release();
     })));
 
 });

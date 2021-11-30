@@ -19,13 +19,15 @@ describe("github issues > #1140 timestamp column and value transformer causes Ty
         const date = new Date();
         date.setMilliseconds(0); // Because some databases don't have millisecond resolution
         const dateNumber = date.getTime();
+        const qr = connection.createQueryRunner();
 
         const post = new Post();
         post.ts = dateNumber;
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
-        const loadedPosts = await connection.manager.find(Post);
+        const loadedPosts = await connection.manager.find(qr, Post);
         loadedPosts.length.should.be.equal(1);
         expect(loadedPosts[0].ts).to.be.equal(dateNumber);
+        await qr.release();
     })));
 });

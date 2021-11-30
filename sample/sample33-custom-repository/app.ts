@@ -22,16 +22,16 @@ const options: ConnectionOptions = {
 createConnection(options).then(async connection => {
 
     // first type of custom repository
-
+    const qr = connection.createQueryRunner();
     const author = await connection
         .getCustomRepository(AuthorRepository)
-        .createAndSave("Umed", "Khudoiberdiev");
+        .createAndSave(qr, "Umed", "Khudoiberdiev");
 
     console.log("Author saved: ", author);
 
     const loadedAuthor = await connection
         .getCustomRepository(AuthorRepository)
-        .findMyAuthor();
+        .findMyAuthor(qr);
 
     console.log("Author loaded: ", loadedAuthor);
 
@@ -39,27 +39,27 @@ createConnection(options).then(async connection => {
 
     const post = connection
         .getCustomRepository(PostRepository)
-        .create();
+        .create(qr);
 
     post.title = "Hello Repositories!";
 
     await connection
         .manager
         .getCustomRepository(PostRepository)
-        .save(post);
+        .save(qr, post);
 
     const loadedPost = await connection
         .manager
         .getCustomRepository(PostRepository)
-        .findMyPost();
+        .findMyPost(qr);
 
     console.log("Post persisted! Loaded post: ", loadedPost);
 
     // third type of custom repository
 
     const userRepository = connection.manager.getCustomRepository(UserRepository);
-    await userRepository.createAndSave("Umed", "Khudoiberdiev");
-    const loadedUser = await userRepository.findByName("Umed", "Khudoiberdiev");
+    await userRepository.createAndSave(qr, "Umed", "Khudoiberdiev");
+    const loadedUser = await userRepository.findByName(qr, "Umed", "Khudoiberdiev");
 
     console.log("User loaded: ", loadedUser);
 

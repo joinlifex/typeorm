@@ -16,15 +16,17 @@ describe("github issues > #3534: store regexp", () => {
 
     it("allows entities with regexp columns", () => Promise.all(connections.map(async connection => {
         const repository = connection.getRepository(Foo);
+        const qr = connection.createQueryRunner();
 
         const foo = new Foo();
         foo.bar = /foo/i;
-        const savedFoo = await repository.save(foo);
+        const savedFoo = await repository.save(qr, foo);
         expect(savedFoo.bar).to.instanceOf(RegExp);
         expect(savedFoo.bar.toString()).to.eq(/foo/i.toString());
-        const storedFoo = await repository.findOneOrFail(foo.id);
+        const storedFoo = await repository.findOneOrFail(qr, foo.id);
         expect(storedFoo.bar).to.instanceOf(RegExp);
         expect(storedFoo.bar.toString()).to.eq(/foo/i.toString());
+        await qr.release();
     })));
 
 });

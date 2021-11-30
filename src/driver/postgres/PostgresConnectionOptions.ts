@@ -34,6 +34,11 @@ export interface PostgresConnectionOptions extends BaseConnectionOptions, Postgr
     readonly useUTC?: boolean;
 
     /**
+    * Name of the RLS context variable into the database. (defaukt: rls.tenant_id)
+    */
+    readonly contextVarName?: string;
+
+    /**
      * Replication setup.
      */
     readonly replication?: {

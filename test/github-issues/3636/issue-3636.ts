@@ -20,14 +20,16 @@ describe("github issues > #3636 synchronize drops (and then re-adds) json column
         const post = new Post();
         post.id = 1;
         post.data = {hello: "world"};
-        await connection.manager.save(post);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, post);
 
         await connection.synchronize();
 
-        const loadedPost = await connection.manager.findOne(Post, 1);
+        const loadedPost = await connection.manager.findOne(qr, Post, 1);
 
         expect(loadedPost).to.be.not.empty;
         expect(loadedPost!.data.hello).to.be.eq("world");
+        await qr.release();
     })));
 
 });

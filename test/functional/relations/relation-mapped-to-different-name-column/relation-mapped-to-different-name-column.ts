@@ -15,19 +15,20 @@ describe.skip("relations > relation mapped to relation with different name (#56)
 
     it("should work perfectly", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         // first create and save details
         const details = new PostDetails();
         details.keyword = "post-1";
-        await connection.manager.save(details);
+        await connection.manager.save(qr, details);
 
         // then create and save a post with details
         const post1 = new Post();
         post1.title = "Hello Post #1";
         post1.details = details;
-        await connection.manager.save(post1);
+        await connection.manager.save(qr, post1);
 
         // now check
-        const posts = await connection.manager.find(Post, {
+        const posts = await connection.manager.find(qr, Post, {
             join: {
                 alias: "post",
                 innerJoinAndSelect: {
@@ -43,6 +44,7 @@ describe.skip("relations > relation mapped to relation with different name (#56)
                 keyword: "post-1"
             }
         }]);
+        await qr.release();
     })));
 
 });

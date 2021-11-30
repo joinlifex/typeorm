@@ -14,9 +14,11 @@ describe("github issues > #2006 Columns are being set to null after saving the e
 
     it("should be able to find by boolean find", () => Promise.all(connections.map(async connection => {
         const user = new User();
+        const qr = connection.createQueryRunner();
         user.token = "sometoken";
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
         user.token.should.be.equal("sometoken");
+        await qr.release();
     })));
 
 });

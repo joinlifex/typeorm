@@ -21,10 +21,11 @@ describe("mongodb > timestampable columns", () => {
     it("should persist timestampable columns", () => Promise.all(connections.map(async connection => {
         const commentMongoRepository = connection.getMongoRepository(Post);
 
+        const qr = connection.createQueryRunner();
         // save a post
         const post = new Post();
         post.message = "Hello";
-        await commentMongoRepository.save(post);
+        await commentMongoRepository.save(qr, post);
         expect(post.id).to.be.not.undefined;
         post.createdAt.should.be.instanceof(Date);
         const createdAt = post.createdAt;
@@ -43,14 +44,16 @@ describe("mongodb > timestampable columns", () => {
         post.createdAt = date;
         post.updatedAt = date;
 
-        await commentMongoRepository.save(post);
+        await commentMongoRepository.save(qr, post);
 
-        const updatedPost = await commentMongoRepository.findOne(post.id);
+        const updatedPost = await commentMongoRepository.findOne(qr, post.id);
 
         expect(updatedPost).to.be.ok;
 
         expect((updatedPost as Post).createdAt.getTime()).to.equal(createdAt.getTime());
         expect((updatedPost as Post).updatedAt.getTime()).to.gte(updatedAt.getTime());
+    
+        await qr.release();
     })));
 
 });

@@ -22,7 +22,7 @@ describe("StringUtils", () => {
         it("should correctly convert strings of capitals", () => {
             const input = "testABCItem";
             const expected = "test_abc_item";
-            const actual = snakeCase(input)
+            const actual = snakeCase(input);
 
             expect(actual).to.be.equal(expected, `Failed for Input: ${input}`);
         });
@@ -72,6 +72,6 @@ describe("StringUtils", () => {
                 const actual = snakeCase(input);
                 expect(actual).to.be.equal(expected, `Failed for Input: ${input}`);
             }
-        })
+        });
     });
 });

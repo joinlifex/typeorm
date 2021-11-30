@@ -15,15 +15,16 @@ describe("github issues > #1233 column updatedDate must appear in the GROUP BY c
 
     it("should filter correctly using findByIds", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         let post1 = new Post();
         post1.name = "post #1";
-        await connection.manager.save(post1);
+        await connection.manager.save(qr, post1);
 
         let post2 = new Post();
         post2.name = "post #1";
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post2);
 
-        const [loadedPosts, count] = await connection.manager.findAndCount(Post, {
+        const [loadedPosts, count] = await connection.manager.findAndCount(qr, Post, {
             skip: 1,
             take: 1
         });
@@ -31,6 +32,7 @@ describe("github issues > #1233 column updatedDate must appear in the GROUP BY c
         loadedPosts[0].id.should.be.equal(1);
         count.should.be.equal(2);
 
+        await qr.release();
     })));
 
 });

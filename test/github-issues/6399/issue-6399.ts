@@ -36,14 +36,15 @@ describe("github issues > #6399 Process extraAppendedAndWhereCondition for inher
                 postType: "TargetPost",
             },
         ];
-
-        await targetPostRepo.save(posts);
+        const qr = connection.createQueryRunner();
+        await targetPostRepo.save(qr, posts);
 
         const result = await targetPostRepo.createQueryBuilder("targetPosts")
             .leftJoinAndSelect("targetPosts.comments", "comments")
             .take(2)
-            .getMany();
+            .getMany(qr);
 
         expect(result.length).eq(2);
+        await qr.release();
     })));
 });

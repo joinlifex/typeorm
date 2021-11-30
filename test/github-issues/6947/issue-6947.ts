@@ -24,18 +24,19 @@ describe("github issues > #6947 Custom primary column for TreeRepository based e
                 const categoryRepository = connection.getTreeRepository(
                     Category
                 );
+                const qr = connection.createQueryRunner();
 
                 const parent = new Category();
                 parent.cat_name = "parent";
-                await categoryRepository.save(parent);
+                await categoryRepository.save(qr, parent);
 
                 const child = new Category();
                 child.cat_name = "child";
                 child.parent = parent;
-                await categoryRepository.save(child);
+                await categoryRepository.save(qr, child);
 
-                const tree = await categoryRepository.findDescendantsTree(
-                    (await categoryRepository.findOne({ cat_name: "parent" }))!
+                const tree = await categoryRepository.findDescendantsTree(qr, 
+                    (await categoryRepository.findOne(qr, { cat_name: "parent" }))!
                 );
 
                 tree.should.deep.include({
@@ -49,6 +50,7 @@ describe("github issues > #6947 Custom primary column for TreeRepository based e
                         },
                     ],
                 });
+                await qr.release();
             })
         ));
 });

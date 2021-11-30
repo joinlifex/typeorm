@@ -23,18 +23,20 @@ describe("github issues > #695 Join columns are not using correct length", () =>
         const device = new Device();
         device.id = "ABCDEFGHIJKL";
         device.registrationToken = "123456";
-        await connection.manager.save(device);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, device);
 
         const deviceInstance = new DeviceInstance();
         deviceInstance.id = "new post";
         deviceInstance.device = device;
         deviceInstance.instance = 10;
         deviceInstance.type = "type";
-        await connection.manager.save(deviceInstance);
+        await connection.manager.save(qr, deviceInstance);
 
         table!.findColumnByName("device_id")!.type.should.be.equal("char");
         table!.findColumnByName("device_id")!.length!.should.be.equal("12");
 
+        await qr.release();
     })));
 
 });

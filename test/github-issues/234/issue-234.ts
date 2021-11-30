@@ -18,6 +18,7 @@ describe("github issues > #234 and #223 lazy loading does not work correctly fro
 
     it("should correctly load from one-to-many and many-to-one sides", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         // pre-populate database first
         for (let i = 1; i <= 10; i++) {
             const post = new Post();
@@ -27,7 +28,7 @@ describe("github issues > #234 and #223 lazy loading does not work correctly fro
                 category.name = "fake category!";
                 post.category = Promise.resolve(category);
             }
-            await connection.manager.save(post);
+            await connection.manager.save(qr, post);
         }
 
         // create objects to save
@@ -46,14 +47,14 @@ describe("github issues > #234 and #223 lazy loading does not work correctly fro
         post2.category = Promise.resolve(category2);
 
         // persist
-        await connection.manager.save(post1);
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post1);
+        await connection.manager.save(qr, post2);
 
         // check that all persisted objects exist
         const loadedPosts = await connection.manager
             .createQueryBuilder(Post, "post")
             .where("post.title = :firstTitle OR post.title = :secondTitle", { firstTitle: "Hello Post #1", secondTitle: "Hello Post #2" })
-            .getMany();
+            .getMany(qr);
 
         const loadedCategory1 = await loadedPosts[0].category;
         expect(loadedCategory1!).not.to.be.undefined;
@@ -71,10 +72,12 @@ describe("github issues > #234 and #223 lazy loading does not work correctly fro
         expect(loadedPosts2!).not.to.be.undefined;
         loadedPosts2![0].title.should.equal("Hello Post #2");
 
+        await qr.release();
     })));
 
     it("should correctly load from both many-to-many sides", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         // pre-populate database first
         for (let i = 1; i <= 10; i++) {
             const post = new Post();
@@ -84,7 +87,7 @@ describe("github issues > #234 and #223 lazy loading does not work correctly fro
                 tag.name = "fake tag!";
                 post.tags = Promise.resolve((await post.tags).concat([tag]));
             }
-            await connection.manager.save(post);
+            await connection.manager.save(qr, post);
         }
 
         // create objects to save
@@ -112,14 +115,14 @@ describe("github issues > #234 and #223 lazy loading does not work correctly fro
         post2.tags = Promise.resolve([tag2_1, tag2_2, tag2_3]);
 
         // persist
-        await connection.manager.save(post1);
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post1);
+        await connection.manager.save(qr, post2);
 
         // check that all persisted objects exist
         const loadedPosts = await connection.manager
             .createQueryBuilder(Post, "post")
             .where("post.title = :firstTitle OR post.title = :secondTitle", { firstTitle: "Hello Post #1", secondTitle: "Hello Post #2" })
-            .getMany();
+            .getMany(qr);
 
         // check owner side
 
@@ -148,6 +151,7 @@ describe("github issues > #234 and #223 lazy loading does not work correctly fro
         loadedPosts2.length.should.be.equal(1);
         loadedPosts2[0].title.should.equal("Hello Post #2");
 
+        await qr.release();
     })));
 
 });

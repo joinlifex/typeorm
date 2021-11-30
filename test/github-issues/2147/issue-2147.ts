@@ -25,12 +25,14 @@ describe.skip("github issues > #2147 Lazy load JoinColumn with multiple columns 
             user.clientId = 16;
             user.name = username;
             user.updatedById = 10;
-            await connection.manager.save(user);
+            const qr = connection.createQueryRunner();
+            await connection.manager.save(qr, user);
 
-            const users = await connection.manager.find(User);
+            const users = await connection.manager.find(qr, User);
 
             const updatedBy = await users[0].updatedBy;
 
+            await qr.release();
             return expect(updatedBy.name).to.be.equal(username);
 
         }));

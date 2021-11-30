@@ -19,14 +19,16 @@ describe("github issues > #4630 Enum string not escaping resulting in broken mig
     it("should support enums of strings with apostrophes in them", () => Promise.all(connections.map(async connection => {
         const user = new User();
         user.realm = Realm.KelThuzad;
+        const qr = connection.createQueryRunner();
 
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
-        const users = await connection.manager.find(User);
+        const users = await connection.manager.find(qr, User);
 
         users.should.eql([{
             id: 1,
             realm: "Kel'Thuzad"
         }]);
+        await qr.release();
     })));
 });

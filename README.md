@@ -10,15 +10,17 @@
 	<a href="https://badge.fury.io/js/typeorm">
 		<img src="https://badge.fury.io/js/typeorm.svg">
 	</a>
-    <a href="https://codecov.io/gh/typeorm/typeorm">
+    <a href="https://codecov.io/gh/joinlifex/typeorm">
         <img alt="Codecov" src="https://img.shields.io/codecov/c/github/typeorm/typeorm.svg">
     </a>
-	<a href="https://join.slack.com/t/typeorm/shared_invite/zt-uu12ljeb-OH_0086I379fUDApYJHNuw">
-		<img src="https://img.shields.io/badge/chat-on%20slack-blue.svg">
-	</a>
   <br>
   <br>
 </div>
+
+ ### This is a fork of the original TypeORM library. Its goal is to **get a control on the db connection** used for the execution of the requests. It allows to **contextualize the db connection**.
+<br />
+<br />
+<br />
 
 TypeORM is an [ORM](https://en.wikipedia.org/wiki/Object-relational_mapping)
 that can run in NodeJS, Browser, Cordova, PhoneGap, Ionic, React Native, NativeScript, Expo, and Electron platforms
@@ -109,13 +111,13 @@ const user = new User();
 user.firstName = "Timber";
 user.lastName = "Saw";
 user.age = 25;
-await repository.save(user);
+await repository.save(qr, user);
 
-const allUsers = await repository.find();
-const firstUser = await repository.findOne(1); // find by id
-const timber = await repository.findOne({ firstName: "Timber", lastName: "Saw" });
+const allUsers = await repository.find(qr);
+const firstUser = await repository.findOne(qr, 1); // find by id
+const timber = await repository.findOne(qr, { firstName: "Timber", lastName: "Saw" });
 
-await repository.remove(timber);
+await repository.remove(qr, timber);
 ```
 
 Alternatively, if you prefer to use the `ActiveRecord` implementation, you can use it as well:
@@ -148,13 +150,13 @@ const user = new User();
 user.firstName = "Timber";
 user.lastName = "Saw";
 user.age = 25;
-await user.save();
+await user.save(qr);
 
-const allUsers = await User.find();
-const firstUser = await User.findOne(1);
-const timber = await User.findOne({ firstName: "Timber", lastName: "Saw" });
+const allUsers = await User.find(qr);
+const firstUser = await User.findOne(qr, 1);
+const timber = await User.findOne(qr, { firstName: "Timber", lastName: "Saw" });
 
-await timber.remove();
+await timber.remove(qr);
 ```
 
 ## Installation
@@ -632,7 +634,7 @@ createConnection(/*...*/).then(connection => {
     photo.isPublished = true;
 
     return connection.manager
-            .save(photo)
+            .save(qr, photo)
             .then(photo => {
                 console.log("Photo has been saved. Photo id is", photo.id);
             });
@@ -661,7 +663,7 @@ createConnection(/*...*/).then(async connection => {
     photo.views = 1;
     photo.isPublished = true;
 
-    await connection.manager.save(photo);
+    await connection.manager.save(qr, photo);
     console.log("Photo has been saved");
 
 }).catch(error => console.log(error));
@@ -681,7 +683,7 @@ import { Photo } from "./entity/Photo";
 createConnection(/*...*/).then(async connection => {
 
     /*...*/
-    let savedPhotos = await connection.manager.find(Photo);
+    let savedPhotos = await connection.manager.find(qr, Photo);
     console.log("All photos from the db: ", savedPhotos);
 
 }).catch(error => console.log(error));
@@ -713,10 +715,10 @@ createConnection(/*...*/).then(async connection => {
 
     let photoRepository = connection.getRepository(Photo);
 
-    await photoRepository.save(photo);
+    await photoRepository.save(qr, photo);
     console.log("Photo has been saved");
 
-    let savedPhotos = await photoRepository.find();
+    let savedPhotos = await photoRepository.find(qr);
     console.log("All photos from the db: ", savedPhotos);
 
 }).catch(error => console.log(error));
@@ -735,19 +737,19 @@ import { Photo } from "./entity/Photo";
 createConnection(/*...*/).then(async connection => {
 
     /*...*/
-    let allPhotos = await photoRepository.find();
+    let allPhotos = await photoRepository.find(qr);
     console.log("All photos from the db: ", allPhotos);
 
-    let firstPhoto = await photoRepository.findOne(1);
+    let firstPhoto = await photoRepository.findOne(qr, 1);
     console.log("First photo from the db: ", firstPhoto);
 
-    let meAndBearsPhoto = await photoRepository.findOne({ name: "Me and Bears" });
+    let meAndBearsPhoto = await photoRepository.findOne(qr, { name: "Me and Bears" });
     console.log("Me and Bears photo from the db: ", meAndBearsPhoto);
 
-    let allViewedPhotos = await photoRepository.find({ views: 1 });
+    let allViewedPhotos = await photoRepository.find(qr, { views: 1 });
     console.log("All viewed photos: ", allViewedPhotos);
 
-    let allPublishedPhotos = await photoRepository.find({ isPublished: true });
+    let allPublishedPhotos = await photoRepository.find(qr, { isPublished: true });
     console.log("All published photos: ", allPublishedPhotos);
 
     let [allPhotos, photosCount] = await photoRepository.findAndCount();
@@ -768,9 +770,9 @@ import { Photo } from "./entity/Photo";
 createConnection(/*...*/).then(async connection => {
 
     /*...*/
-    let photoToUpdate = await photoRepository.findOne(1);
+    let photoToUpdate = await photoRepository.findOne(qr, 1);
     photoToUpdate.name = "Me, my friends and polar bears";
-    await photoRepository.save(photoToUpdate);
+    await photoRepository.save(qr, photoToUpdate);
 
 }).catch(error => console.log(error));
 ```
@@ -788,8 +790,8 @@ import { Photo } from "./entity/Photo";
 createConnection(/*...*/).then(async connection => {
 
     /*...*/
-    let photoToRemove = await photoRepository.findOne(1);
-    await photoRepository.remove(photoToRemove);
+    let photoToRemove = await photoRepository.findOne(qr, 1);
+    await photoRepository.remove(qr, photoToRemove);
 
 }).catch(error => console.log(error));
 ```
@@ -892,10 +894,10 @@ createConnection(/*...*/).then(async connection => {
     let metadataRepository = connection.getRepository(PhotoMetadata);
 
     // first we should save a photo
-    await photoRepository.save(photo);
+    await photoRepository.save(qr, photo);
 
     // photo is saved. Now we need to save a photo metadata
-    await metadataRepository.save(metadata);
+    await metadataRepository.save(qr, metadata);
 
     // done
     console.log("Metadata is saved, and the relation between metadata and photo is created in the database too");
@@ -966,7 +968,7 @@ createConnection(/*...*/).then(async connection => {
 
     /*...*/
     let photoRepository = connection.getRepository(Photo);
-    let photos = await photoRepository.find({ relations: ["metadata"] });
+    let photos = await photoRepository.find(qr, { relations: ["metadata"] });
 
 }).catch(error => console.log(error));
 ```
@@ -989,7 +991,7 @@ createConnection(/*...*/).then(async connection => {
             .getRepository(Photo)
             .createQueryBuilder("photo")
             .innerJoinAndSelect("photo.metadata", "metadata")
-            .getMany();
+            .getMany(qr);
 
 
 }).catch(error => console.log(error));
@@ -1043,7 +1045,7 @@ createConnection(options).then(async connection => {
     let photoRepository = connection.getRepository(Photo);
 
     // saving a photo also save the metadata
-    await photoRepository.save(photo);
+    await photoRepository.save(qr, photo);
 
     console.log("Photo is saved, photo metadata is saved too.")
 
@@ -1191,11 +1193,11 @@ let connection = await createConnection(options);
 // create a few albums
 let album1 = new Album();
 album1.name = "Bears";
-await connection.manager.save(album1);
+await connection.manager.save(qr, album1);
 
 let album2 = new Album();
 album2.name = "Me";
-await connection.manager.save(album2);
+await connection.manager.save(qr, album2);
 
 // create a few photos
 let photo = new Photo();
@@ -1205,13 +1207,13 @@ photo.filename = "photo-with-bears.jpg";
 photo.views = 1
 photo.isPublished = true
 photo.albums = [album1, album2];
-await connection.manager.save(photo);
+await connection.manager.save(qr, photo);
 
 // now our photo is saved and albums are attached to it
 // now lets load them:
 const loadedPhoto = await connection
     .getRepository(Photo)
-    .findOne(1, { relations: ["albums"] });
+    .findOne(qr, 1, { relations: ["albums"] });
 ```
 
 `loadedPhoto` will be equal to:
@@ -1248,7 +1250,7 @@ let photos = await connection
     .skip(5)
     .take(10)
     .setParameters({ photoName: "My", bearName: "Mishka" })
-    .getMany();
+    .getMany(qr);
 ```
 
 This query selects all published photos with "My" or "Mishka" names.

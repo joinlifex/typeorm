@@ -30,6 +30,7 @@ const options: ConnectionOptions = {
 };
 
 createConnection(options).then(connection => {
+    const qr = connection.createQueryRunner();
     let postRepository = connection.getRepository<Post>("Post");
 
     let post: Post = {
@@ -45,7 +46,7 @@ createConnection(options).then(connection => {
     };
     
     postRepository
-        .save(post)
+        .save(qr, post)
         .then(result => {
             console.log(result);
         })

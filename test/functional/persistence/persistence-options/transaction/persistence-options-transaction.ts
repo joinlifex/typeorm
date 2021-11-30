@@ -20,11 +20,14 @@ describe("persistence > persistence options > transaction", () => {
     // -------------------------------------------------------------------------
 
     it("should disable transaction when option is specified", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.title = "Bakhrom";
         post.description = "Hello";
-        await connection.manager.save(post, { transaction: false });
+        await connection.manager.save(qr, post, { transaction: false });
         // todo: check if actual transaction query is not executed
+        
+        await qr.release();
     })));
 
 });

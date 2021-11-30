@@ -37,13 +37,15 @@ describe("github issues > #2131 InsertResult return the same primary key", () =>
     it("should get correct insert ids for multiple entities inserted", () =>
         Promise.all(
             connections.map(async (connection) => {
+                const qr = connection.createQueryRunner();
                 await connection
                     .createQueryBuilder()
                     .insert()
                     .into(Post)
                     .values(posts)
-                    .execute();
+                    .execute(qr);
 
+                await qr.release();
                 expect(posts[0].id).to.equal(1);
                 expect(posts[1].id).to.equal(2);
                 expect(posts[2].id).to.equal(3);

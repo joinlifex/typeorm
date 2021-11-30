@@ -26,25 +26,26 @@ describe("repository > find options > relations", () => {
     // -------------------------------------------------------------------------
 
     beforeEach(() => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const postUser = new User();
         postUser.name = "Timber";
-        await connection.manager.save(postUser);
+        await connection.manager.save(qr, postUser);
         const postCountersUser = new User();
         postCountersUser.name = "Post Counters Timber";
-        await connection.manager.save(postCountersUser);
+        await connection.manager.save(qr, postCountersUser);
         const photoCountersUser = new User();
         photoCountersUser.name = "Photo Counters Timber";
-        await connection.manager.save(photoCountersUser);
+        await connection.manager.save(qr, photoCountersUser);
         const photoUser = new User();
         photoUser.name = "Photo Timber";
-        await connection.manager.save(photoUser);
+        await connection.manager.save(qr, photoUser);
 
         const category1 = new Category();
         category1.name = "category1";
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
         const category2 = new Category();
         category2.name = "category2";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const photo1 = new Photo();
         photo1.filename = "photo1.jpg";
@@ -53,19 +54,19 @@ describe("repository > find options > relations", () => {
         photo1.counters.commentCount = 19;
         photo1.counters.author = photoCountersUser;
         photo1.user = photoUser;
-        await connection.manager.save(photo1);
+        await connection.manager.save(qr, photo1);
         const photo2 = new Photo();
         photo2.filename = "photo2.jpg";
         photo2.counters = new Counters();
         photo2.counters.stars = 3;
         photo2.counters.commentCount = 20;
-        await connection.manager.save(photo2);
+        await connection.manager.save(qr, photo2);
         const photo3 = new Photo();
         photo3.filename = "photo3.jpg";
         photo3.counters = new Counters();
         photo3.counters.stars = 4;
         photo3.counters.commentCount = 21;
-        await connection.manager.save(photo3);
+        await connection.manager.save(qr, photo3);
 
         const postCounters = new Counters();
         postCounters.commentCount = 1;
@@ -78,7 +79,8 @@ describe("repository > find options > relations", () => {
         post.user = postUser;
         post.categories = [category1, category2];
         post.photos = [photo1, photo2, photo3];
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
+        await qr.release();
     })));
 
     // -------------------------------------------------------------------------
@@ -86,7 +88,8 @@ describe("repository > find options > relations", () => {
     // -------------------------------------------------------------------------
 
     it("should not any relations if they are not specified", () => Promise.all(connections.map(async connection => {
-        const loadedPost = await connection.getRepository(Post).findOne(1);
+        const qr = connection.createQueryRunner();
+        const loadedPost = await connection.getRepository(Post).findOne(qr, 1);
         loadedPost!.should.be.eql({
             id: 1,
             title: "About Timber",
@@ -95,10 +98,12 @@ describe("repository > find options > relations", () => {
                 stars: 101
             }
         });
+        await qr.release();
     })));
 
     it("should load specified relations case 1", () => Promise.all(connections.map(async connection => {
-        const loadedPost = await connection.getRepository(Post).findOne(1, { relations: ["photos"] });
+        const qr = connection.createQueryRunner();
+        const loadedPost = await connection.getRepository(Post).findOne(qr, 1, { relations: ["photos"] });
         loadedPost!.id.should.be.equal(1);
         loadedPost!.title.should.be.equal("About Timber");
         loadedPost!.counters.commentCount.should.be.equal(1);
@@ -127,10 +132,12 @@ describe("repository > find options > relations", () => {
                 commentCount: 21
             }
         });
+        await qr.release();
     })));
 
     it("should load specified relations case 2", () => Promise.all(connections.map(async connection => {
-        const loadedPost = await connection.getRepository(Post).findOne(1, { relations: ["photos", "user", "categories"] });
+        const qr = connection.createQueryRunner();
+        const loadedPost = await connection.getRepository(Post).findOne(qr, 1, { relations: ["photos", "user", "categories"] });
         loadedPost!.id.should.be.equal(1);
         loadedPost!.title.should.be.equal("About Timber");
         loadedPost!.counters.commentCount.should.be.equal(1);
@@ -171,10 +178,12 @@ describe("repository > find options > relations", () => {
             id: 2,
             name: "category2"
         });
+        await qr.release();
     })));
 
     it("should load specified relations and their sub-relations case 1", () => Promise.all(connections.map(async connection => {
-        const loadedPost = await connection.getRepository(Post).findOne(1, { relations: ["photos", "user", "categories", "photos.user"] });
+        const qr = connection.createQueryRunner();
+        const loadedPost = await connection.getRepository(Post).findOne(qr, 1, { relations: ["photos", "user", "categories", "photos.user"] });
         loadedPost!.id.should.be.equal(1);
         loadedPost!.title.should.be.equal("About Timber");
         loadedPost!.counters.commentCount.should.be.equal(1);
@@ -221,10 +230,12 @@ describe("repository > find options > relations", () => {
             id: 2,
             name: "category2"
         });
+        await qr.release();
     })));
 
     it("should load specified relations and their sub-relations case 2", () => Promise.all(connections.map(async connection => {
-        const loadedPost = await connection.getRepository(Post).findOne(1, { relations: ["photos", "user", "photos.user", "counters.author"] });
+        const qr = connection.createQueryRunner();
+        const loadedPost = await connection.getRepository(Post).findOne(qr, 1, { relations: ["photos", "user", "photos.user", "counters.author"] });
         loadedPost!.id.should.be.equal(1);
         loadedPost!.title.should.be.equal("About Timber");
         loadedPost!.counters.commentCount.should.be.equal(1);
@@ -267,10 +278,12 @@ describe("repository > find options > relations", () => {
             id: 2,
             name: "Post Counters Timber"
         });
+        await qr.release();
     })));
 
     it("should load specified relations and their sub-relations case 3", () => Promise.all(connections.map(async connection => {
-        const loadedPost = await connection.getRepository(Post).findOne(1, { relations: ["photos", "user", "photos.user", "counters.author", "photos.counters.author"] });
+        const qr = connection.createQueryRunner();
+        const loadedPost = await connection.getRepository(Post).findOne(qr, 1, { relations: ["photos", "user", "photos.user", "counters.author", "photos.counters.author"] });
         loadedPost!.id.should.be.equal(1);
         loadedPost!.title.should.be.equal("About Timber");
         loadedPost!.counters.commentCount.should.be.equal(1);
@@ -319,30 +332,43 @@ describe("repository > find options > relations", () => {
             id: 2,
             name: "Post Counters Timber"
         });
+        await qr.release();
     })));
 
     it("should throw error if specified relations were not found case 1", () => Promise.all(connections.map(async connection => {
-        await connection.getRepository(Post).findOne(1, { relations: ["photos2"] }).should.eventually.be.rejectedWith(FindRelationsNotFoundError);
+        const qr = connection.createQueryRunner();
+        await connection.getRepository(Post).findOne(qr, 1, { relations: ["photos2"] }).should.eventually.be.rejectedWith(FindRelationsNotFoundError);
+        await qr.release();
     })));
 
     it("should throw error if specified relations were not found case 2", () => Promise.all(connections.map(async connection => {
-        await connection.getRepository(Post).findOne(1, { relations: ["photos", "counters.author2"] }).should.eventually.be.rejectedWith(FindRelationsNotFoundError);
+        const qr = connection.createQueryRunner();
+        await connection.getRepository(Post).findOne(qr, 1, { relations: ["photos", "counters.author2"] }).should.eventually.be.rejectedWith(FindRelationsNotFoundError);
+        await qr.release();
     })));
 
     it("should throw error if specified relations were not found case 3", () => Promise.all(connections.map(async connection => {
-        await connection.getRepository(Post).findOne(1, { relations: ["photos", "counters2.author"] }).should.eventually.be.rejectedWith(FindRelationsNotFoundError);
+        const qr = connection.createQueryRunner();
+        await connection.getRepository(Post).findOne(qr, 1, { relations: ["photos", "counters2.author"] }).should.eventually.be.rejectedWith(FindRelationsNotFoundError);
+        await qr.release();
     })));
 
     it("should throw error if specified relations were not found case 4", () => Promise.all(connections.map(async connection => {
-        await connection.getRepository(Post).findOne(1, { relations: ["photos", "photos.user.haha"] }).should.eventually.be.rejectedWith(FindRelationsNotFoundError);
+        const qr = connection.createQueryRunner();
+        await connection.getRepository(Post).findOne(qr, 1, { relations: ["photos", "photos.user.haha"] }).should.eventually.be.rejectedWith(FindRelationsNotFoundError);
+        await qr.release();
     })));
 
     it("should throw error if specified relations were not found case 5", () => Promise.all(connections.map(async connection => {
-        await connection.getRepository(Post).findOne(1, { relations: ["questions"] }).should.eventually.be.rejectedWith(FindRelationsNotFoundError);
+        const qr = connection.createQueryRunner();
+        await connection.getRepository(Post).findOne(qr, 1, { relations: ["questions"] }).should.eventually.be.rejectedWith(FindRelationsNotFoundError);
+        await qr.release();
     })));
 
     it("should throw error if specified relations were not found case 6", () => Promise.all(connections.map(async connection => {
-        await connection.getRepository(Post).findOne(1, { relations: ["questions.haha"] }).should.eventually.be.rejectedWith(FindRelationsNotFoundError);
+        const qr = connection.createQueryRunner();
+        await connection.getRepository(Post).findOne(qr, 1, { relations: ["questions.haha"] }).should.eventually.be.rejectedWith(FindRelationsNotFoundError);
+        await qr.release();
     })));
 
 });

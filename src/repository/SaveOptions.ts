@@ -37,5 +37,4 @@ export interface SaveOptions {
      * Enabled by default.
      */
     reload?: boolean;
-
 }

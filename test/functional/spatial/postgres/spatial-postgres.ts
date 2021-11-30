@@ -87,6 +87,7 @@ describe("spatial-postgres", () => {
   it("should persist geometry correctly", () =>
     Promise.all(
       connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const geom = {
           type: "Point",
           coordinates: [0, 0]
@@ -94,16 +95,18 @@ describe("spatial-postgres", () => {
         const recordRepo = connection.getRepository(Post);
         const post = new Post();
         post.geom = geom;
-        const persistedPost = await recordRepo.save(post);
-        const foundPost = await recordRepo.findOne(persistedPost.id);
+        const persistedPost = await recordRepo.save(qr, post);
+        const foundPost = await recordRepo.findOne(qr, persistedPost.id);
         expect(foundPost).to.exist;
         expect(foundPost!.geom).to.deep.equal(geom);
+        await qr.release();
       })
     ));
 
   it("should persist geography correctly", () =>
     Promise.all(
       connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const geom = {
           type: "Point",
           coordinates: [0, 0]
@@ -111,16 +114,18 @@ describe("spatial-postgres", () => {
         const recordRepo = connection.getRepository(Post);
         const post = new Post();
         post.geog = geom;
-        const persistedPost = await recordRepo.save(post);
-        const foundPost = await recordRepo.findOne(persistedPost.id);
+        const persistedPost = await recordRepo.save(qr, post);
+        const foundPost = await recordRepo.findOne(qr, persistedPost.id);
         expect(foundPost).to.exist;
         expect(foundPost!.geog).to.deep.equal(geom);
+        await qr.release();
       })
     ));
 
   it("should update geometry correctly", () =>
     Promise.all(
       connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const geom = {
           type: "Point",
           coordinates: [0, 0]
@@ -132,23 +137,25 @@ describe("spatial-postgres", () => {
         const recordRepo = connection.getRepository(Post);
         const post = new Post();
         post.geom = geom;
-        const persistedPost = await recordRepo.save(post);
+        const persistedPost = await recordRepo.save(qr, post);
 
-        await recordRepo.update({
+        await recordRepo.update(qr, {
           id: persistedPost.id
         }, {
           geom: geom2
         });
 
-        const foundPost = await recordRepo.findOne(persistedPost.id);
+        const foundPost = await recordRepo.findOne(qr, persistedPost.id);
         expect(foundPost).to.exist;
         expect(foundPost!.geom).to.deep.equal(geom2);
+        await qr.release();
       })
     ));
 
   it("should re-save geometry correctly", () =>
     Promise.all(
       connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const geom = {
           type: "Point",
           coordinates: [0, 0]
@@ -160,18 +167,20 @@ describe("spatial-postgres", () => {
         const recordRepo = connection.getRepository(Post);
         const post = new Post();
         post.geom = geom;
-        const persistedPost = await recordRepo.save(post);
+        const persistedPost = await recordRepo.save(qr, post);
 
         persistedPost.geom = geom2;
-        await recordRepo.save(persistedPost);
+        await recordRepo.save(qr, persistedPost);
 
-        const foundPost = await recordRepo.findOne(persistedPost.id);
+        const foundPost = await recordRepo.findOne(qr, persistedPost.id);
         expect(foundPost).to.exist;
         expect(foundPost!.geom).to.deep.equal(geom2);
+        await qr.release();
       })
     ));
 
     it("should be able to order geometries by distance", () => Promise.all(connections.map(async connection => {
+      const qr = connection.createQueryRunner();
 
         const geoJson1 = {
             type: "Point",
@@ -202,7 +211,7 @@ describe("spatial-postgres", () => {
 
         const post2 = new Post();
         post2.geom = geoJson2;
-        await connection.manager.save([post1, post2]);
+        await connection.manager.save(qr, [post1, post2]);
 
         const posts1 = await connection.manager
             .createQueryBuilder(Post, "post")
@@ -214,16 +223,17 @@ describe("spatial-postgres", () => {
                 }
             })
             .setParameters({ origin: JSON.stringify(origin) })
-            .getMany();
+            .getMany(qr);
 
         const posts2 = await connection.manager
             .createQueryBuilder(Post, "post")
             .orderBy("ST_Distance(post.geom, ST_GeomFromGeoJSON(:origin))", "DESC")
             .setParameters({ origin: JSON.stringify(origin) })
-            .getMany();
+            .getMany(qr);
 
         expect(posts1[0].id).to.be.equal(post1.id);
         expect(posts2[0].id).to.be.equal(post2.id);
+        await qr.release();
     })));
 
 });

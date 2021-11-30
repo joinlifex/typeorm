@@ -23,6 +23,7 @@ describe("github issues > #5520 save does not return generated id if object to s
     it("should generate parents and childs uuid and return them", () =>
         Promise.all(
             connections.map(async (connection) => {
+                const qr = connection.createQueryRunner();
                 let entity = new TestParent();
                 let entityChild = new TestChild();
                 entityChild.value = "test";
@@ -30,7 +31,7 @@ describe("github issues > #5520 save does not return generated id if object to s
 
                 let response = await connection
                     .getRepository(TestParent)
-                    .save(entity);
+                    .save(qr, entity);
 
                 assert(
                     response.uuid,
@@ -40,6 +41,7 @@ describe("github issues > #5520 save does not return generated id if object to s
                     response.child.uuid,
                     "child uuid should be generated and set"
                 );
+                await qr.release();
             })
         ));
 });

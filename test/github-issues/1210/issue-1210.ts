@@ -47,10 +47,12 @@ describe("github issues > #1210 mongodb does not have multiple entities properly
         // user2.events.push(event2);
         let users = [user1, user2];
         let events = [event1, event2, event3, event4];
+        const qr = connection.createQueryRunner();
 
-        await connection.mongoManager.save(events);
-        await connection.mongoManager.save(users);
+        await connection.mongoManager.save(qr, events);
+        await connection.mongoManager.save(qr, users);
 
+        await qr.release();
     })));
 
 });

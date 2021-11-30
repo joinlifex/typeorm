@@ -50,10 +50,11 @@ describe("multi-schema-and-database > basic-functionality", () => {
             const queryRunner = connection.createQueryRunner();
             const table = await queryRunner.getTable("post");
             await queryRunner.release();
+            const qr = connection.createQueryRunner();
 
             const post = new Post();
             post.name = "Post #1";
-            await connection.getRepository(Post).save(post);
+            await connection.getRepository(Post).save(qr, post);
 
             const sql = connection.createQueryBuilder(Post, "post")
                 .where("post.id = :id", {id: 1})
@@ -66,6 +67,8 @@ describe("multi-schema-and-database > basic-functionality", () => {
                 sql.should.be.equal(`SELECT "post"."id" AS "post_id", "post"."name" AS "post_name" FROM "custom"."post" "post" WHERE "post"."id" = @0`);
 
             table!.name.should.be.equal("custom.post");
+        
+            await qr.release();
         })));
 
         it("should correctly create tables when custom table schema used in Entity decorator", () => Promise.all(connections.map(async connection => {
@@ -73,10 +76,11 @@ describe("multi-schema-and-database > basic-functionality", () => {
             const queryRunner = connection.createQueryRunner();
             const table = await queryRunner.getTable("userSchema.user");
             await queryRunner.release();
+            const qr = connection.createQueryRunner();
 
             const user = new User();
             user.name = "User #1";
-            await connection.getRepository(User).save(user);
+            await connection.getRepository(User).save(qr, user);
 
             const sql = connection.createQueryBuilder(User, "user")
                 .where("user.id = :id", {id: 1})
@@ -89,6 +93,8 @@ describe("multi-schema-and-database > basic-functionality", () => {
                 sql.should.be.equal(`SELECT "user"."id" AS "user_id", "user"."name" AS "user_name" FROM "userSchema"."user" "user" WHERE "user"."id" = @0`);
 
             table!.name.should.be.equal("userSchema.user");
+        
+            await qr.release();
         })));
 
         it("should correctly work with cross-schema queries", () => Promise.all(connections.map(async connection => {
@@ -96,20 +102,21 @@ describe("multi-schema-and-database > basic-functionality", () => {
             const queryRunner = connection.createQueryRunner();
             const table = await queryRunner.getTable("guest.category");
             await queryRunner.release();
+            const qr = connection.createQueryRunner();
 
             const post = new Post();
             post.name = "Post #1";
-            await connection.getRepository(Post).save(post);
+            await connection.getRepository(Post).save(qr, post);
 
             const category = new Category();
             category.name = "Category #1";
             category.post = post;
-            await connection.getRepository(Category).save(category);
+            await connection.getRepository(Category).save(qr, category);
 
             const loadedCategory = await connection.createQueryBuilder(Category, "category")
                 .innerJoinAndSelect("category.post", "post")
                 .where("category.id = :id", {id: 1})
-                .getOne();
+                .getOne(qr);
 
             loadedCategory!.should.be.not.empty;
             loadedCategory!.post.should.be.not.empty;
@@ -131,22 +138,25 @@ describe("multi-schema-and-database > basic-functionality", () => {
                     ` FROM "guest"."category" "category" INNER JOIN "custom"."post" "post" ON "post"."id"="category"."postId" WHERE "category"."id" = @0`);
 
             table!.name.should.be.equal("guest.category");
+        
+            await qr.release();
         })));
 
         it("should correctly work with QueryBuilder", () => Promise.all(connections.map(async connection => {
 
+            const qr = connection.createQueryRunner();
             const post = new Post();
             post.name = "Post #1";
-            await connection.getRepository(Post).save(post);
+            await connection.getRepository(Post).save(qr, post);
 
             const user = new User();
             user.name = "User #1";
-            await connection.getRepository(User).save(user);
+            await connection.getRepository(User).save(qr, user);
 
             const category = new Category();
             category.name = "Category #1";
             category.post = post;
-            await connection.getRepository(Category).save(category);
+            await connection.getRepository(Category).save(qr, category);
 
             const query = connection.createQueryBuilder()
                 .select()
@@ -156,7 +166,7 @@ describe("multi-schema-and-database > basic-functionality", () => {
                 .where("category.id = :id", {id: 1})
                 .andWhere("post.id = category.post");
 
-            (await query.getRawOne())!.should.be.not.empty;
+            (await query.getRawOne(qr))!.should.be.not.empty;
 
             if (connection.driver instanceof PostgresDriver)
                 query.getSql().should.be.equal(`SELECT * FROM "guest"."category" "category", "userSchema"."user" "user",` +
@@ -165,6 +175,8 @@ describe("multi-schema-and-database > basic-functionality", () => {
             if (connection.driver instanceof SqlServerDriver)
                 query.getSql().should.be.equal(`SELECT * FROM "guest"."category" "category", "userSchema"."user" "user",` +
                     ` "custom"."post" "post" WHERE "category"."id" = @0 AND "post"."id" = "category"."postId"`);
+        
+            await qr.release();
         })));
     });
 
@@ -204,10 +216,11 @@ describe("multi-schema-and-database > basic-functionality", () => {
             const queryRunner = connection.createQueryRunner();
             const table = await queryRunner.getTable("testDB.questions.question");
             await queryRunner.release();
+            const qr = connection.createQueryRunner();
 
             const question = new Question();
             question.name = "Question #1";
-            await connection.getRepository(Question).save(question);
+            await connection.getRepository(Question).save(qr, question);
 
             const sql = connection.createQueryBuilder(Question, "question")
                 .where("question.id = :id", {id: 1})
@@ -215,6 +228,8 @@ describe("multi-schema-and-database > basic-functionality", () => {
 
             sql.should.be.equal(`SELECT "question"."id" AS "question_id", "question"."name" AS "question_name" FROM "testDB"."questions"."question" "question" WHERE "question"."id" = @0`);
             table!.name.should.be.equal("testDB.questions.question");
+        
+            await qr.release();
         })));
 
         it("should correctly work with cross-schema and cross-database queries in QueryBuilder", () => Promise.all(connections.map(async connection => {
@@ -223,20 +238,21 @@ describe("multi-schema-and-database > basic-functionality", () => {
             const questionTable = await queryRunner.getTable("testDB.questions.question");
             const answerTable = await queryRunner.getTable("secondDB.answers.answer");
             await queryRunner.release();
+            const qr = connection.createQueryRunner();
 
             const question = new Question();
             question.name = "Question #1";
-            await connection.getRepository(Question).save(question);
+            await connection.getRepository(Question).save(qr, question);
 
             const answer1 = new Answer();
             answer1.text = "answer 1";
             answer1.questionId = question.id;
-            await connection.getRepository(Answer).save(answer1);
+            await connection.getRepository(Answer).save(qr, answer1);
 
             const answer2 = new Answer();
             answer2.text = "answer 2";
             answer2.questionId = question.id;
-            await connection.getRepository(Answer).save(answer2);
+            await connection.getRepository(Answer).save(qr, answer2);
 
             const query = connection.createQueryBuilder()
                 .select()
@@ -245,13 +261,15 @@ describe("multi-schema-and-database > basic-functionality", () => {
                 .where("question.id = :id", {id: 1})
                 .andWhere("answer.questionId = question.id");
 
-            expect(await query.getRawOne()).to.be.not.empty;
+            expect(await query.getRawOne(qr)).to.be.not.empty;
 
             query.getSql().should.be.equal(`SELECT * FROM "testDB"."questions"."question" "question", "secondDB"."answers"."answer"` +
                 ` "answer" WHERE "question"."id" = @0 AND "answer"."questionId" = "question"."id"`);
 
             questionTable!.name.should.be.equal("testDB.questions.question");
             answerTable!.name.should.be.equal("secondDB.answers.answer");
+        
+            await qr.release();
         })));
     });
 
@@ -273,10 +291,11 @@ describe("multi-schema-and-database > basic-functionality", () => {
             const tablePath = connection.driver instanceof SqlServerDriver ? "secondDB..person" : "secondDB.person";
             const table = await queryRunner.getTable(tablePath);
             await queryRunner.release();
+            const qr = connection.createQueryRunner();
 
             const person = new Person();
             person.name = "Person #1";
-            await connection.getRepository(Person).save(person);
+            await connection.getRepository(Person).save(qr, person);
 
             const sql = connection.createQueryBuilder(Person, "person")
                 .where("person.id = :id", {id: 1})
@@ -289,6 +308,8 @@ describe("multi-schema-and-database > basic-functionality", () => {
                 sql.should.be.equal("SELECT `person`.`id` AS `person_id`, `person`.`name` AS `person_name` FROM `secondDB`.`person` `person` WHERE `person`.`id` = ?");
 
             table!.name.should.be.equal(tablePath);
+        
+            await qr.release();
         })));
 
     });

@@ -16,6 +16,7 @@ describe("github issues > #161 joinAndSelect can't find entity from inverse side
 
     it("should persist successfully", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const request = new Request();
         request.owner = "Umed";
         request.type = "ticket";
@@ -25,9 +26,9 @@ describe("github issues > #161 joinAndSelect can't find entity from inverse side
         ticket.name = "ticket #1";
         ticket.request = request;
 
-        await connection.manager.save(ticket);
+        await connection.manager.save(qr, ticket);
 
-        const loadedTicketWithRequest = await connection.manager.findOne(Ticket, 1, {
+        const loadedTicketWithRequest = await connection.manager.findOne(qr, Ticket, 1, {
             join: {
                 alias: "ticket",
                 innerJoinAndSelect: {
@@ -48,7 +49,7 @@ describe("github issues > #161 joinAndSelect can't find entity from inverse side
             }
         });
 
-        const loadedRequestWithTicket = await connection.manager.findOne(Request, 1, {
+        const loadedRequestWithTicket = await connection.manager.findOne(qr, Request, 1, {
             join: {
                 alias: "request",
                 innerJoinAndSelect: {
@@ -68,16 +69,18 @@ describe("github issues > #161 joinAndSelect can't find entity from inverse side
             }
         });
 
+        await qr.release();
     })));
 
     it("should return joined relation successfully", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const authRequest = new Request();
         authRequest.owner = "somebody";
         authRequest.type = "authenticate";
         authRequest.success = true;
 
-        await connection.manager.save(authRequest);
+        await connection.manager.save(qr, authRequest);
 
         const request = new Request();
         request.owner = "somebody";
@@ -90,9 +93,9 @@ describe("github issues > #161 joinAndSelect can't find entity from inverse side
         ticket.request = request;
         request.ticket = ticket;
 
-        await connection.manager.save(ticket);
+        await connection.manager.save(qr, ticket);
 
-        const loadedRequest = await connection.manager.findOne(Request, 2, {
+        const loadedRequest = await connection.manager.findOne(qr, Request, 2, {
             join: {
                 alias: "request",
                 innerJoinAndSelect: { ticket: "request.ticket" }
@@ -111,6 +114,7 @@ describe("github issues > #161 joinAndSelect can't find entity from inverse side
             }
         });
 
+        await qr.release();
     })));
 
 });

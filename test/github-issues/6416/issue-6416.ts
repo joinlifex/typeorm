@@ -19,48 +19,54 @@ describe("github issues > #6399 Combining ManyToOne, Cascade, & Composite Primar
 
     it("persisting the cascading entities should succeed", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const post = new Post();
         const postTag = new PostTag();
         post.tags = [postTag];
 
-        await connection.manager.save(post, { reload: true });
+        await connection.manager.save(qr, post, { reload: true });
 
         try {
-            await connection.manager.save(post);
+            await connection.manager.save(qr, post);
         } catch (e) {
             assert.fail(e.toString(), null, "Second save had an exception");
         }
+        await qr.release();
     })));
 
     it("persisting the cascading entities without JoinColumn should succeed", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const post = new Post();
         const postAttachment = new PostAttachment();
         post.attachments = [postAttachment];
 
-        await connection.manager.save(post, { reload: true });
+        await connection.manager.save(qr, post, { reload: true });
 
         try {
-            await connection.manager.save(post);
+            await connection.manager.save(qr, post);
         } catch (e) {
             assert.fail(e.toString(), null, "Second save had an exception");
         }
+        await qr.release();
     })));
 
     it("persisting the child entity should succeed", () => Promise.all(connections.map(async connection => {
         const post = new Post();
 
-        await connection.manager.save<Post>(post);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save<Post>(qr, post);
 
         const postTag = new PostTag();
         postTag.post = post;
 
-        await connection.manager.save(postTag, { reload: true });
+        await connection.manager.save(qr, postTag, { reload: true });
 
         try {
-            await connection.manager.save(postTag);
+            await connection.manager.save(qr, postTag);
         } catch (e) {
             assert.fail(e.toString(), null, "Second save had an exception");
         }
+        await qr.release();
     })));
 });

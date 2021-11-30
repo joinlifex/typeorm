@@ -15,60 +15,66 @@ describe("columns > no-selection functionality", () => {
 
     it("should not select columns marked with select: false option", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // create and save a post first
         const post = new Post();
         post.title = "About columns";
         post.text = "Some text about columns";
         post.authorName = "Umed";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // check if all columns are updated except for readonly columns
-        const loadedPost = await postRepository.findOne(post.id);
+        const loadedPost = await postRepository.findOne(qr, post.id);
         expect(loadedPost!.title).to.be.equal("About columns");
         expect(loadedPost!.text).to.be.equal("Some text about columns");
         expect(loadedPost!.authorName).to.be.undefined;
+        await qr.release();
     })));
 
     it("should not select columns with QueryBuilder marked with select: false option", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // create and save a post first
         const post = new Post();
         post.title = "About columns";
         post.text = "Some text about columns";
         post.authorName = "Umed";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // check if all columns are updated except for readonly columns
         const loadedPost = await postRepository
             .createQueryBuilder("post")
             .where("post.id = :id", { id: post.id })
-            .getOne();
+            .getOne(qr);
         expect(loadedPost!.title).to.be.equal("About columns");
         expect(loadedPost!.text).to.be.equal("Some text about columns");
         expect(loadedPost!.authorName).to.be.undefined;
+        await qr.release();
     })));
 
     it("should select columns with select: false even columns were implicitly selected", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // create and save a post first
         const post = new Post();
         post.title = "About columns";
         post.text = "Some text about columns";
         post.authorName = "Umed";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // check if all columns are updated except for readonly columns
         const loadedPost = await postRepository
             .createQueryBuilder("post")
             .addSelect("post.authorName")
             .where("post.id = :id", { id: post.id })
-            .getOne();
+            .getOne(qr);
         expect(loadedPost!.title).to.be.equal("About columns");
         expect(loadedPost!.text).to.be.equal("Some text about columns");
         expect(loadedPost!.authorName).to.be.equal("Umed");
+        await qr.release();
     })));
 
 });

@@ -19,60 +19,71 @@ describe("persistence > entity updation", () => {
     after(() => closeTestingConnections(connections));
 
     it("should update generated auto-increment id after saving", () => Promise.all(connections.map(async connection => {
-        const post = new PostIncrement();
+        const qr = connection.createQueryRunner();
+            const post = new PostIncrement();
         post.text = "Hello Post";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
         // CockroachDB does not use incremental ids
         if (!(connection.driver instanceof CockroachDriver))
             post.id.should.be.equal(1);
+        await qr.release();
     })));
 
     it("should update generated uuid after saving", () => Promise.all(connections.map(async connection => {
-        const post = new PostUuid();
+        const qr = connection.createQueryRunner();
+            const post = new PostUuid();
         post.text = "Hello Post";
-        await connection.manager.save(post);
-        const loadedPost = await connection.manager.findOne(PostUuid);
+        await connection.manager.save(qr, post);
+        const loadedPost = await connection.manager.findOne(qr, PostUuid);
         post.id.should.be.equal(loadedPost!.id);
+        await qr.release();
     })));
 
     it("should update default values after saving", () => Promise.all(connections.map(async connection => {
-        const post = new PostDefaultValues();
+        const qr = connection.createQueryRunner();
+            const post = new PostDefaultValues();
         post.title = "Post #1";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
         post.title.should.be.equal("Post #1");
         post.text.should.be.equal("hello post");
         post.isActive.should.be.equal(true);
         post.addDate.should.be.instanceof(Date);
         post.views.should.be.equal(0);
         expect(post.description).to.be.equal(null);
+        await qr.release();
     })));
 
     it("should update special columns after saving", () => Promise.all(connections.map(async connection => {
-        const post = new PostSpecialColumns();
+        const qr = connection.createQueryRunner();
+            const post = new PostSpecialColumns();
         post.title = "Post #1";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
         post.title.should.be.equal("Post #1");
         post.createDate.should.be.instanceof(Date);
         post.updateDate.should.be.instanceof(Date);
         post.version.should.be.equal(1);
+        await qr.release();
     })));
 
     it("should update even when multiple primary keys are used", () => Promise.all(connections.map(async connection => {
-        const post = new PostMultiplePrimaryKeys();
+        const qr = connection.createQueryRunner();
+            const post = new PostMultiplePrimaryKeys();
         post.firstId = 1;
         post.secondId = 3;
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
         post.firstId.should.be.equal(1);
         post.secondId.should.be.equal(3);
         post.text.should.be.equal("Hello Multi Ids");
+        await qr.release();
     })));
 
     it("should update even with embeddeds", () => Promise.all(connections.map(async connection => {
-        const post = new PostComplex();
+        const qr = connection.createQueryRunner();
+            const post = new PostComplex();
         post.firstId = 1;
         post.embed = new PostEmbedded();
         post.embed.secondId = 3;
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
         post!.firstId.should.be.equal(1);
         post!.embed.secondId.should.be.equal(3);
         post!.embed.createDate.should.be.instanceof(Date);
@@ -80,13 +91,14 @@ describe("persistence > entity updation", () => {
         post!.embed.version.should.be.equal(1);
         post!.text.should.be.equal("Hello Complexity");
 
-        const loadedPost = await connection.manager.findOne(PostComplex, { firstId: 1, embed: { secondId: 3 }});
+        const loadedPost = await connection.manager.findOne(qr, PostComplex, { firstId: 1, embed: { secondId: 3 }});
         loadedPost!.firstId.should.be.equal(1);
         loadedPost!.embed.secondId.should.be.equal(3);
         loadedPost!.embed.createDate.should.be.instanceof(Date);
         loadedPost!.embed.updateDate.should.be.instanceof(Date);
         loadedPost!.embed.version.should.be.equal(1);
         loadedPost!.text.should.be.equal("Hello Complexity");
+        await qr.release();
     })));
 
 });

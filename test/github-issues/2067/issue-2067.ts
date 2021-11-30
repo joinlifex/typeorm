@@ -25,8 +25,10 @@ describe("github issues > #2067 Unhandled promise rejection warning on postgres 
           connection.driver.obtainSlaveConnection = () => Promise.reject<any>(new Error(connectionFailureMessage));
         }
 
+        const qr = connection.createQueryRunner();
         const repository = connection.getRepository(User);
-        return expect(repository.find()).to.be.rejectedWith(Error, connectionFailureMessage);
+        await qr.release();
+        return expect(repository.find(qr)).to.be.rejectedWith(Error, connectionFailureMessage);
     })));
 
 });

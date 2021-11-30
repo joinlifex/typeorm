@@ -52,6 +52,7 @@ import { UpdateResult } from "../query-builder/result/UpdateResult";
 import { DeleteResult } from "../query-builder/result/DeleteResult";
 import { EntityMetadata } from "../metadata/EntityMetadata";
 import { FindConditions } from "../find-options/FindConditions";
+import { QueryRunner } from "..";
 
 /**
  * Entity manager supposed to work with any entity, automatically find its repository and call its methods,
@@ -62,7 +63,7 @@ import { FindConditions } from "../find-options/FindConditions";
 export class MongoEntityManager extends EntityManager {
 
     get mongoQueryRunner(): MongoQueryRunner {
-        return (this.connection.driver as MongoDriver).queryRunner as MongoQueryRunner;
+        return (this.connection.driver as any as MongoDriver).queryRunner as MongoQueryRunner;
     }
 
     // -------------------------------------------------------------------------
@@ -80,7 +81,7 @@ export class MongoEntityManager extends EntityManager {
     /**
      * Finds entities that match given find options or conditions.
      */
-    async find<Entity>(entityClassOrName: EntityTarget<Entity>, optionsOrConditions?: FindManyOptions<Entity> | Partial<Entity>): Promise<Entity[]> {
+    async find<Entity>(queryRunner: QueryRunner, entityClassOrName: EntityTarget<Entity>, optionsOrConditions?: FindManyOptions<Entity> | Partial<Entity>): Promise<Entity[]> {
         const query = this.convertFindManyOptionsOrConditionsToMongodbQuery(optionsOrConditions);
         const cursor = await this.createEntityCursor(entityClassOrName, query);
         if (FindOptionsUtils.isFindManyOptions(optionsOrConditions)) {
@@ -101,7 +102,7 @@ export class MongoEntityManager extends EntityManager {
      * Also counts all entities that match given conditions,
      * but ignores pagination settings (from and take options).
      */
-    async findAndCount<Entity>(entityClassOrName: EntityTarget<Entity>, optionsOrConditions?: FindManyOptions<Entity> | Partial<Entity>): Promise<[Entity[], number]> {
+    async findAndCount<Entity>(queryRunner: QueryRunner, entityClassOrName: EntityTarget<Entity>, optionsOrConditions?: FindManyOptions<Entity> | Partial<Entity>): Promise<[Entity[], number]> {
         const query = this.convertFindManyOptionsOrConditionsToMongodbQuery(optionsOrConditions);
         const cursor = await this.createEntityCursor(entityClassOrName, query);
         if (FindOptionsUtils.isFindManyOptions(optionsOrConditions)) {
@@ -117,7 +118,7 @@ export class MongoEntityManager extends EntityManager {
         }
         const [results, count] = await Promise.all<any>([
             cursor.toArray(),
-            this.count(entityClassOrName, query),
+            this.count(queryRunner, entityClassOrName, query),
         ]);
         return [results, parseInt(count)];
     }
@@ -126,7 +127,7 @@ export class MongoEntityManager extends EntityManager {
      * Finds entities by ids.
      * Optionally find options can be applied.
      */
-    async findByIds<Entity>(entityClassOrName: EntityTarget<Entity>, ids: any[], optionsOrConditions?: FindManyOptions<Entity> | Partial<Entity>): Promise<Entity[]> {
+    async findByIds<Entity>(queryRunner: QueryRunner, entityClassOrName: EntityTarget<Entity>, ids: any[], optionsOrConditions?: FindManyOptions<Entity> | Partial<Entity>): Promise<Entity[]> {
         const metadata = this.connection.getMetadata(entityClassOrName);
         const query = this.convertFindManyOptionsOrConditionsToMongodbQuery(optionsOrConditions) || {};
         const objectIdInstance = PlatformTools.load("mongodb").ObjectID;
@@ -167,7 +168,7 @@ export class MongoEntityManager extends EntityManager {
     /**
      * Finds first entity that matches given conditions and/or find options.
      */
-    async findOne<Entity>(entityClassOrName: EntityTarget<Entity>,
+    async findOne<Entity>(queryRunner: QueryRunner, entityClassOrName: EntityTarget<Entity>,
                           optionsOrConditions?: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindOneOptions<Entity> | DeepPartial<Entity>,
                           maybeOptions?: FindOneOptions<Entity>): Promise<Entity | undefined> {
         const objectIdInstance = PlatformTools.load("mongodb").ObjectID;
@@ -197,7 +198,7 @@ export class MongoEntityManager extends EntityManager {
      * Does not check if entity exist in the database, so query will fail if duplicate entity is being inserted.
      * You can execute bulk inserts using this method.
      */
-    async insert<Entity>(target: EntityTarget<Entity>, entity: QueryDeepPartialEntity<Entity> | QueryDeepPartialEntity<Entity>[]): Promise<InsertResult> {
+    async insert<Entity>(queryRunner: QueryRunner, target: EntityTarget<Entity>, entity: QueryDeepPartialEntity<Entity> | QueryDeepPartialEntity<Entity>[]): Promise<InsertResult> {
         // todo: convert entity to its database name
         const result = new InsertResult();
         if (Array.isArray(entity)) {
@@ -223,12 +224,12 @@ export class MongoEntityManager extends EntityManager {
      * Executes fast and efficient UPDATE query.
      * Does not check if entity exist in the database.
      */
-    async update<Entity>(target: EntityTarget<Entity>, criteria: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindConditions<Entity>, partialEntity: QueryDeepPartialEntity<Entity>): Promise<UpdateResult> {
+    async update<Entity>(queryRunner: QueryRunner, target: EntityTarget<Entity>, criteria: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindConditions<Entity>, partialEntity: QueryDeepPartialEntity<Entity>): Promise<UpdateResult> {
         const result = new UpdateResult();
 
         if (Array.isArray(criteria)) {
             const updateResults = await Promise.all((criteria as any[]).map(criteriaItem => {
-                return this.update(target, criteriaItem, partialEntity);
+                return this.update(queryRunner, target, criteriaItem, partialEntity);
             }));
 
             result.raw = updateResults.map(r => r.raw);
@@ -252,12 +253,12 @@ export class MongoEntityManager extends EntityManager {
      * Executes fast and efficient DELETE query.
      * Does not check if entity exist in the database.
      */
-    async delete<Entity>(target: EntityTarget<Entity>, criteria: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindConditions<Entity>): Promise<DeleteResult> {
+    async delete<Entity>(queryRunner: QueryRunner, target: EntityTarget<Entity>, criteria: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindConditions<Entity>): Promise<DeleteResult> {
         const result = new DeleteResult();
 
         if (Array.isArray(criteria)) {
             const deleteResults = await Promise.all((criteria as any[]).map(criteriaItem => {
-                return this.delete(target, criteriaItem);
+                return this.delete(queryRunner, target, criteriaItem);
             }));
 
             result.raw = deleteResults.map(r => r.raw);
@@ -326,7 +327,7 @@ export class MongoEntityManager extends EntityManager {
     /**
      * Count number of matching documents in the db to a query.
      */
-    count<Entity>(entityClassOrName: EntityTarget<Entity>, query?: ObjectLiteral, options?: MongoCountPreferences): Promise<number> {
+    count<Entity>(queryRunner: QueryRunner, entityClassOrName: EntityTarget<Entity>, query?: ObjectLiteral, options?: MongoCountPreferences): Promise<number> {
         const metadata = this.connection.getMetadata(entityClassOrName);
         return this.mongoQueryRunner.count(metadata.tableName, query, options);
     }
@@ -694,7 +695,7 @@ export class MongoEntityManager extends EntityManager {
                     }
 
                     const transformer = new DocumentToEntityTransformer();
-                    const entities = transformer.transformAll(results, metadata);
+                    const entities = transformer.transformAll(queryRunner, results, metadata);
 
                     // broadcast "load" events
                     queryRunner.broadcaster.broadcast("Load", metadata, entities)
@@ -703,7 +704,7 @@ export class MongoEntityManager extends EntityManager {
             } else {
                 return ParentCursor.prototype.toArray.call(this).then((results: Entity[]) => {
                     const transformer = new DocumentToEntityTransformer();
-                    const entities = transformer.transformAll(results, metadata);
+                    const entities = transformer.transformAll(queryRunner, results, metadata);
 
                     // broadcast "load" events
                     return queryRunner.broadcaster.broadcast("Load", metadata, entities)
@@ -720,7 +721,7 @@ export class MongoEntityManager extends EntityManager {
                     }
 
                     const transformer = new DocumentToEntityTransformer();
-                    const entity = transformer.transform(result, metadata);
+                    const entity = transformer.transform(queryRunner, result, metadata);
 
                     // broadcast "load" events
 
@@ -732,7 +733,7 @@ export class MongoEntityManager extends EntityManager {
                     if (!result) return result;
 
                     const transformer = new DocumentToEntityTransformer();
-                    const entity = transformer.transform(result, metadata);
+                    const entity = transformer.transform(queryRunner, result, metadata);
 
 
                     // broadcast "load" events

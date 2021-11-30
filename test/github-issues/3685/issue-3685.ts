@@ -16,23 +16,24 @@ describe("github issues > #3685 Brackets syntax failed when use where with objec
 
     it("should accept objects in .where method (github issue #3685)", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
 
-        await connection.manager.save(Object.assign(new User(), {
+        await connection.manager.save(qr, Object.assign(new User(), {
             firstName: "Jean",
             lastName: "Doe",
         }));
 
-        await connection.manager.save(Object.assign(new User(), {
+        await connection.manager.save(qr, Object.assign(new User(), {
             firstName: "John",
             lastName: "Doe",
         }));
 
-        await connection.manager.save(Object.assign(new User(), {
+        await connection.manager.save(qr, Object.assign(new User(), {
             firstName: "John",
             lastName: "Dupont",
         }));
 
-        await connection.manager.save(Object.assign(new User(), {
+        await connection.manager.save(qr, Object.assign(new User(), {
             firstName: "Fred",
             lastName: "Doe",
         }));
@@ -48,7 +49,7 @@ describe("github issues > #3685 Brackets syntax failed when use where with objec
                 "u.lastName": "ASC",
             });
 
-        const results = await qb.getMany();
+        const results = await qb.getMany(qr);
 
         expect(results.length).to.equal(2);
 
@@ -57,5 +58,6 @@ describe("github issues > #3685 Brackets syntax failed when use where with objec
 
         expect(results[1].firstName).to.equal("John");
         expect(results[1].lastName).to.equal("Doe");
+        await qr.release();
     })));
 });

@@ -24,7 +24,8 @@ describe("github issues > #5275 Enums with spaces are not converted properly.", 
 
     it("should correctly parse enums of strings with spaces", () => Promise.all(connections.map(async connection => {
         const userRepository = connection.getRepository(User);
-        await userRepository.save({
+        const qr = connection.createQueryRunner();
+        await userRepository.save(qr, {
             id: 1,
             roles: [
                 Role.GuildMaster,
@@ -35,25 +36,28 @@ describe("github issues > #5275 Enums with spaces are not converted properly.", 
                 Role.PlayerAlt,
             ],
         });
-        const user = await userRepository.findOneOrFail(1);
+        const user = await userRepository.findOneOrFail(qr, 1);
         user.roles.should.deep.equal(["Guild Master", "Officer", 'BOSS "LEVEL 80"', "Knight\\Rogue", 1, "Player Alt"]);
+        await qr.release();
     })));
 
     it("should correctly parse non-array enums with spaces", () => Promise.all(connections.map(async connection => {
         const userRepository = connection.getRepository(User);
-        await userRepository.save([
+        const qr = connection.createQueryRunner();
+        await userRepository.save(qr, [
             { id: 1 },
             { id: 2, role: Role.Boss },
             { id: 3, role: Role.Warrior }
         ]);
 
-        const user1 = await userRepository.findOneOrFail(1);
+        const user1 = await userRepository.findOneOrFail(qr, 1);
         user1.role.should.equal("Guild Master");
 
-        const user2 = await userRepository.findOneOrFail(2);
+        const user2 = await userRepository.findOneOrFail(qr, 2);
         user2.role.should.equal('BOSS "LEVEL 80"');
 
-        const user3 = await userRepository.findOneOrFail(3);
+        const user3 = await userRepository.findOneOrFail(qr, 3);
         user3.role.should.equal("Knight\\Rogue");
+        await qr.release();
     })));
 });

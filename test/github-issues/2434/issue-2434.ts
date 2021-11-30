@@ -1,9 +1,9 @@
 import "reflect-metadata";
 import {Connection} from "../../../src";
-import {Post} from './entity/Post';
-import {Item} from './entity/Item';
-import { closeTestingConnections, reloadTestingDatabases, createTestingConnections } from '../../utils/test-utils';
-import { expect } from 'chai';
+import {Post} from "./entity/Post";
+import {Item} from "./entity/Item";
+import { closeTestingConnections, reloadTestingDatabases, createTestingConnections } from "../../utils/test-utils";
+import { expect } from "chai";
 
 describe("github issues > #2434 QueryBuilder insert for Oracle failed", () => {
     let connections: Connection[] = [];
@@ -15,6 +15,7 @@ describe("github issues > #2434 QueryBuilder insert for Oracle failed", () => {
     after(() => closeTestingConnections(connections));
 
     it("should insert multiple rows with QueryBuilder", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const result = await connection.createQueryBuilder()
             .insert()
             .into(Post)
@@ -22,15 +23,17 @@ describe("github issues > #2434 QueryBuilder insert for Oracle failed", () => {
                 {id: 5, title: "title 1"},
                 {id: 6},
             ])
-            .execute();
+            .execute(qr);
         expect(result.raw).to.be.equal(2);
         expect(result.identifiers).to.deep.equal([
             {id: 5},
             {id: 6},
         ]);
+        await qr.release();
     })));
 
     it("should throw ORA-00001 error if constraint violated when inserting multiple rows", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         try {
             await connection.createQueryBuilder()
             .insert()
@@ -39,13 +42,16 @@ describe("github issues > #2434 QueryBuilder insert for Oracle failed", () => {
                 {id: 6, title: "title 3"},
                 {id: 6},
             ])
-            .execute();
+            .execute(qr);
         } catch(err) {
             expect(err.message).to.contain("ORA-00001");
+        } finally {
+            await qr.release();
         }
     })));
 
     it("should insert multiple rows of entity with generated columns with QueryBuilder", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const result = await connection.createQueryBuilder()
             .insert()
             .into(Item)
@@ -53,28 +59,34 @@ describe("github issues > #2434 QueryBuilder insert for Oracle failed", () => {
                 {itemName: "item name 1"},
                 {itemName: "item name 2"},
             ])
-            .execute();
+            .execute(qr);
         expect(result.raw).to.be.equal(2);
-        const items = await connection.getRepository(Item).find();
+        const items = await connection.getRepository(Item).find(qr);
+        await qr.release();
         expect(items.length).to.be.equal(2);
     })));
 
     it("should still insert one row with QueryBuilder", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const result = await connection.createQueryBuilder()
             .insert()
             .into(Item)
             .values({itemName: "item name 20"})
-            .execute();
+            .execute(qr);
         expect(result.identifiers.length).to.be.equal(1);
-        const items = await connection.getRepository(Item).find();
+        const items = await connection.getRepository(Item).find(qr);
+        await qr.release();
         expect(items[0].itemName).to.be.equal("item name 20");
     })));
 
     it("should still insert multiple rows with save", () => Promise.all(connections.map(async connection => {
-        const result = await connection.getRepository(Post).save([
+        const qr = connection.createQueryRunner();
+        const repo = connection.getRepository(Post);
+        const result = await repo.save(qr, [
             {id: 8, namedColumn: "test col 1"},
             {id: 9, title: "title id 9"},
         ]);
+        await qr.release();
         expect(result).to.deep.equal([
             {id: 8, title: null, namedColumn: "test col 1"},
             {id: 9, title: "title id 9", namedColumn: null},
@@ -83,7 +95,9 @@ describe("github issues > #2434 QueryBuilder insert for Oracle failed", () => {
     })));
 
     it("should still insert one row with save", () => Promise.all(connections.map(async connection => {
-        const result = await connection.getRepository(Post).save({id: 10});
+        const qr = connection.createQueryRunner();
+        const result = await connection.getRepository(Post).save(qr, {id: 10});
+        await qr.release();
         expect(result).to.deep.equal({id: 10, title: null, namedColumn: null});
     })));
 

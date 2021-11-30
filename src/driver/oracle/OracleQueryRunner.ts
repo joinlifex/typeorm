@@ -120,12 +120,12 @@ export class OracleQueryRunner extends BaseQueryRunner implements QueryRunner {
             throw new TypeORMError(`Oracle only supports SERIALIZABLE and READ COMMITTED isolation`);
         }
 
-        await this.broadcaster.broadcast('BeforeTransactionStart');
+        await this.broadcaster.broadcast("BeforeTransactionStart");
 
         await this.query("SET TRANSACTION ISOLATION LEVEL " + isolationLevel);
         this.isTransactionActive = true;
 
-        await this.broadcaster.broadcast('AfterTransactionStart');
+        await this.broadcaster.broadcast("AfterTransactionStart");
     }
 
     /**
@@ -136,12 +136,12 @@ export class OracleQueryRunner extends BaseQueryRunner implements QueryRunner {
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionCommit');
+        await this.broadcaster.broadcast("BeforeTransactionCommit");
 
         await this.query("COMMIT");
         this.isTransactionActive = false;
 
-        await this.broadcaster.broadcast('AfterTransactionCommit');
+        await this.broadcaster.broadcast("AfterTransactionCommit");
     }
 
     /**
@@ -152,12 +152,12 @@ export class OracleQueryRunner extends BaseQueryRunner implements QueryRunner {
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionRollback');
+        await this.broadcaster.broadcast("BeforeTransactionRollback");
 
         await this.query("ROLLBACK");
         this.isTransactionActive = false;
 
-        await this.broadcaster.broadcast('AfterTransactionRollback');
+        await this.broadcaster.broadcast("AfterTransactionRollback");
     }
 
     /**
@@ -191,19 +191,19 @@ export class OracleQueryRunner extends BaseQueryRunner implements QueryRunner {
 
             result.raw = raw.rows || raw.outBinds || raw.rowsAffected || raw.implicitResults;
 
-            if (raw?.hasOwnProperty('rows') && Array.isArray(raw.rows)) {
+            if (raw?.hasOwnProperty("rows") && Array.isArray(raw.rows)) {
                 result.records = raw.rows;
             }
 
-            if (raw?.hasOwnProperty('outBinds') && Array.isArray(raw.outBinds)) {
+            if (raw?.hasOwnProperty("outBinds") && Array.isArray(raw.outBinds)) {
                 result.records = raw.outBinds;
             }
 
-            if (raw?.hasOwnProperty('implicitResults') && Array.isArray(raw.implicitResults)) {
+            if (raw?.hasOwnProperty("implicitResults") && Array.isArray(raw.implicitResults)) {
                 result.records = raw.implicitResults;
             }
 
-            if (raw?.hasOwnProperty('rowsAffected')) {
+            if (raw?.hasOwnProperty("rowsAffected")) {
                 result.affected = raw.rowsAffected;
             }
 
@@ -229,7 +229,7 @@ export class OracleQueryRunner extends BaseQueryRunner implements QueryRunner {
         const executionOptions = {
             autoCommit: !this.isTransactionActive,
             outFormat: this.driver.oracle.OBJECT,
-        }
+        };
 
         const databaseConnection = await this.connect();
 
@@ -274,7 +274,7 @@ export class OracleQueryRunner extends BaseQueryRunner implements QueryRunner {
         try {
             const query = await this.query(
                 `SELECT 1 AS "exists" FROM global_name@"${database}"`
-            )
+            );
 
             return query.length > 0;
         } catch (e) {
@@ -286,8 +286,8 @@ export class OracleQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Loads currently using database
      */
     async getCurrentDatabase(): Promise<undefined> {
-        const query = await this.query(`SELECT SYS_CONTEXT('USERENV','DB_NAME') AS "db_name" FROM dual`)
-        return query[0]["db_name"]
+        const query = await this.query(`SELECT SYS_CONTEXT('USERENV','DB_NAME') AS "db_name" FROM dual`);
+        return query[0]["db_name"];
     }
 
     /**
@@ -301,8 +301,8 @@ export class OracleQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Loads currently using database schema
      */
     async getCurrentSchema(): Promise<string> {
-        const query = await this.query(`SELECT SYS_CONTEXT('USERENV','CURRENT_SCHEMA') AS "schema_name" FROM dual`)
-        return query[0]["schema_name"]
+        const query = await this.query(`SELECT SYS_CONTEXT('USERENV','CURRENT_SCHEMA') AS "schema_name" FROM dual`);
+        return query[0]["schema_name"];
     }
 
     /**
@@ -1274,7 +1274,7 @@ export class OracleQueryRunner extends BaseQueryRunner implements QueryRunner {
             return [];
         }
 
-        const dbTables: { TABLE_NAME: string, OWNER: string }[] = []
+        const dbTables: { TABLE_NAME: string, OWNER: string }[] = [];
 
         const currentSchema = await this.getCurrentSchema();
         const currentDatabase = await this.getCurrentDatabase();
@@ -1288,15 +1288,15 @@ export class OracleQueryRunner extends BaseQueryRunner implements QueryRunner {
 
                 if (parts.length >= 3) {
                     const [ , schema, name ] = parts;
-                    return `("OWNER" = '${schema}' AND "TABLE_NAME" = '${name}')`
+                    return `("OWNER" = '${schema}' AND "TABLE_NAME" = '${name}')`;
                 } else if (parts.length === 2) {
                     const [ schema, name ] = parts;
-                    return `("OWNER" = '${schema}' AND "TABLE_NAME" = '${name}')`
+                    return `("OWNER" = '${schema}' AND "TABLE_NAME" = '${name}')`;
                 } else if (parts.length === 1) {
                     const [ name ] = parts;
-                    return `("TABLE_NAME" = '${name}')`
+                    return `("TABLE_NAME" = '${name}')`;
                 } else {
-                    return `(1=0)`
+                    return `(1=0)`;
                 }
             }).join(" OR ");
             const tablesSql = `SELECT "TABLE_NAME", "OWNER" FROM "ALL_TABLES" WHERE ${tablesCondition}`;
@@ -1375,8 +1375,8 @@ export class OracleQueryRunner extends BaseQueryRunner implements QueryRunner {
                             dbConstraint["COLUMN_NAME"] !== dbColumn["COLUMN_NAME"] &&
                             dbConstraint["CONSTRAINT_NAME"] === uniqueConstraint["CONSTRAINT_NAME"] &&
                             dbConstraint["CONSTRAINT_TYPE"] === "U")
-                        )
-                    })
+                        );
+                    });
 
                     const isPrimary = !!columnConstraints.find(constraint =>  constraint["CONSTRAINT_TYPE"] === "P");
 

@@ -22,40 +22,41 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         // -------------------------------------------------------------------------
         // Create
         // -------------------------------------------------------------------------
+        const qr = connection.createQueryRunner();
 
         const student1 = new Student();
         student1.name = "Alice";
         student1.faculty = "Economics";
-        await connection.getRepository(Student).save(student1);
+        await connection.getRepository(Student).save(qr, student1);
 
         const student2 = new Student();
         student2.name = "Bob";
         student2.faculty = "Programming";
-        await connection.getRepository(Student).save(student2);
+        await connection.getRepository(Student).save(qr, student2);
 
         const teacher1 = new Teacher();
         teacher1.name = "Mr. Garrison";
         teacher1.specialization = "Geography";
         teacher1.salary = 2000;
-        await connection.getRepository(Teacher).save(teacher1);
+        await connection.getRepository(Teacher).save(qr, teacher1);
 
         const teacher2 = new Teacher();
         teacher2.name = "Mr. Adler";
         teacher2.specialization = "Mathematics";
         teacher2.salary = 4000;
-        await connection.getRepository(Teacher).save(teacher2);
+        await connection.getRepository(Teacher).save(qr, teacher2);
 
         const accountant1 = new Accountant();
         accountant1.name = "Mr. Burns";
         accountant1.department = "Bookkeeping";
         accountant1.salary = 3000;
-        await connection.getRepository(Accountant).save(accountant1);
+        await connection.getRepository(Accountant).save(qr, accountant1);
 
         const accountant2 = new Accountant();
         accountant2.name = "Mr. Trump";
         accountant2.department = "Director";
         accountant2.salary = 5000;
-        await connection.getRepository(Accountant).save(accountant2);
+        await connection.getRepository(Accountant).save(qr, accountant2);
 
         // -------------------------------------------------------------------------
         // Select
@@ -64,7 +65,7 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         let loadedStudents = await connection.manager
             .createQueryBuilder(Student, "students")
             .orderBy("students.id")
-            .getMany();
+            .getMany(qr);
 
         loadedStudents[0].should.have.all.keys("id", "name", "faculty");
         loadedStudents[0].id.should.equal(1);
@@ -78,7 +79,7 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         let loadedTeachers = await connection.manager
             .createQueryBuilder(Teacher, "teachers")
             .orderBy("teachers.id")
-            .getMany();
+            .getMany(qr);
 
         loadedTeachers[0].should.have.all.keys("id", "name", "specialization", "salary");
         loadedTeachers[0].id.should.equal(3);
@@ -94,7 +95,7 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         let loadedAccountants = await connection.manager
             .createQueryBuilder(Accountant, "accountants")
             .orderBy("accountants.id")
-            .getMany();
+            .getMany(qr);
 
         loadedAccountants[0].should.have.all.keys("id", "name", "department", "salary");
         loadedAccountants[0].id.should.equal(5);
@@ -114,15 +115,15 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         let loadedStudent = await connection.manager
             .createQueryBuilder(Student, "student")
             .where("student.name = :name", { name: "Bob" })
-            .getOne();
+            .getOne(qr);
 
         loadedStudent!.faculty = "Chemistry";
-        await connection.getRepository(Student).save(loadedStudent!);
+        await connection.getRepository(Student).save(qr, loadedStudent!);
 
         loadedStudent = await connection.manager
             .createQueryBuilder(Student, "student")
             .where("student.name = :name", { name: "Bob" })
-            .getOne();
+            .getOne(qr);
 
         loadedStudent!.should.have.all.keys("id", "name", "faculty");
         loadedStudent!.id.should.equal(2);
@@ -132,15 +133,15 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         let loadedTeacher = await connection.manager
             .createQueryBuilder(Teacher, "teacher")
             .where("teacher.name = :name", { name: "Mr. Adler" })
-            .getOne();
+            .getOne(qr);
 
         loadedTeacher!.salary = 1000;
-        await connection.getRepository(Teacher).save(loadedTeacher!);
+        await connection.getRepository(Teacher).save(qr, loadedTeacher!);
 
         loadedTeacher = await connection.manager
             .createQueryBuilder(Teacher, "teacher")
             .where("teacher.name = :name", { name: "Mr. Adler" })
-            .getOne();
+            .getOne(qr);
 
         loadedTeacher!.should.have.all.keys("id", "name", "specialization", "salary");
         loadedTeacher!.id.should.equal(4);
@@ -151,15 +152,15 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         let loadedAccountant = await connection.manager
             .createQueryBuilder(Accountant, "accountant")
             .where("accountant.name = :name", { name: "Mr. Trump" })
-            .getOne();
+            .getOne(qr);
 
         loadedAccountant!.salary = 1000;
-        await connection.getRepository(Accountant).save(loadedAccountant!);
+        await connection.getRepository(Accountant).save(qr, loadedAccountant!);
 
         loadedAccountant = await connection.manager
             .createQueryBuilder(Accountant, "accountant")
             .where("accountant.name = :name", { name: "Mr. Trump" })
-            .getOne();
+            .getOne(qr);
 
         loadedAccountant!.should.have.all.keys("id", "name", "department", "salary");
         loadedAccountant!.id.should.equal(6);
@@ -171,12 +172,12 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         // Delete
         // -------------------------------------------------------------------------
 
-        await connection.getRepository(Student).remove(loadedStudent!);
+        await connection.getRepository(Student).remove(qr, loadedStudent!);
 
         loadedStudents = await connection.manager
             .createQueryBuilder(Student, "students")
             .orderBy("students.id")
-            .getMany();
+            .getMany(qr);
 
         loadedStudents.length.should.equal(1);
         loadedStudents[0].should.have.all.keys("id", "name", "faculty");
@@ -184,12 +185,12 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         loadedStudents[0].name.should.equal("Alice");
         loadedStudents[0].faculty.should.equal("Economics");
 
-        await connection.getRepository(Teacher).remove(loadedTeacher!);
+        await connection.getRepository(Teacher).remove(qr, loadedTeacher!);
 
         loadedTeachers = await connection.manager
             .createQueryBuilder(Teacher, "teachers")
             .orderBy("teachers.id")
-            .getMany();
+            .getMany(qr);
 
         loadedTeachers.length.should.equal(1);
         loadedTeachers[0].should.have.all.keys("id", "name", "specialization", "salary");
@@ -198,12 +199,12 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         loadedTeachers[0].specialization.should.equal("Geography");
         loadedTeachers[0].salary.should.equal(2000);
 
-        await connection.getRepository(Accountant).remove(loadedAccountant!);
+        await connection.getRepository(Accountant).remove(qr, loadedAccountant!);
 
         loadedAccountants = await connection.manager
             .createQueryBuilder(Accountant, "accountants")
             .orderBy("accountants.id")
-            .getMany();
+            .getMany(qr);
 
         loadedAccountants.length.should.equal(1);
         loadedAccountants[0].should.have.all.keys("id", "name", "department", "salary");
@@ -219,7 +220,7 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         const loadedEmployees = await connection.manager
             .createQueryBuilder(Employee, "employees")
             .orderBy("employees.id")
-            .getMany();
+            .getMany(qr);
 
         loadedEmployees[0].should.have.all.keys("id", "name", "salary", "specialization");
         loadedEmployees[0].should.be.instanceof(Teacher);
@@ -237,7 +238,7 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         const loadedPersons = await connection.manager
             .createQueryBuilder(Person, "persons")
             .orderBy("persons.id")
-            .getMany();
+            .getMany(qr);
 
         loadedPersons[0].should.have.all.keys("id", "name", "faculty");
         loadedPersons[0].should.be.instanceof(Student);
@@ -257,10 +258,12 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         (loadedPersons[2] as Accountant).department = "Bookkeeping";
         (loadedPersons[2] as Accountant).salary.should.equal(3000);
 
+        await qr.release();
     })));
 
     it("should be able to save different child entities in bulk", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const student = new Student();
         student.name = "Alice";
         student.faculty = "Economics";
@@ -269,7 +272,7 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         employee.name = "John";
         employee.salary = 1000;
 
-        await connection.manager.save([student, employee]);
+        await connection.manager.save(qr, [student, employee]);
 
         student.name.should.be.eql("Alice");
         student.faculty.should.be.eql("Economics");
@@ -282,24 +285,26 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         employee.should.not.haveOwnProperty("department");
         employee.should.not.haveOwnProperty("specialization");
         employee.should.not.haveOwnProperty("faculty");
+        await qr.release();
     })));
 
     it("should be able to find correct child entities when base class is used as entity metadata", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const student = new Student();
         student.name = "Alice";
         student.faculty = "Economics";
-        await connection.manager.save(student);
+        await connection.manager.save(qr, student);
 
         const employee = new Employee();
         employee.name = "John";
         employee.salary = 1000;
-        await connection.manager.save(employee);
+        await connection.manager.save(qr, employee);
 
-        const loadedEmployee1 = await connection.manager.findOne(Employee, 1);
+        const loadedEmployee1 = await connection.manager.findOne(qr, Employee, 1);
         expect(loadedEmployee1).to.be.undefined;
 
-        const loadedEmployee2 = await connection.manager.findOne(Employee, 2);
+        const loadedEmployee2 = await connection.manager.findOne(qr, Employee, 2);
         loadedEmployee2!.should.be.instanceof(Employee);
         expect(loadedEmployee2).not.to.be.undefined;
         loadedEmployee2!.id.should.be.eql(2);
@@ -309,7 +314,7 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         loadedEmployee2!.should.not.haveOwnProperty("specialization");
         loadedEmployee2!.should.not.haveOwnProperty("faculty");
 
-        const loadedStudent1 = await connection.manager.findOne(Student, 1);
+        const loadedStudent1 = await connection.manager.findOne(qr, Student, 1);
         loadedStudent1!.should.be.instanceof(Student);
         loadedStudent1!.id.should.be.eql(1);
         loadedStudent1!.name.should.be.eql("Alice");
@@ -318,10 +323,10 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         loadedStudent1!.should.not.haveOwnProperty("specialization");
         loadedStudent1!.should.not.haveOwnProperty("salary");
 
-        const loadedStudent2 = await connection.manager.findOne(Student, 2);
+        const loadedStudent2 = await connection.manager.findOne(qr, Student, 2);
         expect(loadedStudent2).to.be.undefined;
 
-        const loadedPerson1 = await connection.manager.findOne(Person, 1);
+        const loadedPerson1 = await connection.manager.findOne(qr, Person, 1);
         loadedPerson1!.should.be.instanceof(Student);
         loadedPerson1!.id.should.be.eql(1);
         loadedPerson1!.name.should.be.eql("Alice");
@@ -330,7 +335,7 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         loadedPerson1!.should.not.haveOwnProperty("specialization");
         loadedPerson1!.should.not.haveOwnProperty("salary");
 
-        const loadedPerson2 = await connection.manager.findOne(Person, 2);
+        const loadedPerson2 = await connection.manager.findOne(qr, Person, 2);
         loadedPerson2!.should.be.instanceof(Employee);
         loadedPerson2!.id.should.be.eql(2);
         loadedPerson2!.name.should.be.eql("John");
@@ -338,6 +343,7 @@ describe("table-inheritance > single-table > basic-functionality", () => {
         loadedPerson2!.should.not.haveOwnProperty("department");
         loadedPerson2!.should.not.haveOwnProperty("specialization");
         loadedPerson2!.should.not.haveOwnProperty("faculty");
+        await qr.release();
     })));
 
 });

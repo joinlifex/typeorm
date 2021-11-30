@@ -20,9 +20,10 @@ describe("github issues > #1369 EntitySubscriber not firing events on abstract c
         entity.firstname = "Michael";
         entity.lastname = "Scott";
         entity.position = "Regional Manager";
-        await connection.manager.save(entity);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, entity);
 
-        const foundEntity = await connection.manager.findOne(ConcreteEntity, 1);
+        const foundEntity = await connection.manager.findOne(qr, ConcreteEntity, 1);
         expect(foundEntity).to.not.be.undefined;
 
         const assertObject = Object.assign({}, foundEntity);
@@ -33,6 +34,7 @@ describe("github issues > #1369 EntitySubscriber not firing events on abstract c
             fullname: "Michael Scott",
             position: "Regional Manager" 
         });
+        await qr.release();
     })));
 
 });

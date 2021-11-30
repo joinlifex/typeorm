@@ -16,14 +16,16 @@ describe("github issue > #1397 Spaces at the end of values are removed when inse
 
     it("should not trim empty spaces when saving", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.title = " About My Post   ";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
         post.title.should.be.equal(" About My Post   ");
 
-        const loadedPost = await connection.manager.findOne(Post, { id: 1 });
+        const loadedPost = await connection.manager.findOne(qr, Post, { id: 1 });
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.title.should.be.equal(" About My Post   ");
+        await qr.release();
     })));
 
 });

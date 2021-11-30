@@ -15,6 +15,7 @@ describe("cascades > should insert by cascades from both sides (#57)", () => {
 
     it("should insert by cascades from owner side", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         // first create details but don't save them because they will be saved by cascades
         const details = new PostDetails();
         details.keyword = "post-1";
@@ -23,10 +24,10 @@ describe("cascades > should insert by cascades from both sides (#57)", () => {
         const post1 = new Post();
         post1.title = "Hello Post #1";
         post1.details = details;
-        await connection.manager.save(post1);
+        await connection.manager.save(qr, post1);
 
         // now check
-        const posts = await connection.manager.find(Post, {
+        const posts = await connection.manager.find(qr, Post, {
             join: {
                 alias: "post",
                 innerJoinAndSelect: {
@@ -42,7 +43,7 @@ describe("cascades > should insert by cascades from both sides (#57)", () => {
                 keyword: "post-1"
             }
         }]);
-
+        await qr.release();
     })));
 
 });

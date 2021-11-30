@@ -8,7 +8,6 @@ import {FindOneOptions} from "../find-options/FindOneOptions";
 import {DeepPartial} from "../common/DeepPartial";
 import {RemoveOptions} from "../repository/RemoveOptions";
 import {SaveOptions} from "../repository/SaveOptions";
-import {NoNeedToReleaseEntityManagerError} from "../error/NoNeedToReleaseEntityManagerError";
 import {MongoRepository} from "../repository/MongoRepository";
 import {TreeRepository} from "../repository/TreeRepository";
 import {Repository} from "../repository/Repository";
@@ -33,7 +32,6 @@ import {UpdateResult} from "../query-builder/result/UpdateResult";
 import {DeleteResult} from "../query-builder/result/DeleteResult";
 import {FindConditions} from "../find-options/FindConditions";
 import {IsolationLevel} from "../driver/types/IsolationLevel";
-import {ObjectUtils} from "../util/ObjectUtils";
 import {EntitySchema} from "../entity-schema/EntitySchema";
 import {ObjectLiteral} from "../common/ObjectLiteral";
 import {getMetadataArgsStorage} from "../globals";
@@ -55,12 +53,6 @@ export class EntityManager {
      */
     readonly connection: Connection;
 
-    /**
-     * Custom query runner to be used for operations in this entity manager.
-     * Used only in non-global entity manager.
-     */
-    readonly queryRunner?: QueryRunner;
-
     // -------------------------------------------------------------------------
     // Protected Properties
     // -------------------------------------------------------------------------
@@ -79,13 +71,8 @@ export class EntityManager {
     // Constructor
     // -------------------------------------------------------------------------
 
-    constructor(connection: Connection, queryRunner?: QueryRunner) {
+    constructor(connection: Connection) {
         this.connection = connection;
-        if (queryRunner) {
-            this.queryRunner = queryRunner;
-            // dynamic: this.queryRunner = manager;
-            ObjectUtils.assign(this.queryRunner, { manager: this });
-        }
     }
 
     // -------------------------------------------------------------------------
@@ -96,21 +83,22 @@ export class EntityManager {
      * Wraps given function execution (and all operations made there) in a transaction.
      * All database operations must be executed using provided entity manager.
      */
-    async transaction<T>(runInTransaction: (entityManager: EntityManager) => Promise<T>): Promise<T>;
+    async transaction<T>(queryRunner: QueryRunner, runInTransaction: (queryRunner: QueryRunner) => Promise<T>): Promise<T>;
 
     /**
      * Wraps given function execution (and all operations made there) in a transaction.
      * All database operations must be executed using provided entity manager.
      */
-    async transaction<T>(isolationLevel: IsolationLevel, runInTransaction: (entityManager: EntityManager) => Promise<T>): Promise<T>;
+    async transaction<T>(queryRunner: QueryRunner, isolationLevel: IsolationLevel, runInTransaction: (queryRunner: QueryRunner) => Promise<T>): Promise<T>;
 
     /**
      * Wraps given function execution (and all operations made there) in a transaction.
      * All database operations must be executed using provided entity manager.
      */
     async transaction<T>(
-        isolationOrRunInTransaction: IsolationLevel | ((entityManager: EntityManager) => Promise<T>),
-        runInTransactionParam?: (entityManager: EntityManager) => Promise<T>
+        queryRunner: QueryRunner,
+        isolationOrRunInTransaction: IsolationLevel | ((queryRunner: QueryRunner) => Promise<T>),
+        runInTransactionParam?: (queryRunner: QueryRunner) => Promise<T>
     ): Promise<T> {
 
         const isolation = typeof isolationOrRunInTransaction === "string" ? isolationOrRunInTransaction : undefined;
@@ -123,15 +111,11 @@ export class EntityManager {
         if (this.connection.driver instanceof MongoDriver)
             throw new TypeORMError(`Transactions aren't supported by MongoDB.`);
 
-        if (this.queryRunner && this.queryRunner.isReleased)
+        if (queryRunner && queryRunner.isReleased)
             throw new QueryRunnerProviderAlreadyReleasedError();
 
-        if (this.queryRunner && this.queryRunner.isTransactionActive)
+        if (queryRunner && queryRunner.isTransactionActive)
             throw new TypeORMError(`Cannot start transaction because its already started`);
-
-        // if query runner is already defined in this class, it means this entity manager was already created for a single connection
-        // if its not defined we create a new query runner - single connection where we'll execute all our operations
-        const queryRunner = this.queryRunner || this.connection.createQueryRunner();
 
         try {
             if (isolation) {
@@ -139,7 +123,7 @@ export class EntityManager {
               } else {
                 await queryRunner.startTransaction();
               }
-            const result = await runInTransaction(queryRunner.manager);
+            const result = await runInTransaction(queryRunner);
             await queryRunner.commitTransaction();
             return result;
 
@@ -149,38 +133,24 @@ export class EntityManager {
             } catch (rollbackError) { }
             throw err;
 
-        } finally {
-            if (!this.queryRunner) // if we used a new query runner provider then release it
-                await queryRunner.release();
         }
     }
 
     /**
      * Executes raw SQL query and returns raw database results.
      */
-    async query(query: string, parameters?: any[]): Promise<any> {
-        return this.connection.query(query, parameters, this.queryRunner);
+    async query(queryRunner: QueryRunner, query: string, parameters?: any[]): Promise<any> {
+        return this.connection.query(queryRunner, query, parameters);
     }
-
     /**
      * Creates a new query builder that can be used to build a sql query.
      */
-    createQueryBuilder<Entity>(entityClass: EntityTarget<Entity>, alias: string, queryRunner?: QueryRunner): SelectQueryBuilder<Entity>;
-
-    /**
-     * Creates a new query builder that can be used to build a sql query.
-     */
-    createQueryBuilder(queryRunner?: QueryRunner): SelectQueryBuilder<any>;
-
-    /**
-     * Creates a new query builder that can be used to build a sql query.
-     */
-    createQueryBuilder<Entity>(entityClass?: EntityTarget<Entity>|QueryRunner, alias?: string, queryRunner?: QueryRunner): SelectQueryBuilder<Entity> {
+    createQueryBuilder<Entity>(entityClass?: EntityTarget<Entity>, alias?: string): SelectQueryBuilder<Entity> {
         if (alias) {
-            return this.connection.createQueryBuilder(entityClass as EntityTarget<Entity>, alias, queryRunner || this.queryRunner);
+            return this.connection.createQueryBuilder(entityClass, alias);
 
         } else {
-            return this.connection.createQueryBuilder(entityClass as QueryRunner|undefined || queryRunner || this.queryRunner);
+            return this.connection.createQueryBuilder();
         }
     }
 
@@ -228,38 +198,38 @@ export class EntityManager {
      * Creates a new entity instance and copies all entity properties from this object into a new entity.
      * Note that it copies only properties that present in entity schema.
      */
-    create<Entity>(entityClass: EntityTarget<Entity>, plainObject?: DeepPartial<Entity>): Entity;
+    create<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, plainObject?: DeepPartial<Entity>): Entity;
 
     /**
      * Creates a new entities and copies all entity properties from given objects into their new entities.
      * Note that it copies only properties that present in entity schema.
      */
-    create<Entity>(entityClass: EntityTarget<Entity>, plainObjects?: DeepPartial<Entity>[]): Entity[];
+    create<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, plainObjects?: DeepPartial<Entity>[]): Entity[];
 
     /**
      * Creates a new entity instance or instances.
      * Can copy properties from the given object into new entities.
      */
-    create<Entity>(entityClass: EntityTarget<Entity>, plainObjectOrObjects?: DeepPartial<Entity>|DeepPartial<Entity>[]): Entity|Entity[] {
+    create<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, plainObjectOrObjects?: DeepPartial<Entity>|DeepPartial<Entity>[]): Entity|Entity[] {
         const metadata = this.connection.getMetadata(entityClass);
 
         if (!plainObjectOrObjects)
-            return metadata.create(this.queryRunner);
+            return metadata.create(queryRunner);
 
         if (Array.isArray(plainObjectOrObjects))
-            return plainObjectOrObjects.map(plainEntityLike => this.create(entityClass as any, plainEntityLike));
+            return plainObjectOrObjects.map(plainEntityLike => this.create(queryRunner, entityClass as any, plainEntityLike));
 
-        const mergeIntoEntity = metadata.create(this.queryRunner);
-        this.plainObjectToEntityTransformer.transform(mergeIntoEntity, plainObjectOrObjects, metadata, true);
+        const mergeIntoEntity = metadata.create(queryRunner);
+        this.plainObjectToEntityTransformer.transform(queryRunner, mergeIntoEntity, plainObjectOrObjects, metadata, true);
         return mergeIntoEntity;
     }
 
     /**
      * Merges two entities into one new entity.
      */
-    merge<Entity>(entityClass: EntityTarget<Entity>, mergeIntoEntity: Entity, ...entityLikes: DeepPartial<Entity>[]): Entity { // todo: throw exception if entity manager is released
+    merge<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, mergeIntoEntity: Entity, ...entityLikes: DeepPartial<Entity>[]): Entity { // todo: throw exception if entity manager is released
         const metadata = this.connection.getMetadata(entityClass);
-        entityLikes.forEach(object => this.plainObjectToEntityTransformer.transform(mergeIntoEntity, object, metadata));
+        entityLikes.forEach(object => this.plainObjectToEntityTransformer.transform(queryRunner, mergeIntoEntity, object, metadata));
         return mergeIntoEntity;
     }
 
@@ -269,12 +239,12 @@ export class EntityManager {
      * and returns this new entity. This new entity is actually a loaded from the db entity with all properties
      * replaced from the new object.
      */
-    async preload<Entity>(entityClass: EntityTarget<Entity>, entityLike: DeepPartial<Entity>): Promise<Entity|undefined> {
+    async preload<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, entityLike: DeepPartial<Entity>): Promise<Entity|undefined> {
         const metadata = this.connection.getMetadata(entityClass);
-        const plainObjectToDatabaseEntityTransformer = new PlainObjectToDatabaseEntityTransformer(this.connection.manager);
+        const plainObjectToDatabaseEntityTransformer = new PlainObjectToDatabaseEntityTransformer(this.connection.manager, queryRunner);
         const transformedEntity = await plainObjectToDatabaseEntityTransformer.transform(entityLike, metadata);
         if (transformedEntity)
-            return this.merge(entityClass as any, transformedEntity as Entity, entityLike);
+            return this.merge(queryRunner, entityClass as any, transformedEntity as Entity, entityLike);
 
         return undefined;
     }
@@ -283,42 +253,42 @@ export class EntityManager {
      * Saves all given entities in the database.
      * If entities do not exist in the database then inserts, otherwise updates.
      */
-    save<Entity>(entities: Entity[], options?: SaveOptions): Promise<Entity[]>;
+    save<Entity>(queryRunner: QueryRunner, entities: Entity[], options?: SaveOptions): Promise<Entity[]>;
 
     /**
      * Saves all given entities in the database.
      * If entities do not exist in the database then inserts, otherwise updates.
      */
-    save<Entity>(entity: Entity, options?: SaveOptions): Promise<Entity>;
+    save<Entity>(queryRunner: QueryRunner, entity: Entity, options?: SaveOptions): Promise<Entity>;
 
     /**
      * Saves all given entities in the database.
      * If entities do not exist in the database then inserts, otherwise updates.
      */
-    save<Entity, T extends DeepPartial<Entity>>(targetOrEntity: EntityTarget<Entity>, entities: T[], options: SaveOptions & { reload: false }): Promise<T[]>;
+    save<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: EntityTarget<Entity>, entities: T[], options: SaveOptions & { reload: false }): Promise<T[]>;
 
     /**
      * Saves all given entities in the database.
      * If entities do not exist in the database then inserts, otherwise updates.
      */
-    save<Entity, T extends DeepPartial<Entity>>(targetOrEntity: EntityTarget<Entity>, entities: T[], options?: SaveOptions): Promise<(T & Entity)[]>;
+    save<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: EntityTarget<Entity>, entities: T[], options?: SaveOptions): Promise<(T & Entity)[]>;
 
     /**
      * Saves a given entity in the database.
      * If entity does not exist in the database then inserts, otherwise updates.
      */
-    save<Entity, T extends DeepPartial<Entity>>(targetOrEntity: EntityTarget<Entity>, entity: T, options: SaveOptions & { reload: false }): Promise<T>;
+    save<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: EntityTarget<Entity>, entity: T, options: SaveOptions & { reload: false }): Promise<T>;
 
     /**
      * Saves a given entity in the database.
      * If entity does not exist in the database then inserts, otherwise updates.
      */
-    save<Entity, T extends DeepPartial<Entity>>(targetOrEntity: EntityTarget<Entity>, entity: T, options?: SaveOptions): Promise<T & Entity>;
+    save<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: EntityTarget<Entity>, entity: T, options?: SaveOptions): Promise<T & Entity>;
 
     /**
      * Saves a given entity in the database.
      */
-    save<Entity, T extends DeepPartial<Entity>>(targetOrEntity: (T|T[])|EntityTarget<Entity>, maybeEntityOrOptions?: T|T[], maybeOptions?: SaveOptions): Promise<T|T[]> {
+    save<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: (T|T[])|EntityTarget<Entity>, maybeEntityOrOptions?: T|T[], maybeOptions?: SaveOptions): Promise<T|T[]> {
 
         // normalize mixed parameters
         let target = (arguments.length > 1 && (targetOrEntity instanceof Function || targetOrEntity instanceof EntitySchema || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
@@ -333,35 +303,35 @@ export class EntityManager {
             return Promise.resolve(entity);
 
         // execute save operation
-        return new EntityPersistExecutor(this.connection, this.queryRunner, "save", target, entity, options)
-            .execute()
+        return new EntityPersistExecutor(this.connection, "save", target, entity, options)
+            .execute(queryRunner)
             .then(() => entity);
     }
 
     /**
      * Removes a given entity from the database.
      */
-    remove<Entity>(entity: Entity, options?: RemoveOptions): Promise<Entity>;
+    remove<Entity>(queryRunner: QueryRunner, entity: Entity, options?: RemoveOptions): Promise<Entity>;
 
     /**
      * Removes a given entity from the database.
      */
-    remove<Entity>(targetOrEntity: EntityTarget<Entity>, entity: Entity, options?: RemoveOptions): Promise<Entity>;
+    remove<Entity>(queryRunner: QueryRunner, targetOrEntity: EntityTarget<Entity>, entity: Entity, options?: RemoveOptions): Promise<Entity>;
 
     /**
      * Removes a given entity from the database.
      */
-    remove<Entity>(entity: Entity[], options?: RemoveOptions): Promise<Entity>;
+    remove<Entity>(queryRunner: QueryRunner, entity: Entity[], options?: RemoveOptions): Promise<Entity>;
 
     /**
      * Removes a given entity from the database.
      */
-    remove<Entity>(targetOrEntity: EntityTarget<Entity>, entity: Entity[], options?: RemoveOptions): Promise<Entity[]>;
+    remove<Entity>(queryRunner: QueryRunner, targetOrEntity: EntityTarget<Entity>, entity: Entity[], options?: RemoveOptions): Promise<Entity[]>;
 
     /**
      * Removes a given entity from the database.
      */
-    remove<Entity>(targetOrEntity: (Entity|Entity[])|EntityTarget<Entity>, maybeEntityOrOptions?: Entity|Entity[], maybeOptions?: RemoveOptions): Promise<Entity|Entity[]> {
+    remove<Entity>(queryRunner: QueryRunner, targetOrEntity: (Entity|Entity[])|EntityTarget<Entity>, maybeEntityOrOptions?: Entity|Entity[], maybeOptions?: RemoveOptions): Promise<Entity|Entity[]> {
 
         // normalize mixed parameters
         const target = (arguments.length > 1 && (targetOrEntity instanceof Function || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
@@ -373,35 +343,15 @@ export class EntityManager {
             return Promise.resolve(entity);
 
         // execute save operation
-        return new EntityPersistExecutor(this.connection, this.queryRunner, "remove", target, entity, options)
-            .execute()
+        return new EntityPersistExecutor(this.connection, "remove", target, entity, options)
+            .execute(queryRunner)
             .then(() => entity);
     }
 
     /**
-     * Records the delete date of all given entities.
-     */
-    softRemove<Entity>(entities: Entity[], options?: SaveOptions): Promise<Entity[]>;
-
-    /**
-     * Records the delete date of a given entity.
-     */
-    softRemove<Entity>(entity: Entity, options?: SaveOptions): Promise<Entity>;
-
-    /**
-     * Records the delete date of all given entities.
-     */
-    softRemove<Entity, T extends DeepPartial<Entity>>(targetOrEntity: EntityTarget<Entity>, entities: T[], options?: SaveOptions): Promise<T[]>;
-
-    /**
-     * Records the delete date of a given entity.
-     */
-    softRemove<Entity, T extends DeepPartial<Entity>>(targetOrEntity: EntityTarget<Entity>, entity: T, options?: SaveOptions): Promise<T>;
-
-    /**
      * Records the delete date of one or many given entities.
      */
-    softRemove<Entity, T extends DeepPartial<Entity>>(targetOrEntity: (T|T[])|EntityTarget<Entity>, maybeEntityOrOptions?: T|T[], maybeOptions?: SaveOptions): Promise<T|T[]> {
+    softRemove<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: (T|T[])|EntityTarget<Entity>, maybeEntityOrOptions?: T|T[]|SaveOptions, maybeOptions?: SaveOptions): Promise<T|T[]> {
 
         // normalize mixed parameters
         let target = (arguments.length > 1 && (targetOrEntity instanceof Function || targetOrEntity instanceof EntitySchema || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
@@ -416,35 +366,15 @@ export class EntityManager {
             return Promise.resolve(entity);
 
         // execute soft-remove operation
-        return new EntityPersistExecutor(this.connection, this.queryRunner, "soft-remove", target, entity, options)
-            .execute()
+        return new EntityPersistExecutor(this.connection, "soft-remove", target, entity, options)
+            .execute(queryRunner)
             .then(() => entity);
     }
 
     /**
-     * Recovers all given entities.
-     */
-    recover<Entity>(entities: Entity[], options?: SaveOptions): Promise<Entity[]>;
-
-    /**
-     * Recovers a given entity.
-     */
-    recover<Entity>(entity: Entity, options?: SaveOptions): Promise<Entity>;
-
-    /**
-     * Recovers all given entities.
-     */
-    recover<Entity, T extends DeepPartial<Entity>>(targetOrEntity: EntityTarget<Entity>, entities: T[], options?: SaveOptions): Promise<T[]>;
-
-    /**
-     * Recovers a given entity.
-     */
-    recover<Entity, T extends DeepPartial<Entity>>(targetOrEntity: EntityTarget<Entity>, entity: T, options?: SaveOptions): Promise<T>;
-
-    /**
      * Recovers one or many given entities.
      */
-    recover<Entity, T extends DeepPartial<Entity>>(targetOrEntity: (T|T[])|EntityTarget<Entity>, maybeEntityOrOptions?: T|T[], maybeOptions?: SaveOptions): Promise<T|T[]> {
+    recover<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: (T|T[])|EntityTarget<Entity>, maybeEntityOrOptions?: T|T[]|SaveOptions, maybeOptions?: SaveOptions): Promise<T|T[]> {
 
         // normalize mixed parameters
         let target = (arguments.length > 1 && (targetOrEntity instanceof Function || targetOrEntity instanceof EntitySchema || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
@@ -459,8 +389,8 @@ export class EntityManager {
             return Promise.resolve(entity);
 
         // execute recover operation
-        return new EntityPersistExecutor(this.connection, this.queryRunner, "recover", target, entity, options)
-            .execute()
+        return new EntityPersistExecutor(this.connection, "recover", target, entity, options)
+            .execute(queryRunner)
             .then(() => entity);
     }
 
@@ -471,15 +401,16 @@ export class EntityManager {
      * Does not check if entity exist in the database, so query will fail if duplicate entity is being inserted.
      * You can execute bulk inserts using this method.
      */
-    async insert<Entity>(target: EntityTarget<Entity>, entity: QueryDeepPartialEntity<Entity>|(QueryDeepPartialEntity<Entity>[])): Promise<InsertResult> {
+    async insert<Entity>(queryRunner: QueryRunner, target: EntityTarget<Entity>, entity: QueryDeepPartialEntity<Entity>|(QueryDeepPartialEntity<Entity>[])): Promise<InsertResult> {
         return this.createQueryBuilder()
             .insert()
             .into(target)
             .values(entity)
-            .execute();
+            .execute(queryRunner);
     }
 
     async upsert<Entity>(
+        queryRunner: QueryRunner,
         target: EntityTarget<Entity>,
         entityOrEntities: QueryDeepPartialEntity<Entity> | (QueryDeepPartialEntity<Entity>[]),
         conflictPathsOrOptions: string[] | UpsertOptions<Entity>): Promise<InsertResult> {
@@ -531,7 +462,7 @@ export class EntityManager {
                 [...conflictColumns, ...overwriteColumns].map((col) => col.databaseName),
                 conflictColumns.map((col) => col.databaseName)
             )
-            .execute();
+            .execute(queryRunner);
     }
 
     /**
@@ -541,7 +472,7 @@ export class EntityManager {
      * Does not check if entity exist in the database.
      * Condition(s) cannot be empty.
      */
-    update<Entity>(target: EntityTarget<Entity>, criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|any, partialEntity: QueryDeepPartialEntity<Entity>): Promise<UpdateResult> {
+    update<Entity>(queryRunner: QueryRunner, target: EntityTarget<Entity>, criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|any, partialEntity: QueryDeepPartialEntity<Entity>): Promise<UpdateResult> {
 
         // if user passed empty criteria or empty list of criterias, then throw an error
         if (criteria === undefined ||
@@ -561,14 +492,14 @@ export class EntityManager {
                 .update(target)
                 .set(partialEntity)
                 .whereInIds(criteria)
-                .execute();
+                .execute(queryRunner);
 
         } else {
             return this.createQueryBuilder()
                 .update(target)
                 .set(partialEntity)
                 .where(criteria)
-                .execute();
+                .execute(queryRunner);
         }
     }
 
@@ -579,7 +510,7 @@ export class EntityManager {
      * Does not check if entity exist in the database.
      * Condition(s) cannot be empty.
      */
-    delete<Entity>(targetOrEntity: EntityTarget<Entity>, criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|any): Promise<DeleteResult> {
+    delete<Entity>(queryRunner: QueryRunner, targetOrEntity: EntityTarget<Entity>, criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|any): Promise<DeleteResult> {
 
         // if user passed empty criteria or empty list of criterias, then throw an error
         if (criteria === undefined ||
@@ -599,14 +530,14 @@ export class EntityManager {
                 .delete()
                 .from(targetOrEntity)
                 .whereInIds(criteria)
-                .execute();
+                .execute(queryRunner);
 
         } else {
             return this.createQueryBuilder()
                 .delete()
                 .from(targetOrEntity)
                 .where(criteria)
-                .execute();
+                .execute(queryRunner);
         }
     }
 
@@ -617,7 +548,7 @@ export class EntityManager {
      * Does not check if entity exist in the database.
      * Condition(s) cannot be empty.
      */
-    softDelete<Entity>(targetOrEntity: EntityTarget<Entity>, criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|any): Promise<UpdateResult> {
+    softDelete<Entity>(queryRunner: QueryRunner, targetOrEntity: EntityTarget<Entity>, criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|any): Promise<UpdateResult> {
 
         // if user passed empty criteria or empty list of criterias, then throw an error
         if (criteria === undefined ||
@@ -637,14 +568,14 @@ export class EntityManager {
                 .softDelete()
                 .from(targetOrEntity)
                 .whereInIds(criteria)
-                .execute();
+                .execute(queryRunner);
 
         } else {
             return this.createQueryBuilder()
                 .softDelete()
                 .from(targetOrEntity)
                 .where(criteria)
-                .execute();
+                .execute(queryRunner);
         }
     }
 
@@ -655,7 +586,7 @@ export class EntityManager {
      * Does not check if entity exist in the database.
      * Condition(s) cannot be empty.
      */
-    restore<Entity>(targetOrEntity: EntityTarget<Entity>, criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|any): Promise<UpdateResult> {
+    restore<Entity>(queryRunner: QueryRunner, targetOrEntity: EntityTarget<Entity>, criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|any): Promise<UpdateResult> {
 
         // if user passed empty criteria or empty list of criterias, then throw an error
         if (criteria === undefined ||
@@ -675,14 +606,14 @@ export class EntityManager {
                 .restore()
                 .from(targetOrEntity)
                 .whereInIds(criteria)
-                .execute();
+                .execute(queryRunner);
 
         } else {
             return this.createQueryBuilder()
                 .restore()
                 .from(targetOrEntity)
                 .where(criteria)
-                .execute();
+                .execute(queryRunner);
         }
     }
 
@@ -690,44 +621,44 @@ export class EntityManager {
      * Counts entities that match given options.
      * Useful for pagination.
      */
-    count<Entity>(entityClass: EntityTarget<Entity>, options?: FindOneOptions<Entity>): Promise<number>;
+    count<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, options?: FindOneOptions<Entity>): Promise<number>;
 
     /**
      * Counts entities that match given options.
      * Useful for pagination.
      */
-    count<Entity>(entityClass: EntityTarget<Entity>, options?: FindManyOptions<Entity>): Promise<number>;
+    count<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, options?: FindManyOptions<Entity>): Promise<number>;
 
     /**
      * Counts entities that match given conditions.
      * Useful for pagination.
      */
-    count<Entity>(entityClass: EntityTarget<Entity>, conditions?: FindConditions<Entity>): Promise<number>;
+    count<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, conditions?: FindConditions<Entity>): Promise<number>;
 
     /**
      * Counts entities that match given find options or conditions.
      * Useful for pagination.
      */
-    async count<Entity>(entityClass: EntityTarget<Entity>, optionsOrConditions?: FindConditions<Entity>|FindOneOptions<Entity>|FindManyOptions<Entity>): Promise<number> {
+    async count<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, optionsOrConditions?: FindConditions<Entity>|FindOneOptions<Entity>|FindManyOptions<Entity>): Promise<number> {
         const metadata = this.connection.getMetadata(entityClass);
         const qb = this.createQueryBuilder(entityClass, FindOptionsUtils.extractFindManyOptionsAlias(optionsOrConditions) || metadata.name);
-        return FindOptionsUtils.applyFindManyOptionsOrConditionsToQueryBuilder(qb, optionsOrConditions).getCount();
+        return FindOptionsUtils.applyFindManyOptionsOrConditionsToQueryBuilder(qb, optionsOrConditions).getCount(queryRunner);
     }
 
     /**
      * Finds entities that match given options.
      */
-    find<Entity>(entityClass: EntityTarget<Entity>, options?: FindManyOptions<Entity>): Promise<Entity[]>;
+    find<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, options?: FindManyOptions<Entity>): Promise<Entity[]>;
 
     /**
      * Finds entities that match given conditions.
      */
-    find<Entity>(entityClass: EntityTarget<Entity>, conditions?: FindConditions<Entity>): Promise<Entity[]>;
+    find<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, conditions?: FindConditions<Entity>): Promise<Entity[]>;
 
     /**
      * Finds entities that match given find options or conditions.
      */
-    async find<Entity>(entityClass: EntityTarget<Entity>, optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<Entity[]> {
+    async find<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<Entity[]> {
         const metadata = this.connection.getMetadata(entityClass);
         const qb = this.createQueryBuilder<Entity>(entityClass as any, FindOptionsUtils.extractFindManyOptionsAlias(optionsOrConditions) || metadata.name);
         FindOptionsUtils.applyFindManyOptionsOrConditionsToQueryBuilder(qb, optionsOrConditions);
@@ -735,29 +666,15 @@ export class EntityManager {
         if (!FindOptionsUtils.isFindManyOptions(optionsOrConditions) || optionsOrConditions.loadEagerRelations !== false)
             FindOptionsUtils.joinEagerRelations(qb, qb.alias, metadata);
 
-        return qb.getMany();
+        return qb.getMany(queryRunner);
     }
-
-    /**
-     * Finds entities that match given find options.
-     * Also counts all entities that match given conditions,
-     * but ignores pagination settings (from and take options).
-     */
-    findAndCount<Entity>(entityClass: EntityTarget<Entity>, options?: FindManyOptions<Entity>): Promise<[Entity[], number]>;
-
-    /**
-     * Finds entities that match given conditions.
-     * Also counts all entities that match given conditions,
-     * but ignores pagination settings (from and take options).
-     */
-    findAndCount<Entity>(entityClass: EntityTarget<Entity>, conditions?: FindConditions<Entity>): Promise<[Entity[], number]>;
 
     /**
      * Finds entities that match given find options and conditions.
      * Also counts all entities that match given conditions,
      * but ignores pagination settings (from and take options).
      */
-    async findAndCount<Entity>(entityClass: EntityTarget<Entity>, optionsOrConditions?: FindConditions<Entity>|FindManyOptions<Entity>): Promise<[Entity[], number]> {
+    async findAndCount<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, optionsOrConditions?: FindConditions<Entity>|FindManyOptions<Entity>): Promise<[Entity[], number]> {
         const metadata = this.connection.getMetadata(entityClass);
         const qb = this.createQueryBuilder<Entity>(entityClass as any, FindOptionsUtils.extractFindManyOptionsAlias(optionsOrConditions) || metadata.name);
         FindOptionsUtils.applyFindManyOptionsOrConditionsToQueryBuilder(qb, optionsOrConditions);
@@ -765,26 +682,14 @@ export class EntityManager {
         if (!FindOptionsUtils.isFindManyOptions(optionsOrConditions) || optionsOrConditions.loadEagerRelations !== false)
             FindOptionsUtils.joinEagerRelations(qb, qb.alias, metadata);
 
-        return qb.getManyAndCount();
+        return qb.getManyAndCount(queryRunner);
     }
-
-    /**
-     * Finds entities with ids.
-     * Optionally find options can be applied.
-     */
-    findByIds<Entity>(entityClass: EntityTarget<Entity>, ids: any[], options?: FindManyOptions<Entity>): Promise<Entity[]>;
-
-    /**
-     * Finds entities with ids.
-     * Optionally conditions can be applied.
-     */
-    findByIds<Entity>(entityClass: EntityTarget<Entity>, ids: any[], conditions?: FindConditions<Entity>): Promise<Entity[]>;
 
     /**
      * Finds entities with ids.
      * Optionally find options or conditions can be applied.
      */
-    async findByIds<Entity>(entityClass: EntityTarget<Entity>, ids: any[], optionsOrConditions?: FindConditions<Entity>|FindManyOptions<Entity>): Promise<Entity[]> {
+    async findByIds<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, ids: any[], optionsOrConditions?: FindConditions<Entity>|FindManyOptions<Entity>): Promise<Entity[]> {
 
         // if no ids passed, no need to execute a query - just return an empty array of values
         if (!ids.length)
@@ -796,28 +701,13 @@ export class EntityManager {
         if (!FindOptionsUtils.isFindManyOptions(optionsOrConditions) || optionsOrConditions.loadEagerRelations !== false)
             FindOptionsUtils.joinEagerRelations(qb, qb.alias, metadata);
 
-        return qb.andWhereInIds(ids).getMany();
+        return qb.andWhereInIds(ids).getMany(queryRunner);
     }
 
     /**
-     * Finds first entity that matches given find options.
-     */
-    findOne<Entity>(entityClass: EntityTarget<Entity>, id?: string|number|Date|ObjectID, options?: FindOneOptions<Entity>): Promise<Entity|undefined>;
-
-    /**
-     * Finds first entity that matches given find options.
-     */
-    findOne<Entity>(entityClass: EntityTarget<Entity>, options?: FindOneOptions<Entity>): Promise<Entity|undefined>;
-
-    /**
      * Finds first entity that matches given conditions.
      */
-    findOne<Entity>(entityClass: EntityTarget<Entity>, conditions?: FindConditions<Entity>, options?: FindOneOptions<Entity>): Promise<Entity|undefined>;
-
-    /**
-     * Finds first entity that matches given conditions.
-     */
-    async findOne<Entity>(entityClass: EntityTarget<Entity>, idOrOptionsOrConditions?: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity|undefined> {
+    async findOne<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, idOrOptionsOrConditions?: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity|undefined> {
 
         let findOptions: FindManyOptions<any>|FindOneOptions<any>|undefined = undefined;
         if (FindOptionsUtils.isFindOneOptions(idOrOptionsOrConditions)) {
@@ -862,29 +752,14 @@ export class EntityManager {
             qb.andWhereInIds(metadata.ensureEntityIdMap(idOrOptionsOrConditions));
         }
 
-        return qb.getOne();
+        return qb.getOne(queryRunner);
     }
 
     /**
-     * Finds first entity that matches given find options or rejects the returned promise on error.
-     */
-    findOneOrFail<Entity>(entityClass: EntityTarget<Entity>, id?: string|number|Date|ObjectID, options?: FindOneOptions<Entity>): Promise<Entity>;
-
-    /**
-     * Finds first entity that matches given find options or rejects the returned promise on error.
-     */
-    findOneOrFail<Entity>(entityClass: EntityTarget<Entity>, options?: FindOneOptions<Entity>): Promise<Entity>;
-
-    /**
      * Finds first entity that matches given conditions or rejects the returned promise on error.
      */
-    findOneOrFail<Entity>(entityClass: EntityTarget<Entity>, conditions?: FindConditions<Entity>, options?: FindOneOptions<Entity>): Promise<Entity>;
-
-    /**
-     * Finds first entity that matches given conditions or rejects the returned promise on error.
-     */
-    async findOneOrFail<Entity>(entityClass: EntityTarget<Entity>, idOrOptionsOrConditions?: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity> {
-        return this.findOne<Entity>(entityClass as any, idOrOptionsOrConditions as any, maybeOptions).then((value) => {
+    async findOneOrFail<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, idOrOptionsOrConditions?: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity> {
+        return this.findOne<Entity>(queryRunner, entityClass as any, idOrOptionsOrConditions as any, maybeOptions).then((value) => {
             if (value === undefined) {
                 return Promise.reject(new EntityNotFoundError(entityClass, idOrOptionsOrConditions));
             }
@@ -898,22 +773,15 @@ export class EntityManager {
      * Note: this method uses TRUNCATE and may not work as you expect in transactions on some platforms.
      * @see https://stackoverflow.com/a/5972738/925151
      */
-    async clear<Entity>(entityClass: EntityTarget<Entity>): Promise<void> {
+    async clear<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>): Promise<void> {
         const metadata = this.connection.getMetadata(entityClass);
-        const queryRunner = this.queryRunner || this.connection.createQueryRunner();
-        try {
-            return await queryRunner.clearTable(metadata.tablePath); // await is needed here because we are using finally
-
-        } finally {
-            if (!this.queryRunner)
-                await queryRunner.release();
-        }
+        return await queryRunner.clearTable(metadata.tablePath); // await is needed here because we are using finally
     }
 
     /**
      * Increments some column by provided value of the entities matched given conditions.
      */
-    async increment<Entity>(entityClass: EntityTarget<Entity>,
+    async increment<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>,
                             conditions: any,
                             propertyPath: string,
                             value: number | string): Promise<UpdateResult> {
@@ -939,13 +807,13 @@ export class EntityManager {
             .update(entityClass)
             .set(values)
             .where(conditions)
-            .execute();
+            .execute(queryRunner);
     }
 
     /**
      * Decrements some column by provided value of the entities matched given conditions.
      */
-    async decrement<Entity>(entityClass: EntityTarget<Entity>,
+    async decrement<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>,
                             conditions: any,
                             propertyPath: string,
                             value: number | string): Promise<UpdateResult> {
@@ -971,7 +839,7 @@ export class EntityManager {
             .update(entityClass)
             .set(values)
             .where(conditions)
-            .execute();
+            .execute(queryRunner);
     }
 
     /**
@@ -993,7 +861,7 @@ export class EntityManager {
             return repository;
 
         // if repository was not found then create it, store its instance and return it
-        const newRepository = new RepositoryFactory().create(this, metadata, this.queryRunner);
+        const newRepository = new RepositoryFactory().create(this, metadata);
         this.repositories.push(newRepository);
         return newRepository;
     }
@@ -1053,17 +921,5 @@ export class EntityManager {
         }
 
         return entityRepositoryInstance;
-    }
-
-    /**
-     * Releases all resources used by entity manager.
-     * This is used when entity manager is created with a single query runner,
-     * and this single query runner needs to be released after job with entity manager is done.
-     */
-    async release(): Promise<void> {
-        if (!this.queryRunner)
-            throw new NoNeedToReleaseEntityManagerError();
-
-        return this.queryRunner.release();
     }
 }

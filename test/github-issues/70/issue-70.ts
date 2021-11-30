@@ -16,6 +16,7 @@ describe("github issues > #70 cascade deleting works incorrect", () => {
 
     it("should persist successfully and return persisted entity", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         // create objects to save
         const category1 = new Category();
         category1.name = "category #1";
@@ -28,19 +29,19 @@ describe("github issues > #70 cascade deleting works incorrect", () => {
         post.categories = [category1, category2];
 
         // persist post (other are persisted by cascades)
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         // check that all persisted objects exist
         const loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
             .innerJoinAndSelect("post.categories", "category")
             .orderBy("post.id, category.id")
-            .getOne()!;
+            .getOne(qr)!;
 
         const loadedCategories = await connection.manager
             .createQueryBuilder(Category, "category")
             .orderBy("category.id")
-            .getMany();
+            .getMany(qr);
 
         expect(loadedPost!).not.to.be.undefined;
         loadedPost!.should.deep.include({
@@ -54,20 +55,21 @@ describe("github issues > #70 cascade deleting works incorrect", () => {
         loadedCategories[1].id.should.be.equal(2);
 
         // now remove post. categories should be removed too
-        await connection.manager.remove(post);
+        await connection.manager.remove(qr, post);
 
         // load them again to make sure they are not exist anymore
         const loadedPosts2 = await connection.manager
             .createQueryBuilder(Post, "post")
-            .getMany();
+            .getMany(qr);
 
         const loadedCategories2 = await connection.manager
             .createQueryBuilder(Category, "category")
-            .getMany();
+            .getMany(qr);
 
         expect(loadedPosts2).to.be.eql([]);
         expect(loadedCategories2).to.be.eql([]);
 
+        await qr.release();
     })));
 
 });

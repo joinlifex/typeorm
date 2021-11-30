@@ -17,6 +17,7 @@ describe("github issues > #7065 ChildEntity type relationship produces unexpecte
 
     it("should join child entity with discriminator value condition", () => Promise.all(connections.map(async connection => {
         const userRepo = connection.getRepository(User);
+        const qr = connection.createQueryRunner();
 
         const email = new Email();
         email.value = "email";
@@ -28,9 +29,9 @@ describe("github issues > #7065 ChildEntity type relationship produces unexpecte
         user.name = "Mike";
         user.emails = [email];
         user.phones = [phone];
-        await userRepo.save(user);
+        await userRepo.save(qr, user);
 
-        const result = await userRepo.findOne(1, {
+        const result = await userRepo.findOne(qr, 1, {
             relations: ["emails", "phones"]
         });
 
@@ -38,6 +39,7 @@ describe("github issues > #7065 ChildEntity type relationship produces unexpecte
         expect(result!.emails[0].value).eq("email");
         expect(result!.phones.length).eq(1);
         expect(result!.phones[0].value).eq("phone");
+        await qr.release();
     })));
 
 });

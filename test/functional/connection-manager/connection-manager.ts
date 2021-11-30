@@ -171,15 +171,20 @@ describe("ConnectionManager", () => {
 
             // create connection, save post and close connection
             let connection = await connectionManager.create(options).connect();
+            const qr = connection.createQueryRunner();
+        
             const post = new Post(1, "Hello post");
-            await connection.manager.save(post);
+            await connection.manager.save(qr, post);
+            await qr.release();
             await connection.close();
 
             // recreate connection and find previously saved post
             connection = await connectionManager.create(options).connect();
-            const loadedPost = (await connection.manager.findOne(Post, 1))!;
+            const qr2 = connection.createQueryRunner();
+            const loadedPost = (await connection.manager.findOne(qr2, Post, 1))!;
             loadedPost.should.be.instanceof(Post);
             loadedPost.should.be.eql({ id: 1, title: "Hello post" });
+            qr2.release();
             await connection.close();
         });
 
@@ -197,14 +202,19 @@ describe("ConnectionManager", () => {
 
             // create connection, save post and close connection
             let connection = await connectionManager.create(options).connect();
+            const qr = connection.createQueryRunner();
+        
             const post = new Post(1, "Hello post");
-            await connection.manager.save(post);
+            await connection.manager.save(qr, post);
+            await qr.release();
             await connection.close();
 
             // recreate connection and find previously saved post
             connection = await connectionManager.create(options).connect();
-            const loadedPost = await connection.manager.findOne(Post, 1);
+            const qr2 = connection.createQueryRunner();
+            const loadedPost = await connection.manager.findOne(qr2, Post, 1);
             expect(loadedPost).to.be.undefined;
+            qr2.release();
             await connection.close();
          });
 
@@ -220,12 +230,12 @@ describe("ConnectionManager", () => {
             // create connection, save post and close connection
             let connection = await connectionManager.createAndConnect(options);
             const post = new Post(1, "Hello post");
-            await connection.manager.save(post);
+            await connection.manager.save(qr, post);
             await connection.close();
 
             // recreate connection and find previously saved post
             connection = await connectionManager.createAndConnect(options);
-            const loadedPost = await connection.manager.findOne(Post, 1);
+            const loadedPost = await connection.manager.findOne(qr, Post, 1);
             expect(loadedPost).to.be.undefined;
 
             await connection.close();
@@ -243,12 +253,12 @@ describe("ConnectionManager", () => {
             // create connection, save post and close connection
             let connection = await connectionManager.createAndConnect(options);
             const post = new Post(1, "Hello post");
-            await connection.manager.save(post);
+            await connection.manager.save(qr, post);
             await connection.close();
 
             // recreate connection and find previously saved post
             connection = await connectionManager.createAndConnect(options);
-            const loadedPost = await connection.manager.findOne(Post, 1);
+            const loadedPost = await connection.manager.findOne(qr, Post, 1);
             expect(loadedPost).to.be.undefined;
             await connection.close();
          });*/

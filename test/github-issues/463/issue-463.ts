@@ -16,9 +16,11 @@ describe("github issues > #463 saving empty string array", () => {
     it("should not return array with single empty string if empty array was saved", () => Promise.all(connections.map(async connection => {
         const post = new Post();
         post.names = [];
-        await connection.getRepository(Post).save(post);
-        const loadedPost = await connection.getRepository(Post).findOne(1);
+        const qr = connection.createQueryRunner();
+        await connection.getRepository(Post).save(qr, post);
+        const loadedPost = await connection.getRepository(Post).findOne(qr, 1);
         loadedPost!.names.length.should.be.eql(0);
+        await qr.release();
     })));
 
 });

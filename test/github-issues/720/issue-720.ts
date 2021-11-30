@@ -7,7 +7,7 @@ import {Message} from "./entity/Message";
 import {Translation} from "./entity/Translation";
 import {Locale} from "./entity/Locale";
 
-describe("github issues > #720 `.save()` not updating composite key with Postgres", () => {
+describe("github issues > #720 `.save(qr)` not updating composite key with Postgres", () => {
 
     let connections: Connection[];
     before(async () => connections = await createTestingConnections({
@@ -19,6 +19,7 @@ describe("github issues > #720 `.save()` not updating composite key with Postgre
 
     it("should not insert new entity when entity already exist with same primary keys", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const participants = [];
 
         participants[0] = new Participant();
@@ -36,9 +37,9 @@ describe("github issues > #720 `.save()` not updating composite key with Postgre
         participants[2].distance = "three";
         participants[2].price = "300$";
 
-        await connection.manager.save(participants);
+        await connection.manager.save(qr, participants);
 
-        const count1 = await connection.manager.count(Participant);
+        const count1 = await connection.manager.count(qr, Participant);
         expect(count1).to.be.equal(3);
 
         const updatedParticipants = [];
@@ -52,45 +53,47 @@ describe("github issues > #720 `.save()` not updating composite key with Postgre
         updatedParticipants[1].distance = "two";
         updatedParticipants[1].price = "250$";
 
-        await connection.manager.save(updatedParticipants);
+        await connection.manager.save(qr, updatedParticipants);
 
-        const count2 = await connection.manager.count(Participant);
+        const count2 = await connection.manager.count(qr, Participant);
         expect(count2).to.be.equal(3);
 
-        const loadedParticipant1 = await connection.manager.findOne(Participant, { order_id: 1, distance: "one" });
+        const loadedParticipant1 = await connection.manager.findOne(qr, Participant, { order_id: 1, distance: "one" });
         expect(loadedParticipant1!.order_id).to.be.equal(1);
         expect(loadedParticipant1!.distance).to.be.equal("one");
         expect(loadedParticipant1!.price).to.be.equal("150$");
 
-        const loadedParticipant2 = await connection.manager.findOne(Participant, { order_id: 1, distance: "two" });
+        const loadedParticipant2 = await connection.manager.findOne(qr, Participant, { order_id: 1, distance: "two" });
         expect(loadedParticipant2!.order_id).to.be.equal(1);
         expect(loadedParticipant2!.distance).to.be.equal("two");
         expect(loadedParticipant2!.price).to.be.equal("250$");
+        await qr.release();
 
     })));
 
     it("reproducing second comment issue", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const message = new Message();
-        await connection.manager.save(message);
+        await connection.manager.save(qr, message);
 
         const locale = new Locale();
         locale.code = "US";
         locale.englishName = "USA";
         locale.name = message;
-        await connection.manager.save(locale);
+        await connection.manager.save(qr, locale);
 
         const translation = new Translation();
         translation.message = message;
         translation.locale = locale;
         translation.text = "Some Text";
-        await connection.manager.save(translation);
+        await connection.manager.save(qr, translation);
 
         // change its text and save again
         translation.text = "Changed Text";
-        await connection.manager.save(translation);
+        await connection.manager.save(qr, translation);
 
-        const foundTranslation = await connection.manager.getRepository(Translation).findOne({
+        const foundTranslation = await connection.manager.getRepository(Translation).findOne(qr, {
             locale: {
                 code: "US"
             },
@@ -101,6 +104,7 @@ describe("github issues > #720 `.save()` not updating composite key with Postgre
         expect(foundTranslation).to.be.eql({
             text: "Changed Text"
         });
+        await qr.release();
     })));
 
 });

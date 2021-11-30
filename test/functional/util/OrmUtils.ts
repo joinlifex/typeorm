@@ -56,9 +56,9 @@ describe("OrmUtils.mergeDeep", () => {
         let a: Record<string, any> = {};
         let b: Record<string, any> = {};
 
-        a['b'] = b;
-        a['a'] = a;
-        b['a'] = a;
+        a["b"] = b;
+        a["a"] = a;
+        b["a"] = a;
 
         expect(OrmUtils.mergeDeep({}, a));
     });

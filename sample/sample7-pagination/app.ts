@@ -16,7 +16,7 @@ const options: ConnectionOptions = {
 };
 
 createConnection(options).then(connection => {
-
+    const qr = connection.createQueryRunner();
     let postRepository = connection.getRepository(Post);
     const posts: Post[] = [];
     
@@ -47,21 +47,21 @@ createConnection(options).then(connection => {
         .skip(5)
         .take(10);
 
-    Promise.all(posts.map(post => postRepository.save(post)))
+    Promise.all(posts.map(post => postRepository.save(qr, post)))
         .then(savedPosts => {
             console.log("Posts has been saved. Lets try to load some posts");
-            return qb.getMany();
+            return qb.getMany(qr);
         })
         .then(loadedPost => {
             console.log("post loaded: ", loadedPost);
             console.log("now lets get total post count: ");
-            return qb.getCount();
+            return qb.getCount(qr);
         })
         .then(totalCount => {
             console.log("total post count: ", totalCount);
             console.log("now lets try to load it with same repository method:");
             
-            return postRepository.findAndCount();
+            return postRepository.findAndCount(qr);
         })
         .then(entitiesWithCount => {
             console.log("items: ", entitiesWithCount[0]);

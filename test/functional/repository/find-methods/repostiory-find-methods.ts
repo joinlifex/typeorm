@@ -19,92 +19,102 @@ describe("repository > find methods", () => {
     describe("count", function () {
         it("should return a full count when no criteria given", () => Promise.all(connections.map(async connection => {
             const postRepository            = connection.getRepository(Post);
+            const qr = connection.createQueryRunner();
 
             for (let i = 0; i < 100; i++) {
                 const post        = new Post();
                 post.id           = i;
                 post.title        = "post #" + i;
                 post.categoryName = "other";
-                await postRepository.save(post);
+                await postRepository.save(qr, post);
             }
 
             // check count method
-            const count = await postRepository.count({ order: { id: "ASC" }});
+            const count = await postRepository.count(qr, { order: { id: "ASC" }});
             count.should.be.equal(100);
+            await qr.release();
         })));
 
         it("should return a count of posts that match given criteria", () => Promise.all(connections.map(async connection => {
             const postRepository = connection.getRepository(Post);
+            const qr = connection.createQueryRunner();
             for (let i = 1; i <= 100; i++) {
                 const post        = new Post();
                 post.id           = i;
                 post.title        = "post #" + i;
                 post.categoryName = i % 2 === 0 ? "even" : "odd";
-                await postRepository.save(post);
+                await postRepository.save(qr, post);
             }
 
             // check count method
-            const count = await postRepository.count({
+            const count = await postRepository.count(qr, {
                 where: { categoryName: "odd" },
                 order: { id: "ASC" }
             });
             count.should.be.equal(50);
+            await qr.release();
         })));
 
         it("should return a count of posts that match given multiple criteria", () => Promise.all(connections.map(async connection => {
             const postRepository            = connection.getRepository(Post);
+            const qr = connection.createQueryRunner();
             for (let i = 1; i <= 100; i++) {
                 const post        = new Post();
                 post.id           = i;
                 post.title        = "post #" + i;
                 post.categoryName = i % 2 === 0 ? "even" : "odd";
                 post.isNew        = i > 90;
-                await postRepository.save(post);
+                await postRepository.save(qr, post);
             }
 
             // check count method
-            const count = await postRepository.count({
+            const count = await postRepository.count(qr, {
                 where: { categoryName: "odd", isNew: true },
                 order: { id: "ASC" }
             });
             count.should.be.equal(5);
+            await qr.release();
         })));
 
         it("should return a count of posts that match given find options", () => Promise.all(connections.map(async connection => {
             const postRepository            = connection.getRepository(Post);
+            const qr = connection.createQueryRunner();
             for (let i = 1; i <= 100; i++) {
                 const post        = new Post();
                 post.id           = i;
                 post.isNew        = i > 90;
                 post.title        = post.isNew ? "new post #" + i : "post #" + i;
                 post.categoryName = i % 2 === 0 ? "even" : "odd";
-                await postRepository.save(post);
+                await postRepository.save(qr, post);
             }
 
             // check count method
-            const count = await postRepository.count();
+            const count = await postRepository.count(qr);
             count.should.be.equal(100);
+            await qr.release();
         })));
 
         it("should return a count of posts that match both criteria and find options", () => Promise.all(connections.map(async connection => {
             const postRepository            = connection.getRepository(Post);
+            const qr = connection.createQueryRunner();
             for (let i = 1; i <= 100; i++) {
                 const post        = new Post();
                 post.id           = i;
                 post.isNew        = i > 90;
                 post.title        = post.isNew ? "new post #" + i : "post #" + i;
                 post.categoryName = i % 2 === 0 ? "even" : "odd";
-                await postRepository.save(post);
+                await postRepository.save(qr, post);
             }
 
             // check count method
-            const count = await postRepository.count({
+            const count = await postRepository.count(qr, {
                 where: { categoryName: "even", isNew: true },
                 skip: 1,
                 take:  2,
                 order: { id: "ASC" }
             });
             count.should.be.equal(5);
+            await qr.release();
         })));
         
     });
@@ -113,17 +123,18 @@ describe("repository > find methods", () => {
 
         it("should return everything when no criteria given", () => Promise.all(connections.map(async connection => {
             const postRepository = connection.getRepository(Post);
+            const qr = connection.createQueryRunner();
 
             for (let i = 0; i < 100; i++) {
                 const post = new Post();
                 post.id = i;
                 post.title = "post #" + i;
                 post.categoryName = "other";
-                await postRepository.save(post);
+                await postRepository.save(qr, post);
             }
 
             // check find method
-            const loadedPosts = await postRepository.find({ order: { id: "ASC" }});
+            const loadedPosts = await postRepository.find(qr, { order: { id: "ASC" }});
             loadedPosts.should.be.instanceOf(Array);
             loadedPosts.length.should.be.equal(100);
             loadedPosts[0].id.should.be.equal(0);
@@ -132,7 +143,7 @@ describe("repository > find methods", () => {
             loadedPosts[99].title.should.be.equal("post #99");
 
             // check findAndCount method
-            let [loadedPosts2, count] = await postRepository.findAndCount({ order: { id: "ASC" }});
+            let [loadedPosts2, count] = await postRepository.findAndCount(qr, { order: { id: "ASC" }});
             count.should.be.equal(100);
             loadedPosts2.should.be.instanceOf(Array);
             loadedPosts2.length.should.be.equal(100);
@@ -140,21 +151,23 @@ describe("repository > find methods", () => {
             loadedPosts2[0].title.should.be.equal("post #0");
             loadedPosts2[99].id.should.be.equal(99);
             loadedPosts2[99].title.should.be.equal("post #99");
+            await qr.release();
         })));
 
         it("should return posts that match given criteria", () => Promise.all(connections.map(async connection => {
             const postRepository = connection.getRepository(Post);
+            const qr = connection.createQueryRunner();
 
             for (let i = 1; i <= 100; i++) {
                 const post = new Post();
                 post.id = i;
                 post.title = "post #" + i;
                 post.categoryName = i % 2 === 0 ? "even" : "odd";
-                await postRepository.save(post);
+                await postRepository.save(qr, post);
             }
 
             // check find method
-            const loadedPosts = await postRepository.find({
+            const loadedPosts = await postRepository.find(qr, {
                 where: { categoryName: "odd" },
                 order: { id: "ASC" }
             });
@@ -166,7 +179,7 @@ describe("repository > find methods", () => {
             loadedPosts[49].title.should.be.equal("post #99");
 
             // check findAndCount method
-            let [loadedPosts2, count] = await postRepository.findAndCount({
+            let [loadedPosts2, count] = await postRepository.findAndCount(qr, {
                 where: { categoryName: "odd" },
                 order: { id: "ASC" }
             });
@@ -177,10 +190,12 @@ describe("repository > find methods", () => {
             loadedPosts2[0].title.should.be.equal("post #1");
             loadedPosts2[49].id.should.be.equal(99);
             loadedPosts2[49].title.should.be.equal("post #99");
+            await qr.release();
         })));
 
         it("should return posts that match given multiple criteria", () => Promise.all(connections.map(async connection => {
             const postRepository = connection.getRepository(Post);
+            const qr = connection.createQueryRunner();
 
             for (let i = 1; i <= 100; i++) {
                 const post = new Post();
@@ -188,11 +203,11 @@ describe("repository > find methods", () => {
                 post.title = "post #" + i;
                 post.categoryName = i % 2 === 0 ? "even" : "odd";
                 post.isNew = i > 90;
-                await postRepository.save(post);
+                await postRepository.save(qr, post);
             }
 
             // check find method
-            const loadedPosts = await postRepository.find({
+            const loadedPosts = await postRepository.find(qr, {
                 where: { categoryName: "odd", isNew: true },
                 order: { id: "ASC" }
             });
@@ -204,7 +219,7 @@ describe("repository > find methods", () => {
             loadedPosts[4].title.should.be.equal("post #99");
 
             // check findAndCount method
-            let [loadedPosts2, count] = await postRepository.findAndCount({
+            let [loadedPosts2, count] = await postRepository.findAndCount(qr, {
                 where: { categoryName: "odd", isNew: true },
                 order: { id: "ASC" }
             });
@@ -215,10 +230,12 @@ describe("repository > find methods", () => {
             loadedPosts2[0].title.should.be.equal("post #91");
             loadedPosts2[4].id.should.be.equal(99);
             loadedPosts2[4].title.should.be.equal("post #99");
+            await qr.release();
         })));
 
         it("should return posts that match given find options", () => Promise.all(connections.map(async connection => {
             const postRepository = connection.getRepository(Post);
+            const qr = connection.createQueryRunner();
 
             for (let i = 1; i <= 100; i++) {
                 const post = new Post();
@@ -226,7 +243,7 @@ describe("repository > find methods", () => {
                 post.isNew = i > 90;
                 post.title = post.isNew ? "new post #" + i : "post #" + i;
                 post.categoryName = i % 2 === 0 ? "even" : "odd";
-                await postRepository.save(post);
+                await postRepository.save(qr, post);
             }
 
             // check find method
@@ -237,7 +254,7 @@ describe("repository > find methods", () => {
                     categoryName: "even"
                 })
                 .orderBy("post.id", "ASC")
-                .getMany();
+                .getMany(qr);
             loadedPosts.should.be.instanceOf(Array);
             loadedPosts.length.should.be.equal(5);
             loadedPosts[0].id.should.be.equal(92);
@@ -253,7 +270,7 @@ describe("repository > find methods", () => {
                     categoryName: "even"
                 })
                 .orderBy("post.id", "ASC")
-                .getManyAndCount();
+                .getManyAndCount(qr);
             count.should.be.equal(5);
             loadedPosts2.should.be.instanceOf(Array);
             loadedPosts2.length.should.be.equal(5);
@@ -261,10 +278,12 @@ describe("repository > find methods", () => {
             loadedPosts2[0].title.should.be.equal("new post #92");
             loadedPosts2[4].id.should.be.equal(100);
             loadedPosts2[4].title.should.be.equal("new post #100");
+            await qr.release();
         })));
 
         it("should return posts that match both criteria and find options", () => Promise.all(connections.map(async connection => {
             const postRepository = connection.getRepository(Post);
+            const qr = connection.createQueryRunner();
 
             for (let i = 1; i <= 100; i++) {
                 const post = new Post();
@@ -272,11 +291,11 @@ describe("repository > find methods", () => {
                 post.isNew = i > 90;
                 post.title = post.isNew ? "new post #" + i : "post #" + i;
                 post.categoryName = i % 2 === 0 ? "even" : "odd";
-                await postRepository.save(post);
+                await postRepository.save(qr, post);
             }
 
             // check find method
-            const loadedPosts = await postRepository.find({
+            const loadedPosts = await postRepository.find(qr, {
                 where: {
                     categoryName: "even",
                     isNew: true
@@ -295,7 +314,7 @@ describe("repository > find methods", () => {
             loadedPosts[1].title.should.be.equal("new post #96");
 
             // check findAndCount method
-            let [loadedPosts2, count] = await postRepository.findAndCount({
+            let [loadedPosts2, count] = await postRepository.findAndCount(qr, {
                 where: {
                     categoryName: "even",
                     isNew: true
@@ -313,6 +332,7 @@ describe("repository > find methods", () => {
             loadedPosts2[0].title.should.be.equal("new post #94");
             loadedPosts2[1].id.should.be.equal(96);
             loadedPosts2[1].title.should.be.equal("new post #96");
+            await qr.release();
         })));
 
     });
@@ -321,6 +341,7 @@ describe("repository > find methods", () => {
 
         it("should return first when no criteria given", () => Promise.all(connections.map(async connection => {
             const userRepository = connection.getRepository<User>("User");
+            const qr = connection.createQueryRunner();
 
             for (let i = 0; i < 100; i++) {
                 const user: User = {
@@ -328,17 +349,19 @@ describe("repository > find methods", () => {
                     firstName: "name #" + i,
                     secondName: "Doe"
                 };
-                await userRepository.save(user);
+                await userRepository.save(qr, user);
             }
 
-            const loadedUser = (await userRepository.findOne({ order: { id: "ASC" }}))!;
+            const loadedUser = (await userRepository.findOne(qr, { order: { id: "ASC" }}))!;
             loadedUser.id.should.be.equal(0);
             loadedUser.firstName.should.be.equal("name #0");
             loadedUser.secondName.should.be.equal("Doe");
+            await qr.release();
         })));
 
         it("should return when criteria given", () => Promise.all(connections.map(async connection => {
             const userRepository = connection.getRepository<User>("User");
+            const qr = connection.createQueryRunner();
 
             for (let i = 0; i < 100; i++) {
                 const user: User = {
@@ -346,17 +369,19 @@ describe("repository > find methods", () => {
                     firstName: "name #" + i,
                     secondName: "Doe"
                 };
-                await userRepository.save(user);
+                await userRepository.save(qr, user);
             }
 
-            const loadedUser = (await userRepository.findOne({ where: { firstName: "name #1" }, order: { id: "ASC" } }))!;
+            const loadedUser = (await userRepository.findOne(qr, { where: { firstName: "name #1" }, order: { id: "ASC" } }))!;
             loadedUser.id.should.be.equal(1);
             loadedUser.firstName.should.be.equal("name #1");
             loadedUser.secondName.should.be.equal("Doe");
+            await qr.release();
         })));
 
         it("should return when find options given", () => Promise.all(connections.map(async connection => {
             const userRepository = connection.getRepository<User>("User");
+            const qr = connection.createQueryRunner();
 
             for (let i = 0; i < 100; i++) {
                 const user: User = {
@@ -364,10 +389,10 @@ describe("repository > find methods", () => {
                     firstName: "name #" + i,
                     secondName: "Doe"
                 };
-                await userRepository.save(user);
+                await userRepository.save(qr, user);
             }
 
-            const loadedUser = await userRepository.findOne({
+            const loadedUser = await userRepository.findOne(qr, {
                 where: {
                     firstName: "name #99",
                     secondName: "Doe"
@@ -379,6 +404,7 @@ describe("repository > find methods", () => {
             loadedUser!.id.should.be.equal(99);
             loadedUser!.firstName.should.be.equal("name #99");
             loadedUser!.secondName.should.be.equal("Doe");
+            await qr.release();
         })));
 
     });
@@ -387,6 +413,7 @@ describe("repository > find methods", () => {
 
         it("should return entity by a given id", () => Promise.all(connections.map(async connection => {
             const userRepository = connection.getRepository<User>("User");
+            const qr = connection.createQueryRunner();
 
             for (let i = 0; i < 100; i++) {
                 const user: User = {
@@ -394,27 +421,29 @@ describe("repository > find methods", () => {
                     firstName: "name #" + i,
                     secondName: "Doe"
                 };
-                await userRepository.save(user);
+                await userRepository.save(qr, user);
             }
 
-            let loadedUser = (await userRepository.findOne(0))!;
+            let loadedUser = (await userRepository.findOne(qr, 0))!;
             loadedUser.id.should.be.equal(0);
             loadedUser.firstName.should.be.equal("name #0");
             loadedUser.secondName.should.be.equal("Doe");
 
-            loadedUser = (await userRepository.findOne(1))!;
+            loadedUser = (await userRepository.findOne(qr, 1))!;
             loadedUser.id.should.be.equal(1);
             loadedUser.firstName.should.be.equal("name #1");
             loadedUser.secondName.should.be.equal("Doe");
 
-            loadedUser = (await userRepository.findOne(99))!;
+            loadedUser = (await userRepository.findOne(qr, 99))!;
             loadedUser.id.should.be.equal(99);
             loadedUser.firstName.should.be.equal("name #99");
             loadedUser.secondName.should.be.equal("Doe");
+            await qr.release();
         })));
 
         it("should return entity by a given id and find options", () => Promise.all(connections.map(async connection => {
             const userRepository = connection.getRepository<User>("User");
+            const qr = connection.createQueryRunner();
 
             for (let i = 0; i < 100; i++) {
                 const user: User = {
@@ -422,10 +451,10 @@ describe("repository > find methods", () => {
                     firstName: "name #" + i,
                     secondName: "Doe"
                 };
-                await userRepository.save(user);
+                await userRepository.save(qr, user);
             }
 
-            let loadedUser = await userRepository.findOne(0, {
+            let loadedUser = await userRepository.findOne(qr, 0, {
                 where: {
                     secondName: "Doe"
                 }
@@ -434,12 +463,13 @@ describe("repository > find methods", () => {
             loadedUser!.firstName.should.be.equal("name #0");
             loadedUser!.secondName.should.be.equal("Doe");
 
-            loadedUser = await userRepository.findOne(1, {
+            loadedUser = await userRepository.findOne(qr, 1, {
                 where: {
                     secondName: "Dorian"
                 }
             });
             expect(loadedUser).to.be.undefined;
+            await qr.release();
         })));
 
     });
@@ -448,6 +478,7 @@ describe("repository > find methods", () => {
 
         it("should return entities by given ids", () => Promise.all(connections.map(async connection => {
             const userRepository = connection.getRepository<User>("User");
+            const qr = connection.createQueryRunner();
 
             const users = [1, 2, 3, 4, 5].map(id => {
                 return {
@@ -457,13 +488,14 @@ describe("repository > find methods", () => {
                 };
             });
 
-            const savedUsers = await userRepository.save(users);
+            const savedUsers = await userRepository.save(qr, users);
             savedUsers.length.should.be.equal(users.length); // check if they all are saved
 
             const loadIds = [1, 2, 4];
-            const loadedUsers = (await userRepository.findByIds(loadIds))!;
+            const loadedUsers = (await userRepository.findByIds(qr, loadIds))!;
 
             loadedUsers.map(user => user.id).should.be.eql(loadIds);
+            await qr.release();
         })));
 
     });
@@ -472,6 +504,7 @@ describe("repository > find methods", () => {
 
         it("should return entity by a given id", () => Promise.all(connections.map(async connection => {
             const userRepository = connection.getRepository<User>("User");
+            const qr = connection.createQueryRunner();
 
             for (let i = 0; i < 100; i++) {
                 const user: User = {
@@ -479,27 +512,29 @@ describe("repository > find methods", () => {
                     firstName: "name #" + i,
                     secondName: "Doe"
                 };
-                await userRepository.save(user);
+                await userRepository.save(qr, user);
             }
 
-            let loadedUser = (await userRepository.findOneOrFail(0))!;
+            let loadedUser = (await userRepository.findOneOrFail(qr, 0))!;
             loadedUser.id.should.be.equal(0);
             loadedUser.firstName.should.be.equal("name #0");
             loadedUser.secondName.should.be.equal("Doe");
 
-            loadedUser = (await userRepository.findOneOrFail(1))!;
+            loadedUser = (await userRepository.findOneOrFail(qr, 1))!;
             loadedUser.id.should.be.equal(1);
             loadedUser.firstName.should.be.equal("name #1");
             loadedUser.secondName.should.be.equal("Doe");
 
-            loadedUser = (await userRepository.findOneOrFail(99))!;
+            loadedUser = (await userRepository.findOneOrFail(qr, 99))!;
             loadedUser.id.should.be.equal(99);
             loadedUser.firstName.should.be.equal("name #99");
             loadedUser.secondName.should.be.equal("Doe");
+            await qr.release();
         })));
 
         it("should return entity by a given id and find options", () => Promise.all(connections.map(async connection => {
             const userRepository = connection.getRepository<User>("User");
+            const qr = connection.createQueryRunner();
 
             for (let i = 0; i < 100; i++) {
                 const user: User = {
@@ -507,10 +542,10 @@ describe("repository > find methods", () => {
                     firstName: "name #" + i,
                     secondName: "Doe"
                 };
-                await userRepository.save(user);
+                await userRepository.save(qr, user);
             }
 
-            let loadedUser = await userRepository.findOneOrFail(0, {
+            let loadedUser = await userRepository.findOneOrFail(qr, 0, {
                 where: {
                     secondName: "Doe"
                 }
@@ -519,15 +554,17 @@ describe("repository > find methods", () => {
             loadedUser!.firstName.should.be.equal("name #0");
             loadedUser!.secondName.should.be.equal("Doe");
 
-            await userRepository.findOneOrFail(1, {
+            await userRepository.findOneOrFail(qr, 1, {
                 where: {
                     secondName: "Dorian"
                 }
             }).should.eventually.be.rejectedWith(EntityNotFoundError);
+            await qr.release();
         })));
 
         it("should throw an error if nothing was found", () => Promise.all(connections.map(async connection => {
             const userRepository = connection.getRepository<User>("User");
+            const qr = connection.createQueryRunner();
 
             for (let i = 0; i < 100; i++) {
                 const user: User = {
@@ -535,10 +572,11 @@ describe("repository > find methods", () => {
                     firstName: "name #" + i,
                     secondName: "Doe"
                 };
-                await userRepository.save(user);
+                await userRepository.save(qr, user);
             }
 
-            await userRepository.findOneOrFail(100).should.eventually.be.rejectedWith(EntityNotFoundError);
+            await userRepository.findOneOrFail(qr, 100).should.eventually.be.rejectedWith(EntityNotFoundError);
+            await qr.release();
         })));
     });
 

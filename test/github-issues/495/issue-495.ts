@@ -22,8 +22,10 @@ describe("github issues > #495 Unable to set multi-column indices", () => {
         item.userData = user;
         item.mid = 1;
 
-        await connection.manager.save(user);
-        await connection.manager.save(item);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, user);
+        await connection.manager.save(qr, item);
+        await qr.release();
     })));
 
 });

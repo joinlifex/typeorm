@@ -20,8 +20,8 @@ describe("github issues > #7586 Oddly indexed views are not dropped in migration
         const expectedDrops: RegExp[] = [];
         for(const view of [ViewA, ViewB, ViewC]){
             const metadata = connection.getMetadata(view);
-            metadata.expression = (metadata.expression as string)?.replace('V1', 'V2')
-            expectedDrops.push(new RegExp(`^DROP\\s+VIEW.*"${metadata.tableName}"`))
+            metadata.expression = (metadata.expression as string)?.replace("V1", "V2");
+            expectedDrops.push(new RegExp(`^DROP\\s+VIEW.*"${metadata.tableName}"`));
         }
         const sqlInMemory = await connection.driver.createSchemaBuilder().log();
         sqlInMemory.downQueries.filter(q => expectedDrops.find(expected => q.query.match(expected))).length.should.be.equal(expectedDrops.length);

@@ -20,29 +20,33 @@ describe("github issues > #2464 - ManyToMany onDelete option not working", () =>
     it("should not delete when onDelete is 'NO ACTION'", () => Promise.all(
       connections.map(async connection => {
         const repo = connection.getRepository(Foo);
+        const qr = connection.createQueryRunner();
 
-        await repo.save({ id: 1, bars: [{ description: "test1" }] });
+        await repo.save(qr, { id: 1, bars: [{ description: "test1" }] });
 
         try {
-          await repo.delete(1);
+          await repo.delete(qr, 1);
           expect.fail(); 
         } catch (e) {
           e.should.be.instanceOf(QueryFailedError);
         }
         
+        await qr.release();
       })
     ));
 
     it("should delete when onDelete is not set", () => Promise.all(
       connections.map(async connection => {
         const repo = connection.getRepository(Foo);
+        const qr = connection.createQueryRunner();
 
-        await repo.save({ id: 1, otherBars: [{ description: "test1" }] });
-        await repo.delete(1);
+        await repo.save(qr, { id: 1, otherBars: [{ description: "test1" }] });
+        await repo.delete(qr, 1);
 
-        const foo = await repo.findOne(1);
+        const foo = await repo.findOne(qr, 1);
         expect(foo).to.be.undefined;
         
+        await qr.release();
       })
     ));
 

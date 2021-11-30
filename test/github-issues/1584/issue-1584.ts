@@ -14,9 +14,11 @@ describe("github issues > #1584 Cannot read property 'createValueMap' of undefin
     after(() => closeTestingConnections(connections));
 
     it("should save entities properly", () => Promise.all(connections.map(async connection => {
-        await connection.manager.save(connection.manager.create(User, {
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, connection.manager.create(qr, User, {
             name: "Timber Saw"
         }));
+        await qr.release();
     })));
 
 });

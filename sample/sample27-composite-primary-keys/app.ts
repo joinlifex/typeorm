@@ -17,6 +17,7 @@ const options: ConnectionOptions = {
 createConnection(options).then(async connection => {
 
     let postRepository = connection.getRepository(Post);
+    const qr = connection.createQueryRunner();
 
     const post = new Post();
     post.id = 1;
@@ -24,11 +25,11 @@ createConnection(options).then(async connection => {
     post.text = "this is test post!";
 
     console.log("saving the post: ");
-    await postRepository.save(post);
+    await postRepository.save(qr, post);
     console.log("Post has been saved: ", post);
 
     console.log("now loading the post: ");
-    const loadedPost = await postRepository.findOne({ id: 1, type: "person" });
+    const loadedPost = await postRepository.findOne(qr, { id: 1, type: "person" });
     console.log("loaded post: ", loadedPost);
 
 }, error => console.log("Error: ", error));

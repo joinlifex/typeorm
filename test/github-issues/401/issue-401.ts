@@ -16,21 +16,22 @@ describe("github issues > #401 special keywords should be escaped in join querie
 
     it("should escape 'group' keyword properly", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const group = new Group();
         group.name = "about players";
-        await connection.manager.save(group);
+        await connection.manager.save(qr, group);
 
         const player = new Player();
         player.email = "player@gmail.com";
         player.group = group;
-        await connection.manager.save(player);
+        await connection.manager.save(qr, player);
 
         const loadedPlayer = await connection
             .getRepository(Player)
             .createQueryBuilder("player")
             .leftJoinAndSelect("player.group", "group")
             .where("player.email = :email", { email: "player@gmail.com" })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPlayer).to.be.eql({
             email: "player@gmail.com",
@@ -39,6 +40,7 @@ describe("github issues > #401 special keywords should be escaped in join querie
                 name: "about players"
             }
         });
+        await qr.release();
     })));
 
 });

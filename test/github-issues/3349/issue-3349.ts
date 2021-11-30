@@ -15,12 +15,13 @@ describe("github issues > #3349 Multiple where conditions with parameters", () =
     after(() => closeTestingConnections(connections));
 
     it("should work with query builder", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
 
         const repository = connection.getRepository(Category);
         const category = new Category();
         category.id = 1;
         category.myField = 2;
-        await repository.save(category);
+        await repository.save(qr, category);
 
         const result = await connection.createQueryBuilder()
             .select("category")
@@ -28,26 +29,29 @@ describe("github issues > #3349 Multiple where conditions with parameters", () =
             .where("category.id = :ida", { ida: 1 })
             .orWhereInIds([2])
             .orWhereInIds([3])
-            .execute();
+            .execute(qr);
 
         expect(result).lengthOf(1);
+        await qr.release();
     })));
 
     it("should work with findOne", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const repository = connection.getRepository(Category);
         const category = new Category();
         category.id = 1;
         category.myField = 2;
-        await repository.save(category);
+        await repository.save(qr, category);
 
-        const result = await repository.findOne(1, {
+        const result = await repository.findOne(qr, 1, {
             where: {
                 myField: In([2, 3]),
             },
         });
 
         expect(result).to.not.be.null;
+        await qr.release();
     })));
 
 });

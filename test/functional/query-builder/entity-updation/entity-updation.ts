@@ -15,41 +15,48 @@ describe("query builder > entity updation", () => {
 
         const post = new Post();
         post.title = "about entity updation in query builder";
-
+        const qr = connection.createQueryRunner();
+            
         await connection.createQueryBuilder()
             .insert()
             .into(Post)
             .values(post)
             .updateEntity(true)
-            .execute();
+            .execute(qr);
 
         post.title.should.be.equal("about entity updation in query builder");
         post.order.should.be.equal(100);
         post.createDate.should.be.instanceof(Date);
         post.updateDate.should.be.instanceof(Date);
+        
+        await qr.release();
     })));
 
     it("should not update entity model after insertion if updateEntity is set to false", () => Promise.all(connections.map(async connection => {
 
         const post = new Post();
         post.title = "about entity updation in query builder";
-
+        const qr = connection.createQueryRunner();
+            
         await connection.createQueryBuilder()
             .insert()
             .into(Post)
             .values(post)
             .updateEntity(false)
-            .execute();
+            .execute(qr);
 
         expect(post.id).to.be.undefined;
         post.title.should.be.equal("about entity updation in query builder");
         expect(post.order).to.be.undefined;
         expect(post.createDate).to.be.undefined;
         expect(post.updateDate).to.be.undefined;
+        
+        await qr.release();
     })));
 
     it("should not override already set properties", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+            
         const post = new Post();
         post.title = "about entity updation in query builder";
         post.order = 101;
@@ -59,34 +66,40 @@ describe("query builder > entity updation", () => {
             .into(Post)
             .values(post)
             .updateEntity(true)
-            .execute();
+            .execute(qr);
 
         post.title.should.be.equal("about entity updation in query builder");
         post.order.should.be.equal(101);
         post.createDate.should.be.instanceof(Date);
         post.updateDate.should.be.instanceof(Date);
+        
+        await qr.release();
     })));
 
     it("should update entity model after save", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+            
         const post = new Post();
         post.title = "about entity updation in query builder";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
         post.version.should.be.equal(1);
 
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
         post.version.should.be.equal(1);
 
         post.title = "changed title";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
         post.version.should.be.equal(2);
+        
+        await qr.release();
     })));
 
     it("should update special entity properties after entity updation if updateEntity is set to true", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+            
         const post = new Post();
         post.title = "about entity updation in query builder";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
         post.version.should.be.equal(1);
 
         await connection.createQueryBuilder()
@@ -94,16 +107,19 @@ describe("query builder > entity updation", () => {
             .set({ title: "again changed title" })
             .whereEntity(post)
             .updateEntity(true)
-            .execute();
+            .execute(qr);
 
         post.version.should.be.equal(2);
+        
+        await qr.release();
     })));
 
     it("should not update special entity properties after entity updation if updateEntity is set to false", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+            
         const post = new Post();
         post.title = "about entity updation in query builder";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
         post.version.should.be.equal(1);
 
         await connection.createQueryBuilder()
@@ -111,9 +127,11 @@ describe("query builder > entity updation", () => {
             .set({ title: "again changed title" })
             .whereEntity(post)
             .updateEntity(false)
-            .execute();
+            .execute(qr);
 
         post.version.should.be.equal(1);
+        
+        await qr.release();
     })));
 
 });

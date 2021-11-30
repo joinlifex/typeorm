@@ -15,6 +15,7 @@ describe("github issues > #1551 complex example of cascades + multiple primary k
 
     it("throws an error because there is no object id defined", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user1 = new User({
             username: "ethan",
             password: "$2a$08$NO9tkFLCoSqX1c5wk3s7z.JfxaVMKA.m7zUDdDwEquo4rvzimQeJm",
@@ -22,7 +23,7 @@ describe("github issues > #1551 complex example of cascades + multiple primary k
             picture: "https://randomuser.me/api/portraits/thumb/men/1.jpg",
             phone: "+391234567890",
         });
-        await connection.manager.save(user1);
+        await connection.manager.save(qr, user1);
 
         const user5 = new User({
             username: "ray",
@@ -31,9 +32,9 @@ describe("github issues > #1551 complex example of cascades + multiple primary k
             picture: "https://randomuser.me/api/portraits/thumb/men/3.jpg",
             phone: "+391234567894",
         });
-        await connection.manager.save(user5);
+        await connection.manager.save(qr, user5);
 
-        await connection.manager.save(new Chat({
+        await connection.manager.save(qr, new Chat({
             allTimeMembers: [user1, user5],
             listingMembers: [user1, user5],
             messages: [
@@ -62,17 +63,19 @@ describe("github issues > #1551 complex example of cascades + multiple primary k
             ],
         }));
 
-        const messages = await connection.manager.find(Message);
+        const messages = await connection.manager.find(qr, Message);
         messages[0].recipients.length.should.be.equal(1);
         messages[1].recipients.length.should.be.equal(1);
 
-        const recipients = await connection.manager.find(Recipient);
+        const recipients = await connection.manager.find(qr, Recipient);
         recipients.length.should.be.equal(2);
+        await qr.release();
     })));
 
     // cascade remove are not supported
     it.skip("throws a \"update or delete on table 'message' violates foreign key constraint on table 'recipient'\" error on delete", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user1 = new User({
             username: "ethan",
             password: "$2a$08$NO9tkFLCoSqX1c5wk3s7z.JfxaVMKA.m7zUDdDwEquo4rvzimQeJm",
@@ -80,7 +83,7 @@ describe("github issues > #1551 complex example of cascades + multiple primary k
             picture: "https://randomuser.me/api/portraits/thumb/men/1.jpg",
             phone: "+391234567890",
         });
-        await connection.manager.save(user1);
+        await connection.manager.save(qr, user1);
 
         const user5 = new User({
             username: "ray",
@@ -89,9 +92,9 @@ describe("github issues > #1551 complex example of cascades + multiple primary k
             picture: "https://randomuser.me/api/portraits/thumb/men/3.jpg",
             phone: "+391234567894",
         });
-        await connection.manager.save(user5);
+        await connection.manager.save(qr, user5);
 
-        await connection.manager.save(new Chat({
+        await connection.manager.save(qr, new Chat({
             allTimeMembers: [user1, user5],
             listingMembers: [user1, user5],
             messages: [
@@ -122,24 +125,26 @@ describe("github issues > #1551 complex example of cascades + multiple primary k
 
         const message = await connection
             .createQueryBuilder(Message, "message")
-            .getOne();
+            .getOne(qr);
 
         if (message) {
-            await connection.getRepository(Message).remove(message);
+            await connection.getRepository(Message).remove(qr, message);
         } else {
             throw new Error("Cannot get message");
         }
 
-        const messages = await connection.manager.find(Message);
+        const messages = await connection.manager.find(qr, Message);
         messages.length.should.be.equal(0);
 
-        const recipients = await connection.manager.find(Recipient);
+        const recipients = await connection.manager.find(qr, Recipient);
         recipients.length.should.be.equal(0);
+        await qr.release();
     })));
 
     // cascade remove are not supported
     it.skip("throws a \"null value in column 'userId' violates not-null constraint\" error on delete", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user1 = new User({
             username: "ethan",
             password: "$2a$08$NO9tkFLCoSqX1c5wk3s7z.JfxaVMKA.m7zUDdDwEquo4rvzimQeJm",
@@ -147,7 +152,7 @@ describe("github issues > #1551 complex example of cascades + multiple primary k
             picture: "https://randomuser.me/api/portraits/thumb/men/1.jpg",
             phone: "+391234567890",
         });
-        await connection.manager.save(user1);
+        await connection.manager.save(qr, user1);
 
         const user5 = new User({
             username: "ray",
@@ -156,9 +161,9 @@ describe("github issues > #1551 complex example of cascades + multiple primary k
             picture: "https://randomuser.me/api/portraits/thumb/men/3.jpg",
             phone: "+391234567894",
         });
-        await connection.manager.save(user5);
+        await connection.manager.save(qr, user5);
 
-        await connection.manager.save(new Chat({
+        await connection.manager.save(qr, new Chat({
             allTimeMembers: [user1, user5],
             listingMembers: [user1, user5],
             messages: [
@@ -187,24 +192,26 @@ describe("github issues > #1551 complex example of cascades + multiple primary k
             ],
         }));
 
-        const message = await connection.manager.findOne(Message);
+        const message = await connection.manager.findOne(qr, Message);
 
         if (message) {
-            await connection.getRepository(Message).remove(message);
+            await connection.getRepository(Message).remove(qr, message);
         } else {
             throw new Error("Cannot get message");
         }
 
-        const messages = await connection.manager.find(Message);
+        const messages = await connection.manager.find(qr, Message);
         messages.length.should.be.equal(0);
 
-        const recipients = await connection.manager.find(Recipient);
+        const recipients = await connection.manager.find(qr, Recipient);
         recipients.length.should.be.equal(0);
+        await qr.release();
     })));
 
     // cascade remove are not supported
     it.skip("throws a \"Subject Recipient must have an identifier to perform operation\" internal error on delete", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user1 = new User({
             username: "ethan",
             password: "$2a$08$NO9tkFLCoSqX1c5wk3s7z.JfxaVMKA.m7zUDdDwEquo4rvzimQeJm",
@@ -212,7 +219,7 @@ describe("github issues > #1551 complex example of cascades + multiple primary k
             picture: "https://randomuser.me/api/portraits/thumb/men/1.jpg",
             phone: "+391234567890",
         });
-        await connection.manager.save(user1);
+        await connection.manager.save(qr, user1);
 
         const user5 = new User({
             username: "ray",
@@ -221,9 +228,9 @@ describe("github issues > #1551 complex example of cascades + multiple primary k
             picture: "https://randomuser.me/api/portraits/thumb/men/3.jpg",
             phone: "+391234567894",
         });
-        await connection.manager.save(user5);
+        await connection.manager.save(qr, user5);
 
-        await connection.manager.save(new Chat({
+        await connection.manager.save(qr, new Chat({
             allTimeMembers: [user1, user5],
             listingMembers: [user1, user5],
             messages: [
@@ -252,14 +259,15 @@ describe("github issues > #1551 complex example of cascades + multiple primary k
             ],
         }));
 
-        let recipients = await connection.manager.find(Recipient);
+        let recipients = await connection.manager.find(qr, Recipient);
 
         for (let recipient of recipients) {
-            await connection.getRepository(Recipient).remove(recipient);
+            await connection.getRepository(Recipient).remove(qr, recipient);
         }
 
-        recipients = await connection.manager.find(Recipient);
+        recipients = await connection.manager.find(qr, Recipient);
         recipients.length.should.be.equal(0);
+        await qr.release();
     })));
 
 });

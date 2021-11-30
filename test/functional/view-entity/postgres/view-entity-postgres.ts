@@ -31,18 +31,18 @@ describe("view entity > postgres", () => {
 
         const category1 = new Category();
         category1.name = "Cars";
-        await queryRunner.manager.save(category1);
+        await queryRunner.manager.save(queryRunner, category1);
 
         const post1 = new Post();
         post1.name = "About BMW";
         post1.categoryId = category1.id;
-        await queryRunner.manager.save(post1);
+        await queryRunner.manager.save(queryRunner, post1);
 
-        const emptyResult = await queryRunner.manager.find(PostByCategory);
+        const emptyResult = await queryRunner.manager.find(queryRunner, PostByCategory);
         emptyResult.length.should.be.equal(0);
 
         await queryRunner.query("REFRESH MATERIALIZED VIEW post_by_category");
-        const resultWithData = await queryRunner.manager.find(PostByCategory);
+        const resultWithData = await queryRunner.manager.find(queryRunner, PostByCategory);
         resultWithData.length.should.be.equal(1);
 
         expect(resultWithData[0].categoryName).to.eq(category1.name);
@@ -52,26 +52,26 @@ describe("view entity > postgres", () => {
     })));
 
     it("should correctly return data from View", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
         const category1 = new Category();
         category1.name = "Cars";
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "Airplanes";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const post1 = new Post();
         post1.name = "About BMW";
         post1.categoryId = category1.id;
-        await connection.manager.save(post1);
+        await connection.manager.save(qr, post1);
 
         const post2 = new Post();
         post2.name = "About Boeing";
         post2.categoryId = category2.id;
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post2);
 
-        const postCategories = await connection.manager.find(PostCategory);
+        const postCategories = await connection.manager.find(qr, PostCategory);
         postCategories.length.should.be.equal(2);
 
         postCategories[0].id.should.be.equal(1);
@@ -82,5 +82,6 @@ describe("view entity > postgres", () => {
         postCategories[1].postName.should.be.equal("About Boeing");
         postCategories[1].categoryName.should.be.equal("Airplanes");
 
+        await qr.release();
     })));
 });

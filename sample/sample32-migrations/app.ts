@@ -16,7 +16,7 @@ const options: ConnectionOptions = {
 };
 
 createConnection(options).then(async connection => {
-
+    const qr = connection.createQueryRunner();
     // first insert all the data
     let author = new Author();
     author.firstName = "Umed";
@@ -28,7 +28,7 @@ createConnection(options).then(async connection => {
 
     let postRepository = connection.getRepository(Post);
 
-    await postRepository.save(post);
+    await postRepository.save(qr, post);
     console.log("Database schema was created and data has been inserted into the database.");
 
     // close connection now

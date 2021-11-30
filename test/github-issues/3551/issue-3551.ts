@@ -23,10 +23,10 @@ describe("github issues > #3551 array of embedded documents through multiple lev
                     title: "Chapter 1",
                     pages: [
                         {
-                            number: 1
+                            "number": 1
                         },
                         {
-                            number: 2
+                            "number": 2
                         }
                     ]
                 },
@@ -34,19 +34,20 @@ describe("github issues > #3551 array of embedded documents through multiple lev
                     title: "Chapter 2",
                     pages: [
                         {
-                            number: 3
+                            "number": 3
                         },
                         {
-                            number: 4
+                            "number": 4
                         }
                     ]
                 }
             ]
         };
 
-        await connection.mongoManager.getMongoRepository(Book).insert(bookInput);
+        const qr = connection.createQueryRunner();
+        await connection.mongoManager.getMongoRepository(Book).insert(qr, bookInput);
 
-        const books = await connection.mongoManager.getMongoRepository(Book).find();
+        const books = await connection.mongoManager.getMongoRepository(Book).find(qr);
         const book = books[0];
 
         book!.title.should.be.equal(bookInput.title);
@@ -58,5 +59,6 @@ describe("github issues > #3551 array of embedded documents through multiple lev
         book!.chapters[1].pages.should.have.lengthOf(2);
         book!.chapters[1].pages[0].number.should.be.equal(bookInput.chapters[1].pages[0].number);
         book!.chapters[1].pages[1].number.should.be.equal(bookInput.chapters[1].pages[1].number);
+        await qr.release();
     })));
 });

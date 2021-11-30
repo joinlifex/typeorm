@@ -28,16 +28,18 @@ describe("transaction > transaction with load many", () => {
             const pool = driver.master;
             pool.on("acquire", () => acquireCount++);
         }
+        const qr = connection.createQueryRunner();
 
-        await connection.manager.transaction(async entityManager => {
-            await entityManager
+        await connection.manager.transaction(qr, async queryRunner => {
+            await queryRunner.manager
                 .createQueryBuilder()
                 .relation(Post, "categories")
                 .of(1)
-                .loadMany();
+                .loadMany(qr);
 
             expect(acquireCount).to.be.eq(1);
         });
+        await qr.release();
 
     })));
 });

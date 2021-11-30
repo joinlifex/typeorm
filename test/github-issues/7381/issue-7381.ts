@@ -24,4 +24,4 @@ describe("github issues > #7381 Infinite same ALTERs upon startup (mysql, ver 0.
         sqlInMemory.upQueries.length.should.be.equal(0);
         sqlInMemory.downQueries.length.should.be.equal(0);
     })));
-})
+});

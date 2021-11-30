@@ -17,16 +17,17 @@ describe("other issues > entity change in subscribers should affect persistence"
 
     it("if entity was changed, subscriber should be take updated columns", () => Promise.all(connections.map(async function(connection) {
 
+        const queryRunner = connection.createQueryRunner();
         const category1 = new PostCategory();
         category1.name = "category #1";
 
         const post = new Post();
         post.title = "hello world";
         post.category = category1;
-        await connection.manager.save(post);
+        await connection.manager.save(queryRunner, post);
 
         // check if it was inserted correctly
-        const loadedPost = await connection.manager.findOne(Post);
+        const loadedPost = await connection.manager.findOne(queryRunner, Post);
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.active.should.be.equal(false);
 
@@ -36,17 +37,18 @@ describe("other issues > entity change in subscribers should affect persistence"
         loadedPost!.category = category2;
         loadedPost!.active = true;
         loadedPost!.title += "!";
-        await connection.manager.save(loadedPost!);
+        await connection.manager.save(queryRunner, loadedPost!);
 
         // check if subscriber was triggered and entity was really taken changed columns in the subscriber
-        const loadedUpdatedPost = await connection.manager.findOne(Post);
+        const loadedUpdatedPost = await connection.manager.findOne(queryRunner, Post);
 
         expect(loadedUpdatedPost).not.to.be.undefined;
         expect(loadedUpdatedPost!.updatedColumns).to.equals(2);
         expect(loadedUpdatedPost!.updatedRelations).to.equals(1);
 
-        await connection.manager.save(loadedPost!);
+        await connection.manager.save(queryRunner, loadedPost!);
 
+        queryRunner.release();
     })));
 
 });

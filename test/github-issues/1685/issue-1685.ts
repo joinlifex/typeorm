@@ -20,30 +20,32 @@ describe.skip("github issues > #1685 JoinColumn from JoinColum is not considered
 
     it("should not fail when inserting a new UserMonth with good PKs from JoinColumn", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const year = new Year();
         year.yearNo = 2018;
-        await connection.manager.save(year);
+        await connection.manager.save(qr, year);
 
         const month = new Month();
         month.year = year;
         month.monthNo = 2;
         month.yearNo = year.yearNo;
-        await connection.manager.save(month);
+        await connection.manager.save(qr, month);
 
         const user = new User();
         user.username = "bobs";
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         const userMonth = new UserMonth();
         userMonth.user = user;
         userMonth.month = month;
 
         try {
-            await connection.manager.save(userMonth);
+            await connection.manager.save(qr, userMonth);
         } catch (err) {
             throw new Error("userMonth should be added");
         }
 
+        await qr.release();
     })));
 
 });

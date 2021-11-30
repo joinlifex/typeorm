@@ -91,7 +91,7 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
         if (this.isTransactionActive)
             throw new TransactionAlreadyStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionStart');
+        await this.broadcaster.broadcast("BeforeTransactionStart");
 
         return new Promise<void>(async (ok, fail) => {
             this.isTransactionActive = true;
@@ -117,7 +117,7 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
                 this.databaseConnection.begin(transactionCallback);
             }
 
-            await this.broadcaster.broadcast('AfterTransactionStart');
+            await this.broadcaster.broadcast("AfterTransactionStart");
         });
     }
 
@@ -132,7 +132,7 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionCommit');
+        await this.broadcaster.broadcast("BeforeTransactionCommit");
 
         return new Promise<void>((ok, fail) => {
             this.databaseConnection.commit(async (err: any) => {
@@ -140,7 +140,7 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
                 this.isTransactionActive = false;
                 this.databaseConnection = null;
 
-                await this.broadcaster.broadcast('AfterTransactionCommit');
+                await this.broadcaster.broadcast("AfterTransactionCommit");
 
                 ok();
                 this.connection.logger.logQuery("COMMIT");
@@ -159,7 +159,7 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionRollback');
+        await this.broadcaster.broadcast("BeforeTransactionRollback");
 
         return new Promise<void>( (ok, fail) => {
             this.databaseConnection.rollback(async (err: any) => {
@@ -167,7 +167,7 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
                 this.isTransactionActive = false;
                 this.databaseConnection = null;
 
-                await this.broadcaster.broadcast('AfterTransactionRollback');
+                await this.broadcaster.broadcast("AfterTransactionRollback");
 
                 ok();
                 this.connection.logger.logQuery("ROLLBACK");
@@ -216,7 +216,7 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
                     }
 
                     if (err) {
-                        fail(new QueryFailedError(query, parameters, err))
+                        fail(new QueryFailedError(query, parameters, err));
                     }
 
                     ok(raw);
@@ -225,11 +225,11 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
 
             const result = new QueryResult();
 
-            if (raw?.hasOwnProperty('recordset')) {
+            if (raw?.hasOwnProperty("recordset")) {
                 result.records = raw.recordset;
             }
 
-            if (raw?.hasOwnProperty('rowsAffected')) {
+            if (raw?.hasOwnProperty("rowsAffected")) {
                 result.affected = raw.rowsAffected[0];
             }
 
@@ -1427,12 +1427,12 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
                         return c;
                     },
                     {}
-                )
+                );
 
                 const foreignKeysSql = Object.entries(tablesByCatalog).map(([ TABLE_CATALOG, tables ]) => {
                     const conditions = tables.map(({ TABLE_SCHEMA, TABLE_NAME }) => {
-                        return `("fk"."referenced_object_id" = OBJECT_ID('"${TABLE_CATALOG}"."${TABLE_SCHEMA}"."${TABLE_NAME}"'))`
-                    }).join(" OR ")
+                        return `("fk"."referenced_object_id" = OBJECT_ID('"${TABLE_CATALOG}"."${TABLE_SCHEMA}"."${TABLE_NAME}"'))`;
+                    }).join(" OR ");
 
                     return `
                         SELECT DISTINCT '${TABLE_CATALOG}' AS                                              "TABLE_CATALOG",
@@ -1581,13 +1581,13 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
                 .map(tableName => this.driver.parseTableName(tableName))
                 .reduce((c, { database, ...other}) => {
                     database = database || currentDatabase;
-                    c[database] = c[database] || []
+                    c[database] = c[database] || [];
                     c[database].push({
                         schema: other.schema || currentSchema,
                         tableName: other.tableName
                     });
                     return c;
-                }, {} as { [key: string]: { schema: string, tableName: string }[] })
+                }, {} as { [key: string]: { schema: string, tableName: string }[] });
 
             const tablesSql = Object.entries(tableNamesByCatalog).map(([ database, tables ]) => {
                 const tablesCondition = tables
@@ -1619,7 +1619,7 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
             c[TABLE_CATALOG] = c[TABLE_CATALOG] || [];
             c[TABLE_CATALOG].push(other);
             return c;
-        }, {} as { [key: string ]: { TABLE_NAME: string, TABLE_SCHEMA: string }[] })
+        }, {} as { [key: string ]: { TABLE_NAME: string, TABLE_SCHEMA: string }[] });
 
         const columnsSql = Object.entries(dbTablesByCatalog).map(([ TABLE_CATALOG, tables ]) => {
             const condition = tables.map(
@@ -1632,7 +1632,7 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
         const constraintsSql = Object.entries(dbTablesByCatalog).map(([ TABLE_CATALOG, tables ]) => {
             const conditions = tables.map(({ TABLE_NAME, TABLE_SCHEMA }) =>
                 `("columnUsages"."TABLE_SCHEMA" = '${TABLE_SCHEMA}' AND "columnUsages"."TABLE_NAME" = '${TABLE_NAME}')`
-            ).join(" OR ")
+            ).join(" OR ");
 
             return `SELECT "columnUsages".*, "tableConstraints"."CONSTRAINT_TYPE", "chk"."definition" ` +
                 `FROM "${TABLE_CATALOG}"."INFORMATION_SCHEMA"."CONSTRAINT_COLUMN_USAGE" "columnUsages" ` +
@@ -1679,7 +1679,7 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
         const dbCollationsSql = `SELECT "NAME", "COLLATION_NAME" FROM "sys"."databases"`;
 
         const indicesSql = Object.entries(dbTablesByCatalog).map(([ TABLE_CATALOG, tables ]) => {
-            const conditions = tables.map(({ TABLE_NAME, TABLE_SCHEMA }) => `("s"."name" = '${TABLE_SCHEMA}' AND "t"."name" = '${TABLE_NAME}')`).join(" OR ")
+            const conditions = tables.map(({ TABLE_NAME, TABLE_SCHEMA }) => `("s"."name" = '${TABLE_SCHEMA}' AND "t"."name" = '${TABLE_NAME}')`).join(" OR ");
 
             return `SELECT '${TABLE_CATALOG}' AS "TABLE_CATALOG", "s"."name" AS "TABLE_SCHEMA", "t"."name" AS "TABLE_NAME", ` +
                 `"ind"."name" AS "INDEX_NAME", "col"."name" AS "COLUMN_NAME", "ind"."is_unique" AS "IS_UNIQUE", "ind"."filter_definition" as "CONDITION" ` +
@@ -1716,7 +1716,7 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
             const getSchemaFromKey = (dbObject: any, key: string) => {
                 return dbObject[key] === currentSchema && (!this.driver.options.schema || this.driver.options.schema === currentSchema)
                     ? undefined
-                    : dbObject[key]
+                    : dbObject[key];
             };
 
             // We do not need to join schema and database names, when db or schema is by default.
@@ -1751,8 +1751,8 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
                             && dbConstraint["CONSTRAINT_NAME"] === uniqueConstraint["CONSTRAINT_NAME"]
                             && dbConstraint["TABLE_SCHEMA"] === dbColumn["TABLE_SCHEMA"]
                             && dbConstraint["TABLE_CATALOG"] === dbColumn["TABLE_CATALOG"]
-                            && dbConstraint["COLUMN_NAME"] !== dbColumn["COLUMN_NAME"])
-                    })
+                            && dbConstraint["COLUMN_NAME"] !== dbColumn["COLUMN_NAME"]);
+                    });
 
                     const isPrimary = !!columnConstraints.find(constraint =>  constraint["CONSTRAINT_TYPE"] === "PRIMARY KEY");
                     const isGenerated = !!dbIdentityColumns.find(column => (
@@ -2197,7 +2197,7 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
 
         if (column.enum) {
             const expression = column.name + " IN (" + column.enum.map(val => "'" + val + "'").join(",") + ")";
-            const checkName = this.connection.namingStrategy.checkConstraintName(table, expression, true)
+            const checkName = this.connection.namingStrategy.checkConstraintName(table, expression, true);
             c += ` CONSTRAINT ${checkName} CHECK(${expression})`;
         }
 
@@ -2225,7 +2225,7 @@ export class SqlServerQueryRunner extends BaseQueryRunner implements QueryRunner
     }
 
     protected isEnumCheckConstraint(name: string): boolean {
-        return name.indexOf("CHK_") !== -1 && name.indexOf("_ENUM") !== -1
+        return name.indexOf("CHK_") !== -1 && name.indexOf("_ENUM") !== -1;
     }
 
     /**

@@ -17,8 +17,8 @@ async function createYamlFiles() {
 
 describe("ConnectionOptionsReader", () => {
   beforeEach(() => {
-    delete process.env['TYPEORM_CONNECTION'];
-    delete process.env['TYPEORM_DATABASE'];
+    delete process.env["TYPEORM_CONNECTION"];
+    delete process.env["TYPEORM_DATABASE"];
   });
 
   after(() => {
@@ -94,5 +94,5 @@ describe("ConnectionOptionsReader", () => {
     const connectionOptionsReader = new ConnectionOptionsReader({ root: path.join(__dirname, "configs/yaml"), configName: "test-yaml" });
     const fileOptions: ConnectionOptions = await connectionOptionsReader.get("file");
     expect(fileOptions.database).to.have.string("/test-yaml");
-  })
+  });
 });

@@ -16,13 +16,17 @@ describe("github issues > #5734 insert([]) should not crash", () => {
     after(() => closeTestingConnections(connections));
 
     it("should not crash on insert([])", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const repository = connection.getRepository(Post);
-        await repository.insert([]);
+        await repository.insert(qr, []);
+        await qr.release();
     })));
 
     it("should still work with a nonempty array", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const repository = connection.getRepository(Post);
-        await repository.insert([new Post(1)]);
-        await repository.findOneOrFail({where: {id: 1}});
+        await repository.insert(qr, [new Post(1)]);
+        await repository.findOneOrFail(qr, {where: {id: 1}});
+        await qr.release();
     })));
 });

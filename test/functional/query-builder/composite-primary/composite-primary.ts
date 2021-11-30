@@ -16,22 +16,25 @@ describe("query builder > composite primary", () => {
     after(() => closeTestingConnections(connections));
 
     it("should find entity by another entity with a composite key", () => Promise.all(connections.map(async connection => {
-        const foo = new Foo();
-        foo.id1 = 1
+        const qr = connection.createQueryRunner();
+            const foo = new Foo();
+        foo.id1 = 1;
         foo.id2 = 2;
-        await connection.manager.save(foo)
+        await connection.manager.save(qr, foo);
 
-        const bar = new Bar()
-        bar.id = 1
-        bar.foo = foo
-        await connection.manager.save(bar)
+        const bar = new Bar();
+        bar.id = 1;
+        bar.foo = foo;
+        await connection.manager.save(qr, bar);
 
-        const loadedBar = await connection.manager.getRepository(Bar).findOne({
+        const loadedBar = await connection.manager.getRepository(Bar).findOne(qr, {
             where: {
                 foo
             }
         });
 
         expect(loadedBar!.id).to.be.equal(bar.id);
+        
+        await qr.release();
     })));
 });

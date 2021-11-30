@@ -21,24 +21,25 @@ describe("table-inheritance > single-table > non-virtual-discriminator-column", 
         // -------------------------------------------------------------------------
         // Create
         // -------------------------------------------------------------------------
+        const qr = connection.createQueryRunner();
 
         const student = new Student();
         student.name = "Alice";
         student.faculty = "Economics";
-        await connection.getRepository(Student).save(student);
+        await connection.getRepository(Student).save(qr, student);
 
         const employee = new Employee();
         employee.name = "Roger";
         employee.salary = 1000;
-        await connection.getRepository(Employee).save(employee);
+        await connection.getRepository(Employee).save(qr, employee);
 
         if (!(connection.driver instanceof OracleDriver)) {
             // In Oracle, empty string is a `null` so this isn't exactly possible there.
 
             const other = new Other();
             other.name = "Empty";
-            other.mood = "Happy"
-            await connection.getRepository(Other).save(other);
+            other.mood = "Happy";
+            await connection.getRepository(Other).save(qr, other);
         }
 
         // -------------------------------------------------------------------------
@@ -47,7 +48,7 @@ describe("table-inheritance > single-table > non-virtual-discriminator-column", 
 
         let persons = await connection.manager
             .createQueryBuilder(Person, "person")
-            .getMany();
+            .getMany(qr);
 
         persons[0].id.should.be.equal(1);
         persons[0].type.should.be.equal("student-type");
@@ -67,6 +68,7 @@ describe("table-inheritance > single-table > non-virtual-discriminator-column", 
             persons[2].name.should.be.equal("Empty");
             (persons[2] as Other).mood.should.be.equal("Happy");
         }
+        await qr.release();
     })));
 
 });

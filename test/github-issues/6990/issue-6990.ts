@@ -24,16 +24,17 @@ describe("github issues > #6990 synchronize drops array columns in postgres if a
     it("should not drop varchar array column on synchronize using postgres driver", () =>
         Promise.all(
             connections.map(async function (connection) {
+                const qr = connection.createQueryRunner();
                 const foo = new Foo();
                 foo.id = 1;
                 foo.varchararray = ["able", "baker", "charlie"];
-                await connection.manager.save(foo);
+                await connection.manager.save(qr, foo);
 
                 await connection.synchronize();
 
                 const loadedFoo:
                     | Foo
-                    | undefined = await connection.manager.findOne(Foo, 1);
+                    | undefined = await connection.manager.findOne(qr, Foo, 1);
 
                 expect(loadedFoo).to.be.not.empty;
                 expect(loadedFoo!.varchararray).to.deep.eq([
@@ -41,6 +42,7 @@ describe("github issues > #6990 synchronize drops array columns in postgres if a
                     "baker",
                     "charlie",
                 ]);
+                await qr.release();
             })
         ));
 });

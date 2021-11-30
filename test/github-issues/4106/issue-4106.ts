@@ -20,25 +20,28 @@ describe("github issues > #4106 Specify enum type name in postgres", () => {
     after(() => closeTestingConnections(connections));
 
     async function prepareData(connection: Connection) {
+        const qr = connection.createQueryRunner();
         const human = new Human();
         human.id = 1;
         human.name = "Jane Doe";
         human.gender = Gender.female;
-        await connection.manager.save(human);
+        await connection.manager.save(qr, human);
 
         const animal = new Animal();
         animal.id = 1;
         animal.name = "Miko";
         animal.specie = "Turtle";
         animal.gender = Gender.male;
-        await connection.manager.save(animal);
+        await connection.manager.save(qr, animal);
+        await qr.release();
     }
 
     it("should create an enum with the name specified in column options -> enumName", () =>
         Promise.all(
             connections.map(async connection => {
+                const qr = connection.createQueryRunner();
                 const em = new EntityManager(connection);
-                const types = await em.query(`SELECT typowner, n.nspname as "schema",
+                const types = await em.query(qr, `SELECT typowner, n.nspname as "schema",
                     pg_catalog.format_type(t.oid, NULL) AS "name",
                     pg_catalog.obj_description(t.oid, 'pg_type') as "description"
                     FROM pg_catalog.pg_type t
@@ -52,6 +55,7 @@ describe("github issues > #4106 Specify enum type name in postgres", () => {
                 // Enum name must be exactly the same as stated
                 // Quoted here since the name contains mixed case
                 expect(types.some((type: any) => type.name === `"genderEnum"`)).to.be.true;
+                await qr.release();
             })
         ));
 
@@ -60,12 +64,13 @@ describe("github issues > #4106 Specify enum type name in postgres", () => {
             connections.map(async connection => {
                 await prepareData(connection);
 
-                const em = new EntityManager(connection);
+                const qr = connection.createQueryRunner();
 
-                const humanTable = await em.query(`SELECT column_name as "columnName", data_type as "dataType", udt_name as "udtName" FROM information_schema.columns
+                const em = new EntityManager(connection);
+                const humanTable = await em.query(qr, `SELECT column_name as "columnName", data_type as "dataType", udt_name as "udtName" FROM information_schema.columns
                     WHERE table_schema = 'public' AND table_name = 'human'
                     ORDER BY ordinal_position;`);
-                const animalTable = await em.query(`SELECT column_name as "columnName", data_type as "dataType", udt_name as "udtName" FROM information_schema.columns
+                const animalTable = await em.query(qr, `SELECT column_name as "columnName", data_type as "dataType", udt_name as "udtName" FROM information_schema.columns
                     WHERE table_schema = 'public' AND table_name = 'animal'
                     ORDER BY ordinal_position;`);
 
@@ -78,11 +83,12 @@ describe("github issues > #4106 Specify enum type name in postgres", () => {
                 const HumanRepository = connection.manager.getRepository(Human);
                 const AnimalRepository = connection.manager.getRepository(Animal);
 
-                const human = await HumanRepository.find();
-                const animal = await AnimalRepository.find();
+                const human = await HumanRepository.find(qr);
+                const animal = await AnimalRepository.find(qr);
 
                 expect(human[0].gender).to.equal("female");
                 expect(animal[0].gender).to.equal("male");
+                await qr.release();
             })
         ));
 

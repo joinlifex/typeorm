@@ -24,8 +24,9 @@ describe("github issues > #1680 Delete & Update applies to all entities in table
         userB.name = "User B";
         const userC = new User();
         userC.name = "User C";
+        const qr = connection.createQueryRunner();
 
-        await connection.manager.save([userA, userB, userC]);
+        await connection.manager.save(qr, [userA, userB, userC]);
 
         const problematicCriterias: any[] = [null, undefined, [], ""];
 
@@ -33,7 +34,7 @@ describe("github issues > #1680 Delete & Update applies to all entities in table
         for (const criteria of problematicCriterias) {
             let error: any = null;
 
-            await connection.manager.delete(User, criteria).catch(err => error = err);
+            await connection.manager.delete(qr, User, criteria).catch(err => error = err);
 
             expect(error).to.be.instanceof(Error);
         }
@@ -42,7 +43,7 @@ describe("github issues > #1680 Delete & Update applies to all entities in table
         for (const criteria of problematicCriterias) {
             let error: any = null;
 
-            await connection.manager.update(User, criteria, {
+            await connection.manager.update(qr, User, criteria, {
                 name: "Override Name"
             }).catch(err => error = err);
 
@@ -50,13 +51,13 @@ describe("github issues > #1680 Delete & Update applies to all entities in table
         }
         
         // Ensure normal deleting works
-        await connection.manager.delete(User, 3);
+        await connection.manager.delete(qr, User, 3);
         
         // Ensure normal updating works
-        await connection.manager.update(User, 2, { name: "User B Updated" } );
+        await connection.manager.update(qr, User, 2, { name: "User B Updated" } );
         
         // All users should still exist except for User C
-        await connection.manager.find(User).should.eventually.eql([{
+        await connection.manager.find(qr, User).should.eventually.eql([{
             id: 1,
             name: "User A"
         }, {
@@ -64,6 +65,7 @@ describe("github issues > #1680 Delete & Update applies to all entities in table
             name: "User B Updated"
         }]);
 
+        await qr.release();
     })));
 
 });

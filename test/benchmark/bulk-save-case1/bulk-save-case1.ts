@@ -12,6 +12,7 @@ describe("benchmark > bulk-save > case1", () => {
 
     it("testing bulk save of 10.000 objects", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const posts: Post[] = [];
 
         for (let i = 1; i <= 10000; i++) {
@@ -24,8 +25,9 @@ describe("benchmark > bulk-save > case1", () => {
             posts.push(post);
         }
 
-        await connection.manager.save(posts);
+        await connection.manager.save(qr, posts);
         // await connection.manager.insert(Post, posts);
+        await qr.release();
 
     })));
 

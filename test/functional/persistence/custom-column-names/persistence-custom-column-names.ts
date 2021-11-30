@@ -61,30 +61,46 @@ describe("persistence > custom-column-names", function() {
         before(reloadDatabase);
 
         // save a new category
-        before(function () {
-            newCategory = categoryRepository.create();
+        before(async function () {
+            const qr = connection.createQueryRunner();
+            newCategory = categoryRepository.create(qr);
             newCategory.name = "Animals";
-            return categoryRepository.save(newCategory);
+            const res = categoryRepository.save(qr, newCategory);
+            
+            await qr.release();
+            return res;
         });
 
         // save a new post
-        before(function() {
-            newPost = postRepository.create();
+        before(async function() {
+            const qr = connection.createQueryRunner();
+            newPost = postRepository.create(qr);
             newPost.title = "All about animals";
-            return postRepository.save(newPost);
+            const res = postRepository.save(qr, newPost);
+            
+            await qr.release();
+            return res;
         });
 
         // attach category to post and save it
-        before(function() {
+        before(async function() {
             newPost.category = newCategory;
-            return postRepository.save(newPost);
+            const qr = connection.createQueryRunner();
+            const res = postRepository.save(qr, newPost);
+            
+            await qr.release();
+            return res;
         });
 
         // load a post
-        before(function() {
-            return postRepository
-                .findOne(1, { join: { alias: "post", leftJoinAndSelect: { category: "post.category" } }})
+        before(async function() {
+            const qr = connection.createQueryRunner();
+            const res = postRepository
+                .findOne(qr, 1, { join: { alias: "post", leftJoinAndSelect: { category: "post.category" } }})
                 .then(post => loadedPost = post!);
+            
+            await qr.release();
+            return res;
         });
 
         it("should contain attached category", function () {
@@ -103,25 +119,37 @@ describe("persistence > custom-column-names", function() {
         before(reloadDatabase);
 
         // save a new category
-        before(function () {
-            newCategory = categoryRepository.create();
+        before(async function () {
+            const qr = connection.createQueryRunner();
+            newCategory = categoryRepository.create(qr);
             newCategory.name = "Animals";
-            return categoryRepository.save(newCategory);
+            const res = categoryRepository.save(qr, newCategory);
+            
+            await qr.release();
+            return res;
         });
 
         // save a new post and attach category
-        before(function() {
-            newPost = postRepository.create();
+        before(async function() {
+            const qr = connection.createQueryRunner();
+            newPost = postRepository.create(qr);
             newPost.title = "All about animals";
             newPost.category = newCategory;
-            return postRepository.save(newPost);
+            const res = postRepository.save(qr, newPost);
+            
+            await qr.release();
+            return res;
         });
 
         // load a post
-        before(function() {
-            return postRepository
-                .findOne(1, { join: { alias: "post", leftJoinAndSelect: { category: "post.category" } } })
+        before(async function() {
+            const qr = connection.createQueryRunner();
+            const res = postRepository
+                .findOne(qr, 1, { join: { alias: "post", leftJoinAndSelect: { category: "post.category" } } })
                 .then(post => loadedPost = post!);
+            
+            await qr.release();
+            return res;
         });
 
         it("should contain attached category", function () {
@@ -140,20 +168,28 @@ describe("persistence > custom-column-names", function() {
         before(reloadDatabase);
 
         // save a new category, post and attach category to post
-        before(function () {
-            newCategory = categoryRepository.create();
+        before(async function () {
+            const qr = connection.createQueryRunner();
+            newCategory = categoryRepository.create(qr);
             newCategory.name = "Animals";
-            newPost = postRepository.create();
+            newPost = postRepository.create(qr);
             newPost.title = "All about animals";
             newPost.category = newCategory;
-            return postRepository.save(newPost);
+            const res = postRepository.save(qr, newPost);
+            
+            await qr.release();
+            return res;
         });
 
         // load a post
-        before(function() {
-            return postRepository
-                .findOne(1, { join: { alias: "post", leftJoinAndSelect: { category: "post.category" } }})
+        before(async function() {
+            const qr = connection.createQueryRunner();
+            const res = postRepository
+                .findOne(qr, 1, { join: { alias: "post", leftJoinAndSelect: { category: "post.category" } }})
                 .then(post => loadedPost = post!);
+            
+            await qr.release();
+            return res;
         });
 
         it("should contain attached category", function () {
@@ -172,38 +208,58 @@ describe("persistence > custom-column-names", function() {
         before(reloadDatabase);
 
         // save a new post
-        before(function() {
-            newPost = postRepository.create();
+        before(async function() {
+            const qr = connection.createQueryRunner();
+            newPost = postRepository.create(qr);
             newPost.title = "All about animals";
-            return postRepository.save(newPost);
+            const res = postRepository.save(qr, newPost);
+            
+            await qr.release();
+            return res;
         });
 
         // save a new category
-        before(function () {
-            newCategory = categoryRepository.create();
+        before(async function () {
+            const qr = connection.createQueryRunner();
+            newCategory = categoryRepository.create(qr);
             newCategory.name = "Animals";
-            return categoryRepository.save(newCategory);
+            const res = categoryRepository.save(qr, newCategory);
+            
+            await qr.release();
+            return res;
         });
 
         // save a new metadata
-        before(function() {
-            newMetadata = metadataRepository.create();
+        before(async function() {
+            const qr = connection.createQueryRunner();
+            newMetadata = metadataRepository.create(qr);
             newMetadata.keyword = "animals";
-            return metadataRepository.save(newMetadata);
+            const res = metadataRepository.save(qr, newMetadata);
+            
+            await qr.release();
+            return res;
         });
 
         // attach metadata to category and category to post and save it
-        before(function() {
+        before(async function() {
+            const qr = connection.createQueryRunner();
             newCategory.metadata = newMetadata;
             newPost.category = newCategory;
-            return postRepository.save(newPost);
+            const res = postRepository.save(qr, newPost);
+            
+            await qr.release();
+            return res;
         });
 
         // load a post
-        before(function() {
-            return postRepository
-                .findOne(1, { join: { alias: "post", leftJoinAndSelect: { category: "post.category", metadata: "category.metadata" } } })
+        before(async function() {
+            const qr = connection.createQueryRunner();
+            const res = postRepository
+                .findOne(qr, 1, { join: { alias: "post", leftJoinAndSelect: { category: "post.category", metadata: "category.metadata" } } })
                 .then(post => loadedPost = post!);
+            
+                await qr.release();
+                return res;
         });
 
         it("should contain attached category and metadata in the category", function () {
@@ -224,33 +280,49 @@ describe("persistence > custom-column-names", function() {
         before(reloadDatabase);
 
         // save a new post
-        before(function() {
-            newPost = postRepository.create();
+        before(async function() {
+            const qr = connection.createQueryRunner();
+            newPost = postRepository.create(qr);
             newPost.title = "All about animals";
-            return postRepository.save(newPost);
+            const res = postRepository.save(qr, newPost);
+            
+            await qr.release();
+            return res;
         });
 
         // save a new category and new metadata
-        before(function () {
-            newMetadata = metadataRepository.create();
+        before(async function () {
+            const qr = connection.createQueryRunner();
+            newMetadata = metadataRepository.create(qr);
             newMetadata.keyword = "animals";
-            newCategory = categoryRepository.create();
+            newCategory = categoryRepository.create(qr);
             newCategory.name = "Animals";
             newCategory.metadata = newMetadata;
-            return categoryRepository.save(newCategory);
+            const res = categoryRepository.save(qr, newCategory);
+            
+            await qr.release();
+            return res;
         });
 
         // attach metadata to category and category to post and save it
-        before(function() {
+        before(async function() {
+            const qr = connection.createQueryRunner();
             newPost.category = newCategory;
-            return postRepository.save(newPost);
+            const res = postRepository.save(qr, newPost);
+            
+            await qr.release();
+            return res;
         });
 
         // load a post
-        before(function() {
-            return postRepository
-                .findOne(1, { join: { alias: "post", leftJoinAndSelect: { category: "post.category", metadata: "category.metadata" } } })
+        before(async function() {
+            const qr = connection.createQueryRunner();
+            const res = postRepository
+                .findOne(qr, 1, { join: { alias: "post", leftJoinAndSelect: { category: "post.category", metadata: "category.metadata" } } })
                 .then(post => loadedPost = post!);
+            
+                await qr.release();
+                return res;
         });
 
         it("should contain attached category and metadata in the category", function () {

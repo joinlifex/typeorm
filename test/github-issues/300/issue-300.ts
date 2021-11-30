@@ -17,10 +17,10 @@ describe("github issues > #300 support of embeddeds that are not set", () => {
 
         const race = new Race();
         race.name = "National Race";
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, race);
 
-        await connection.manager.save(race);
-
-        const loadedRace = await connection.manager.findOne(Race, { name: "National Race" });
+        const loadedRace = await connection.manager.findOne(qr, Race, { name: "National Race" });
         expect(loadedRace).to.exist;
         expect(loadedRace!.id).to.exist;
         loadedRace!.name.should.be.equal("National Race");
@@ -29,6 +29,7 @@ describe("github issues > #300 support of embeddeds that are not set", () => {
         expect(loadedRace!.duration.hours).to.be.null;
         expect(loadedRace!.duration.days).to.be.null;
 
+        await qr.release();
     })));
 
 });

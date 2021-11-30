@@ -14,14 +14,16 @@ describe("github issues > #704 Table alias in WHERE clause is not quoted in Post
 
     it("should return user by a given email and proper escape 'user' keyword", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user = new User();
         user.email = "john@example.com";
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
-        const loadedUser = await connection.getRepository(User).findOne({ email: "john@example.com" });
+        const loadedUser = await connection.getRepository(User).findOne(qr, { email: "john@example.com" });
 
         loadedUser!.id.should.be.equal(1);
         loadedUser!.email.should.be.equal("john@example.com");
+        await qr.release();
     })));
 
 });

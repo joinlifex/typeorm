@@ -24,7 +24,8 @@ describe("github issues > #5160 (MSSQL) DML statement cannot have any enabled tr
                 return;
             }
 
-            return connection.query(`
+            const qr = connection.createQueryRunner();
+            const res = connection.query(qr, `
                 CREATE OR ALTER TRIGGER issue5160_post
                 ON post AFTER INSERT, UPDATE AS
                 BEGIN
@@ -33,6 +34,8 @@ describe("github issues > #5160 (MSSQL) DML statement cannot have any enabled tr
                     WHERE id IN (SELECT id FROM inserted);
                 END`
             );
+            await qr.release();
+            return res;
         }));
     });
     after(() => closeTestingConnections(connections));
@@ -41,6 +44,7 @@ describe("github issues > #5160 (MSSQL) DML statement cannot have any enabled tr
         if (!(connection.driver instanceof SqlServerDriver)) {
             return;
         }
+        const qr = connection.createQueryRunner();
 
         const post = new Post();
         post.title = "about entity updation in query builder";
@@ -49,7 +53,7 @@ describe("github issues > #5160 (MSSQL) DML statement cannot have any enabled tr
             .insert()
             .into(Post)
             .values(post)
-            .execute();
+            .execute(qr);
 
         post.id.should.be.a("number");
         post.id.should.be.greaterThan(0);
@@ -62,11 +66,12 @@ describe("github issues > #5160 (MSSQL) DML statement cannot have any enabled tr
         // for additional safety, re-fetch entity and check that the trigger fired and updated the field as expected
         const updatedPost = await connection.createQueryBuilder(Post, "post")
             .where({ id: post.id })
-            .getOne();
+            .getOne(qr);
 
         expect(updatedPost).is.not.undefined;
         updatedPost!.id.should.be.equal(post.id);
         updatedPost!.triggerValue.should.be.equal(1);
+        await qr.release();
     })));
 
     it("should update entity model after save to MSSQL table with trigger", () => Promise.all(connections.map(async connection => {
@@ -74,23 +79,25 @@ describe("github issues > #5160 (MSSQL) DML statement cannot have any enabled tr
             return;
         }
 
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.title = "about entity updation in query builder";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
         post.version.should.be.equal(1);
 
         post.title = "changed title";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
         post.version.should.be.equal(2);
         post.triggerValue.should.be.equal(0, "Returned values from UPDATE...OUTPUT will not reflect data modified by triggers");
 
         // for additional safety, re-fetch entity and check that the trigger fired and updated the field as expected
         const updatedPost = await connection.createQueryBuilder(Post, "post")
             .where({ id: post.id })
-            .getOne();
+            .getOne(qr);
 
         expect(updatedPost).is.not.undefined;
         updatedPost!.id.should.be.equal(post.id);
         updatedPost!.triggerValue.should.be.equal(1);
+        await qr.release();
     })));
 });

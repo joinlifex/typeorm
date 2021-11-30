@@ -24,19 +24,21 @@ describe("github issues > #2703 Column with transformer is not normalized for up
 
     it("should transform values when computing changed columns", () => Promise.all(connections.map(async connection => {
         const repository = connection.getRepository(Dummy);
+        const qr = connection.createQueryRunner();
 
-        const dummy = repository.create({
+        const dummy = repository.create(qr, {
             value: new WrappedString("test"),
         });
-        await repository.save(dummy);
+        await repository.save(qr, dummy);
 
         const logger = connection.logger as MemoryLogger;
         logger.enabled = true;
 
-        await repository.save(dummy);
+        await repository.save(qr, dummy);
 
         const updateQueries = logger.queries.filter(q => q.startsWith("UPDATE"));
 
         expect(updateQueries).to.be.empty;
+        await qr.release();
     })));
 });

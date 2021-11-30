@@ -15,7 +15,8 @@ describe("embedded > prefix functionality", () => {
 
     it("should insert, load, update and remove entities with embeddeds properly", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
-
+        const qr = connection.createQueryRunner();
+        
         const post = new Post();
         post.id = 1;
         post.title = "Hello post";
@@ -25,10 +26,10 @@ describe("embedded > prefix functionality", () => {
         post.counters.favorites = 2;
         post.counters.likes = 1;
 
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // now load it
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(1);
         loadedPost.title.should.be.equal("Hello post");
         loadedPost.text.should.be.equal("This is text about the post");
@@ -37,6 +38,8 @@ describe("embedded > prefix functionality", () => {
             favorites: 2,
             likes: 1
         });
+    
+        await qr.release();
     })));
 
 });

@@ -1,4 +1,4 @@
 export class Comment {
-    any: any;
+    "any": any;
     object: {[k: string]: any};
 }

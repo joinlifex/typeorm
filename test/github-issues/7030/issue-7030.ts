@@ -21,17 +21,19 @@ describe("github issues > #7030", () => {
     after(() => closeTestingConnections(connections));
 
     it("should insert and fetch from the expected column", () => Promise.all(connections.map(async connection => {
-        const id = '123e4567-e89b-12d3-a456-426614174000'
+        const id = "123e4567-e89b-12d3-a456-426614174000";
 
         const post = new Post();
         post.id = id;
 
         let postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
-        await postRepository.save(post);
+        await postRepository.save(qr,post);
 
-        const actualPost = await postRepository.findOneOrFail({ id });
+        const actualPost = await postRepository.findOneOrFail(qr,{ id });
 
         expect(actualPost!.id).to.be.equal(id);
+        await qr.release();
     })));
 });

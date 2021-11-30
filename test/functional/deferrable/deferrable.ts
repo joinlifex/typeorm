@@ -18,25 +18,26 @@ describe("deferrable fk constraints should be check at the end of transaction (#
 
     it("use initially deferred deferrable fk constraints", () => Promise.all(connections.map(async connection => {
 
-        await connection.manager.transaction(async entityManager => {
+        const qr = connection.createQueryRunner();
+        await connection.manager.transaction(qr, async queryRunner => {
             // first save user
             const user = new User();
             user.id = 1;
             user.company = { id: 100 };
             user.name = "Bob";
 
-            await entityManager.save(user);
+            await queryRunner.manager.save(queryRunner, user);
 
             // then save company
             const company = new Company();
             company.id = 100;
             company.name = "Acme";
 
-            await entityManager.save(company);
+            await queryRunner.manager.save(queryRunner, company);
         });
 
         // now check
-        const user = await connection.manager.findOne(User, {
+        const user = await connection.manager.findOne(qr, User, {
             relations: ["company"],
             where: { id: 1 }
         });
@@ -51,13 +52,16 @@ describe("deferrable fk constraints should be check at the end of transaction (#
                 name: "Acme",
             }
         });
+        
+        await qr.release();
     })));
 
     it("use initially immediated deferrable fk constraints", () => Promise.all(connections.map(async connection => {
 
-        await connection.manager.transaction(async entityManager => {
+        const qr = connection.createQueryRunner();
+        await connection.manager.transaction(qr, async queryRunner => {
             // first set constraints deferred manually
-            await entityManager.query("SET CONSTRAINTS ALL DEFERRED");
+            await queryRunner.manager.query(queryRunner, "SET CONSTRAINTS ALL DEFERRED");
 
             // now save office
             const office = new Office();
@@ -65,18 +69,18 @@ describe("deferrable fk constraints should be check at the end of transaction (#
             office.company = { id: 200 };
             office.name = "Barcelona";
 
-            await entityManager.save(office);
+            await queryRunner.manager.save(queryRunner, office);
 
             // then save company
             const company = new Company();
             company.id = 200;
             company.name = "Emca";
 
-            await entityManager.save(company);
+            await queryRunner.manager.save(queryRunner, company);
         });
 
         // now check
-        const office = await connection.manager.findOne(Office, {
+        const office = await connection.manager.findOne(qr, Office, {
             relations: ["company"],
             where: { id: 2 }
         });
@@ -91,5 +95,7 @@ describe("deferrable fk constraints should be check at the end of transaction (#
                 name: "Emca",
             }
         });
+        
+        await qr.release();
     })));
 });

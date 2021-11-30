@@ -22,14 +22,16 @@ describe.skip("database schema > column collation > sqlite", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new Post();
         post.id = 1;
         post.name = "Post";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         table!.findColumnByName("name")!.collation!.should.be.equal("RTRIM");
 
+        await qr.release();
     })));
 
 });

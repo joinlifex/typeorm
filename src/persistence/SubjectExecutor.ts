@@ -39,11 +39,6 @@ export class SubjectExecutor {
     // -------------------------------------------------------------------------
 
     /**
-     * QueryRunner used to execute all queries with a given subjects.
-     */
-    protected queryRunner: QueryRunner;
-
-    /**
      * Persistence options.
      */
     protected options?: SaveOptions & RemoveOptions;
@@ -82,8 +77,7 @@ export class SubjectExecutor {
     // Constructor
     // -------------------------------------------------------------------------
 
-    constructor(queryRunner: QueryRunner, subjects: Subject[], options?: SaveOptions & RemoveOptions) {
-        this.queryRunner = queryRunner;
+    constructor(subjects: Subject[], options?: SaveOptions & RemoveOptions) {
         this.allSubjects = subjects;
         this.options = options;
         this.validate();
@@ -98,14 +92,14 @@ export class SubjectExecutor {
      * Executes all operations over given array of subjects.
      * Executes queries using given query runner.
      */
-    async execute(): Promise<void> {
+    async execute(queryRunner: QueryRunner): Promise<void> {
         // console.time("SubjectExecutor.execute");
 
         // broadcast "before" events before we start insert / update / remove operations
         let broadcasterResult: BroadcasterResult | undefined = undefined;
         if (!this.options || this.options.listeners !== false) {
             // console.time(".broadcastBeforeEventsForAll");
-            broadcasterResult = this.broadcastBeforeEventsForAll();
+            broadcasterResult = this.broadcastBeforeEventsForAll(queryRunner);
             if (broadcasterResult.promises.length > 0) await Promise.all(broadcasterResult.promises);
             // console.timeEnd(".broadcastBeforeEventsForAll");
         }
@@ -130,7 +124,7 @@ export class SubjectExecutor {
         // execute all insert operations
         // console.time(".insertion");
         this.insertSubjects = new SubjectTopoligicalSorter(this.insertSubjects).sort("insert");
-        await this.executeInsertOperations();
+        await this.executeInsertOperations(queryRunner);
         // console.timeEnd(".insertion");
 
         // recompute update operations since insertion can create updation operations for the
@@ -139,36 +133,36 @@ export class SubjectExecutor {
 
         // execute update operations
         // console.time(".updation");
-        await this.executeUpdateOperations();
+        await this.executeUpdateOperations(queryRunner);
         // console.timeEnd(".updation");
 
         // make sure our remove subjects are sorted (using topological sorting) when multiple entities are passed for the removal
         // console.time(".removal");
         this.removeSubjects = new SubjectTopoligicalSorter(this.removeSubjects).sort("delete");
-        await this.executeRemoveOperations();
+        await this.executeRemoveOperations(queryRunner);
         // console.timeEnd(".removal");
 
         // recompute soft-remove operations
         this.softRemoveSubjects = this.allSubjects.filter(subject => subject.mustBeSoftRemoved);
 
         // execute soft-remove operations
-        await this.executeSoftRemoveOperations();
+        await this.executeSoftRemoveOperations(queryRunner);
 
         // recompute recover operations
         this.recoverSubjects = this.allSubjects.filter(subject => subject.mustBeRecovered);
 
         // execute recover operations
-        await this.executeRecoverOperations();
+        await this.executeRecoverOperations(queryRunner);
 
         // update all special columns in persisted entities, like inserted id or remove ids from the removed entities
         // console.time(".updateSpecialColumnsInPersistedEntities");
-        await this.updateSpecialColumnsInPersistedEntities();
+        await this.updateSpecialColumnsInPersistedEntities(queryRunner);
         // console.timeEnd(".updateSpecialColumnsInPersistedEntities");
 
         // finally broadcast "after" events after we finish insert / update / remove operations
         if (!this.options || this.options.listeners !== false) {
             // console.time(".broadcastAfterEventsForAll");
-            broadcasterResult = this.broadcastAfterEventsForAll();
+            broadcasterResult = this.broadcastAfterEventsForAll(queryRunner);
             if (broadcasterResult.promises.length > 0) await Promise.all(broadcasterResult.promises);
             // console.timeEnd(".broadcastAfterEventsForAll");
         }
@@ -205,18 +199,18 @@ export class SubjectExecutor {
     /**
      * Broadcasts "BEFORE_INSERT", "BEFORE_UPDATE", "BEFORE_REMOVE" events for all given subjects.
      */
-    protected broadcastBeforeEventsForAll(): BroadcasterResult {
+    protected broadcastBeforeEventsForAll(queryRunner: QueryRunner): BroadcasterResult {
         const result = new BroadcasterResult();
         if (this.insertSubjects.length)
-            this.insertSubjects.forEach(subject => this.queryRunner.broadcaster.broadcastBeforeInsertEvent(result, subject.metadata, subject.entity!));
+            this.insertSubjects.forEach(subject => queryRunner.broadcaster.broadcastBeforeInsertEvent(result, subject.metadata, subject.entity!));
         if (this.updateSubjects.length)
-            this.updateSubjects.forEach(subject => this.queryRunner.broadcaster.broadcastBeforeUpdateEvent(result, subject.metadata, subject.entity!, subject.databaseEntity, subject.diffColumns, subject.diffRelations));
+            this.updateSubjects.forEach(subject => queryRunner.broadcaster.broadcastBeforeUpdateEvent(result, subject.metadata, subject.entity!, subject.databaseEntity, subject.diffColumns, subject.diffRelations));
         if (this.removeSubjects.length)
-            this.removeSubjects.forEach(subject => this.queryRunner.broadcaster.broadcastBeforeRemoveEvent(result, subject.metadata, subject.entity!, subject.databaseEntity));
+            this.removeSubjects.forEach(subject => queryRunner.broadcaster.broadcastBeforeRemoveEvent(result, subject.metadata, subject.entity!, subject.databaseEntity));
         if (this.softRemoveSubjects.length)
-            this.softRemoveSubjects.forEach(subject => this.queryRunner.broadcaster.broadcastBeforeUpdateEvent(result, subject.metadata, subject.entity!, subject.databaseEntity, subject.diffColumns, subject.diffRelations));
+            this.softRemoveSubjects.forEach(subject => queryRunner.broadcaster.broadcastBeforeUpdateEvent(result, subject.metadata, subject.entity!, subject.databaseEntity, subject.diffColumns, subject.diffRelations));
         if (this.recoverSubjects.length)
-            this.recoverSubjects.forEach(subject => this.queryRunner.broadcaster.broadcastBeforeUpdateEvent(result, subject.metadata, subject.entity!, subject.databaseEntity, subject.diffColumns, subject.diffRelations));
+            this.recoverSubjects.forEach(subject => queryRunner.broadcaster.broadcastBeforeUpdateEvent(result, subject.metadata, subject.entity!, subject.databaseEntity, subject.diffColumns, subject.diffRelations));
         return result;
     }
 
@@ -225,27 +219,27 @@ export class SubjectExecutor {
      * Returns void if there wasn't any listener or subscriber executed.
      * Note: this method has a performance-optimized code organization.
      */
-    protected broadcastAfterEventsForAll(): BroadcasterResult {
+    protected broadcastAfterEventsForAll(queryRunner: QueryRunner): BroadcasterResult {
         const result = new BroadcasterResult();
         if (this.insertSubjects.length)
-            this.insertSubjects.forEach(subject => this.queryRunner.broadcaster.broadcastAfterInsertEvent(result, subject.metadata, subject.entity!));
+            this.insertSubjects.forEach(subject => queryRunner.broadcaster.broadcastAfterInsertEvent(result, subject.metadata, subject.entity!));
         if (this.updateSubjects.length)
-            this.updateSubjects.forEach(subject => this.queryRunner.broadcaster.broadcastAfterUpdateEvent(result, subject.metadata, subject.entity!, subject.databaseEntity, subject.diffColumns, subject.diffRelations));
+            this.updateSubjects.forEach(subject => queryRunner.broadcaster.broadcastAfterUpdateEvent(result, subject.metadata, subject.entity!, subject.databaseEntity, subject.diffColumns, subject.diffRelations));
         if (this.removeSubjects.length)
-            this.removeSubjects.forEach(subject => this.queryRunner.broadcaster.broadcastAfterRemoveEvent(result, subject.metadata, subject.entity!, subject.databaseEntity));
+            this.removeSubjects.forEach(subject => queryRunner.broadcaster.broadcastAfterRemoveEvent(result, subject.metadata, subject.entity!, subject.databaseEntity));
         if (this.softRemoveSubjects.length)
-            this.softRemoveSubjects.forEach(subject => this.queryRunner.broadcaster.broadcastAfterUpdateEvent(result, subject.metadata, subject.entity!, subject.databaseEntity, subject.diffColumns, subject.diffRelations));
+            this.softRemoveSubjects.forEach(subject => queryRunner.broadcaster.broadcastAfterUpdateEvent(result, subject.metadata, subject.entity!, subject.databaseEntity, subject.diffColumns, subject.diffRelations));
         if (this.recoverSubjects.length)
-            this.recoverSubjects.forEach(subject => this.queryRunner.broadcaster.broadcastAfterUpdateEvent(result, subject.metadata, subject.entity!, subject.databaseEntity, subject.diffColumns, subject.diffRelations));
+            this.recoverSubjects.forEach(subject => queryRunner.broadcaster.broadcastAfterUpdateEvent(result, subject.metadata, subject.entity!, subject.databaseEntity, subject.diffColumns, subject.diffRelations));
         return result;
     }
 
     /**
      * Executes insert operations.
      */
-    protected async executeInsertOperations(): Promise<void> {
+    protected async executeInsertOperations(queryRunner: QueryRunner): Promise<void> {
         // group insertion subjects to make bulk insertions
-        const [groupedInsertSubjects, groupedInsertSubjectKeys] = this.groupBulkSubjects(this.insertSubjects, "insert");
+        const [groupedInsertSubjects, groupedInsertSubjectKeys] = this.groupBulkSubjects(queryRunner, this.insertSubjects, "insert");
 
         // then we run insertion in the sequential order which is important since we have an ordered subjects
         for (const groupName of groupedInsertSubjectKeys) {
@@ -256,7 +250,7 @@ export class SubjectExecutor {
             const bulkInsertMaps: ObjectLiteral[] = [];
             const bulkInsertSubjects: Subject[] = [];
             const singleInsertSubjects: Subject[] = [];
-            if (this.queryRunner.connection.driver instanceof MongoDriver) {
+            if (queryRunner.connection.driver instanceof MongoDriver) {
                 subjects.forEach(subject => {
                     if (subject.metadata.createDateColumn && subject.entity) {
                         subject.entity[subject.metadata.createDateColumn.databaseName] = new Date();
@@ -271,7 +265,7 @@ export class SubjectExecutor {
                     bulkInsertSubjects.push(subject);
                     bulkInsertMaps.push(subject.entity!);
                 });
-            } else if (this.queryRunner.connection.driver instanceof OracleDriver) {
+            } else if (queryRunner.connection.driver instanceof OracleDriver) {
                 subjects.forEach(subject => {
                     singleInsertSubjects.push(subject);
                 });
@@ -284,8 +278,8 @@ export class SubjectExecutor {
                     // - when oracle is used, since oracle's bulk insertion is very bad
                     if (subject.changeMaps.length === 0 ||
                         subject.metadata.treeType ||
-                        this.queryRunner.connection.driver instanceof OracleDriver ||
-                        this.queryRunner.connection.driver instanceof SapDriver) {
+                        queryRunner.connection.driver instanceof OracleDriver ||
+                        queryRunner.connection.driver instanceof SapDriver) {
                         singleInsertSubjects.push(subject);
 
                     } else {
@@ -296,9 +290,9 @@ export class SubjectExecutor {
             }
 
             // for mongodb we have a bit different insertion logic
-            if (this.queryRunner instanceof MongoQueryRunner) {
-                const manager = this.queryRunner.manager as MongoEntityManager;
-                const insertResult = await manager.insert(subjects[0].metadata.target, bulkInsertMaps);
+            if (queryRunner instanceof MongoQueryRunner) {
+                const manager = queryRunner.manager as MongoEntityManager;
+                const insertResult = await manager.insert(queryRunner, subjects[0].metadata.target, bulkInsertMaps);
                 subjects.forEach((subject, index) => {
                     subject.identifier = insertResult.identifiers[index];
                     subject.generatedMap = insertResult.generatedMaps[index];
@@ -312,7 +306,7 @@ export class SubjectExecutor {
                 // which is not same object as our entity that's why we don't need to worry about our entity to get dirty
                 // also, we disable listeners because we call them on our own in persistence layer
                 if (bulkInsertMaps.length > 0) {
-                    const insertResult = await this.queryRunner
+                    const insertResult = await queryRunner
                         .manager
                         .createQueryBuilder()
                         .insert()
@@ -320,7 +314,7 @@ export class SubjectExecutor {
                         .values(bulkInsertMaps)
                         .updateEntity(this.options && this.options.reload === false ? false : true)
                         .callListeners(false)
-                        .execute();
+                        .execute(queryRunner);
 
                     bulkInsertSubjects.forEach((subject, index) => {
                         subject.identifier = insertResult.identifiers[index];
@@ -336,9 +330,9 @@ export class SubjectExecutor {
 
                         // for nested set we execute additional queries
                         if (subject.metadata.treeType === "nested-set")
-                            await new NestedSetSubjectExecutor(this.queryRunner).insert(subject);
+                            await new NestedSetSubjectExecutor().insert(queryRunner, subject);
 
-                        await this.queryRunner
+                        await queryRunner
                             .manager
                             .createQueryBuilder()
                             .insert()
@@ -346,7 +340,7 @@ export class SubjectExecutor {
                             .values(subject.insertedValueSet)
                             .updateEntity(this.options && this.options.reload === false ? false : true)
                             .callListeners(false)
-                            .execute()
+                            .execute(queryRunner)
                             .then(insertResult => {
                                 subject.identifier = insertResult.identifiers[0];
                                 subject.generatedMap = insertResult.generatedMaps[0];
@@ -354,10 +348,10 @@ export class SubjectExecutor {
 
                         // for tree tables we execute additional queries
                         if (subject.metadata.treeType === "closure-table") {
-                            await new ClosureSubjectExecutor(this.queryRunner).insert(subject);
+                            await new ClosureSubjectExecutor().insert(queryRunner, subject);
 
                         } else if (subject.metadata.treeType === "materialized-path") {
-                            await new MaterializedPathSubjectExecutor(this.queryRunner).insert(subject);
+                            await new MaterializedPathSubjectExecutor().insert(queryRunner, subject);
                         }
                     }
                 }
@@ -368,7 +362,7 @@ export class SubjectExecutor {
                     subject.metadata.columns.forEach(column => {
                         const value = column.getEntityValue(subject.generatedMap!);
                         if (value !== undefined && value !== null) {
-                            const preparedValue = this.queryRunner.connection.driver.prepareHydratedValue(value, column);
+                            const preparedValue = queryRunner.connection.driver.prepareHydratedValue(value, column);
                             column.setEntityValue(subject.generatedMap!, preparedValue);
                         }
                     });
@@ -380,14 +374,14 @@ export class SubjectExecutor {
     /**
      * Updates all given subjects in the database.
      */
-    protected async executeUpdateOperations(): Promise<void> {
+    protected async executeUpdateOperations(queryRunner: QueryRunner): Promise<void> {
         const updateSubject = async (subject: Subject) => {
 
             if (!subject.identifier)
                 throw new SubjectWithoutIdentifierError(subject);
 
             // for mongodb we have a bit different updation logic
-            if (this.queryRunner instanceof MongoQueryRunner) {
+            if (queryRunner instanceof MongoQueryRunner) {
                 const partialEntity = this.cloneMongoSubjectEntity(subject);
                 if (subject.metadata.objectIdColumn && subject.metadata.objectIdColumn.propertyName) {
                     delete partialEntity[subject.metadata.objectIdColumn.propertyName];
@@ -401,9 +395,9 @@ export class SubjectExecutor {
                     partialEntity[subject.metadata.updateDateColumn.propertyName] = new Date();
                 }
 
-                const manager = this.queryRunner.manager as MongoEntityManager;
+                const manager = queryRunner.manager as MongoEntityManager;
 
-                await manager.update(subject.metadata.target, subject.identifier, partialEntity);
+                await manager.update(queryRunner, subject.metadata.target, subject.identifier, partialEntity);
 
             } else {
 
@@ -412,15 +406,15 @@ export class SubjectExecutor {
                 // for tree tables we execute additional queries
                 switch (subject.metadata.treeType) {
                     case "nested-set":
-                        await new NestedSetSubjectExecutor(this.queryRunner).update(subject);
+                        await new NestedSetSubjectExecutor().update(queryRunner, subject);
                         break;
 
                     case "closure-table":
-                        await new ClosureSubjectExecutor(this.queryRunner).update(subject);
+                        await new ClosureSubjectExecutor().update(queryRunner, subject);
                         break;
 
                     case "materialized-path":
-                        await new MaterializedPathSubjectExecutor(this.queryRunner).update(subject);
+                        await new MaterializedPathSubjectExecutor().update(queryRunner, subject);
                         break;
                 }
 
@@ -428,7 +422,7 @@ export class SubjectExecutor {
                 // we need to enable entity updation because we update a subject identifier
                 // which is not same object as our entity that's why we don't need to worry about our entity to get dirty
                 // also, we disable listeners because we call them on our own in persistence layer
-                const updateQueryBuilder = this.queryRunner
+                const updateQueryBuilder = queryRunner
                     .manager
                     .createQueryBuilder()
                     .update(subject.metadata.target)
@@ -443,13 +437,13 @@ export class SubjectExecutor {
                     updateQueryBuilder.where(subject.identifier);
                 }
 
-                const updateResult = await updateQueryBuilder.execute();
+                const updateResult = await updateQueryBuilder.execute(queryRunner);
                 let updateGeneratedMap = updateResult.generatedMaps[0];
                 if (updateGeneratedMap) {
                     subject.metadata.columns.forEach(column => {
                         const value = column.getEntityValue(updateGeneratedMap!);
                         if (value !== undefined && value !== null) {
-                            const preparedValue = this.queryRunner.connection.driver.prepareHydratedValue(value, column);
+                            const preparedValue = queryRunner.connection.driver.prepareHydratedValue(value, column);
                             column.setEntityValue(updateGeneratedMap!, preparedValue);
                         }
                     });
@@ -495,9 +489,9 @@ export class SubjectExecutor {
      *
      * todo: we need to apply topological sort here as well
      */
-    protected async executeRemoveOperations(): Promise<void> {
+    protected async executeRemoveOperations(queryRunner: QueryRunner): Promise<void> {
         // group insertion subjects to make bulk insertions
-        const [groupedRemoveSubjects, groupedRemoveSubjectKeys] = this.groupBulkSubjects(this.removeSubjects, "delete");
+        const [groupedRemoveSubjects, groupedRemoveSubjectKeys] = this.groupBulkSubjects(queryRunner, this.removeSubjects, "delete");
 
         for (const groupName of groupedRemoveSubjectKeys) {
             const subjects = groupedRemoveSubjects[groupName];
@@ -509,19 +503,19 @@ export class SubjectExecutor {
             });
 
             // for mongodb we have a bit different updation logic
-            if (this.queryRunner instanceof MongoQueryRunner) {
-                const manager = this.queryRunner.manager as MongoEntityManager;
-                await manager.delete(subjects[0].metadata.target, deleteMaps);
+            if (queryRunner instanceof MongoQueryRunner) {
+                const manager = queryRunner.manager as MongoEntityManager;
+                await manager.delete(queryRunner, subjects[0].metadata.target, deleteMaps);
 
             } else {
                 // for tree tables we execute additional queries
                 switch (subjects[0].metadata.treeType) {
                     case "nested-set":
-                        await new NestedSetSubjectExecutor(this.queryRunner).remove(subjects);
+                        await new NestedSetSubjectExecutor().remove(queryRunner, subjects);
                         break;
 
                     case "closure-table":
-                        await new ClosureSubjectExecutor(this.queryRunner).remove(subjects);
+                        await new ClosureSubjectExecutor().remove(queryRunner, subjects);
                         break;
                 }
 
@@ -529,14 +523,14 @@ export class SubjectExecutor {
                 // we don't need to specify entities and set update entity to true since the only thing query builder
                 // will do for use is a primary keys deletion which is handled by us later once persistence is finished
                 // also, we disable listeners because we call them on our own in persistence layer
-                await this.queryRunner
+                await queryRunner
                     .manager
                     .createQueryBuilder()
                     .delete()
                     .from(subjects[0].metadata.target)
                     .where(deleteMaps)
                     .callListeners(false)
-                    .execute();
+                    .execute(queryRunner);
             }
         }
     }
@@ -556,7 +550,7 @@ export class SubjectExecutor {
     /**
      * Soft-removes all given subjects in the database.
      */
-    protected async executeSoftRemoveOperations(): Promise<void> {
+    protected async executeSoftRemoveOperations(queryRunner: QueryRunner): Promise<void> {
         await Promise.all(this.softRemoveSubjects.map(async subject => {
 
             if (!subject.identifier)
@@ -565,7 +559,7 @@ export class SubjectExecutor {
             let updateResult: UpdateResult;
 
             // for mongodb we have a bit different updation logic
-            if (this.queryRunner instanceof MongoQueryRunner) {
+            if (queryRunner instanceof MongoQueryRunner) {
                 const partialEntity = this.cloneMongoSubjectEntity(subject);
                 if (subject.metadata.objectIdColumn && subject.metadata.objectIdColumn.propertyName) {
                     delete partialEntity[subject.metadata.objectIdColumn.propertyName];
@@ -583,9 +577,9 @@ export class SubjectExecutor {
                     partialEntity[subject.metadata.deleteDateColumn.propertyName] = new Date();
                 }
 
-                const manager = this.queryRunner.manager as MongoEntityManager;
+                const manager = queryRunner.manager as MongoEntityManager;
 
-                updateResult = await manager.update(subject.metadata.target, subject.identifier, partialEntity);
+                updateResult = await manager.update(queryRunner, subject.metadata.target, subject.identifier, partialEntity);
 
             } else {
 
@@ -593,7 +587,7 @@ export class SubjectExecutor {
                 // we need to enable entity soft-deletion because we update a subject identifier
                 // which is not same object as our entity that's why we don't need to worry about our entity to get dirty
                 // also, we disable listeners because we call them on our own in persistence layer
-                const softDeleteQueryBuilder = this.queryRunner
+                const softDeleteQueryBuilder = queryRunner
                     .manager
                     .createQueryBuilder()
                     .softDelete()
@@ -608,7 +602,7 @@ export class SubjectExecutor {
                     softDeleteQueryBuilder.where(subject.identifier);
                 }
 
-                updateResult = await softDeleteQueryBuilder.execute();
+                updateResult = await softDeleteQueryBuilder.execute(queryRunner);
             }
 
             subject.generatedMap = updateResult.generatedMaps[0];
@@ -616,7 +610,7 @@ export class SubjectExecutor {
                 subject.metadata.columns.forEach(column => {
                     const value = column.getEntityValue(subject.generatedMap!);
                     if (value !== undefined && value !== null) {
-                        const preparedValue = this.queryRunner.connection.driver.prepareHydratedValue(value, column);
+                        const preparedValue = queryRunner.connection.driver.prepareHydratedValue(value, column);
                         column.setEntityValue(subject.generatedMap!, preparedValue);
                     }
                 });
@@ -639,7 +633,7 @@ export class SubjectExecutor {
     /**
      * Recovers all given subjects in the database.
      */
-    protected async executeRecoverOperations(): Promise<void> {
+    protected async executeRecoverOperations(queryRunner: QueryRunner): Promise<void> {
         await Promise.all(this.recoverSubjects.map(async subject => {
 
             if (!subject.identifier)
@@ -648,7 +642,7 @@ export class SubjectExecutor {
             let updateResult: UpdateResult;
 
             // for mongodb we have a bit different updation logic
-            if (this.queryRunner instanceof MongoQueryRunner) {
+            if (queryRunner instanceof MongoQueryRunner) {
                 const partialEntity = this.cloneMongoSubjectEntity(subject);
                 if (subject.metadata.objectIdColumn && subject.metadata.objectIdColumn.propertyName) {
                     delete partialEntity[subject.metadata.objectIdColumn.propertyName];
@@ -666,9 +660,9 @@ export class SubjectExecutor {
                     partialEntity[subject.metadata.deleteDateColumn.propertyName] = null;
                 }
 
-                const manager = this.queryRunner.manager as MongoEntityManager;
+                const manager = queryRunner.manager as MongoEntityManager;
 
-                updateResult = await manager.update(subject.metadata.target, subject.identifier, partialEntity);
+                updateResult = await manager.update(queryRunner, subject.metadata.target, subject.identifier, partialEntity);
 
             } else {
 
@@ -676,7 +670,7 @@ export class SubjectExecutor {
                 // we need to enable entity restory because we update a subject identifier
                 // which is not same object as our entity that's why we don't need to worry about our entity to get dirty
                 // also, we disable listeners because we call them on our own in persistence layer
-                const softDeleteQueryBuilder = this.queryRunner
+                const softDeleteQueryBuilder = queryRunner
                     .manager
                     .createQueryBuilder()
                     .restore()
@@ -691,7 +685,7 @@ export class SubjectExecutor {
                     softDeleteQueryBuilder.where(subject.identifier);
                 }
 
-                updateResult = await softDeleteQueryBuilder.execute();
+                updateResult = await softDeleteQueryBuilder.execute(queryRunner);
             }
 
             subject.generatedMap = updateResult.generatedMaps[0];
@@ -699,7 +693,7 @@ export class SubjectExecutor {
                 subject.metadata.columns.forEach(column => {
                     const value = column.getEntityValue(subject.generatedMap!);
                     if (value !== undefined && value !== null) {
-                        const preparedValue = this.queryRunner.connection.driver.prepareHydratedValue(value, column);
+                        const preparedValue = queryRunner.connection.driver.prepareHydratedValue(value, column);
                         column.setEntityValue(subject.generatedMap!, preparedValue);
                     }
                 });
@@ -724,23 +718,23 @@ export class SubjectExecutor {
      * Updates all special columns of the saving entities (create date, update date, version, etc.).
      * Also updates nullable columns and columns with default values.
      */
-    protected updateSpecialColumnsInPersistedEntities(): void {
+    protected updateSpecialColumnsInPersistedEntities(queryRunner: QueryRunner): void {
 
         // update inserted entity properties
         if (this.insertSubjects.length)
-            this.updateSpecialColumnsInInsertedAndUpdatedEntities(this.insertSubjects);
+            this.updateSpecialColumnsInInsertedAndUpdatedEntities(queryRunner, this.insertSubjects);
 
         // update updated entity properties
         if (this.updateSubjects.length)
-            this.updateSpecialColumnsInInsertedAndUpdatedEntities(this.updateSubjects);
+            this.updateSpecialColumnsInInsertedAndUpdatedEntities(queryRunner, this.updateSubjects);
 
         // update soft-removed entity properties
         if (this.softRemoveSubjects.length)
-            this.updateSpecialColumnsInInsertedAndUpdatedEntities(this.softRemoveSubjects);
+            this.updateSpecialColumnsInInsertedAndUpdatedEntities(queryRunner, this.softRemoveSubjects);
 
         // update recovered entity properties
         if (this.recoverSubjects.length)
-            this.updateSpecialColumnsInInsertedAndUpdatedEntities(this.recoverSubjects);
+            this.updateSpecialColumnsInInsertedAndUpdatedEntities(queryRunner, this.recoverSubjects);
 
         // remove ids from the entities that were removed
         if (this.removeSubjects.length) {
@@ -762,7 +756,7 @@ export class SubjectExecutor {
             });
 
             // mongo _id remove
-            if (this.queryRunner instanceof MongoQueryRunner) {
+            if (queryRunner instanceof MongoQueryRunner) {
                 if (subject.metadata.objectIdColumn
                     && subject.metadata.objectIdColumn.databaseName
                     && subject.metadata.objectIdColumn.databaseName !== subject.metadata.objectIdColumn.propertyName
@@ -777,7 +771,7 @@ export class SubjectExecutor {
      * Updates all special columns of the saving entities (create date, update date, version, etc.).
      * Also updates nullable columns and columns with default values.
      */
-    protected updateSpecialColumnsInInsertedAndUpdatedEntities(subjects: Subject[]): void {
+    protected updateSpecialColumnsInInsertedAndUpdatedEntities(queryRunner: QueryRunner, subjects: Subject[]): void {
         subjects.forEach(subject => {
             if (!subject.entity) return;
 
@@ -814,7 +808,7 @@ export class SubjectExecutor {
 
             // merge into entity all generated values returned by a database
             if (subject.generatedMap)
-                this.queryRunner.manager.merge(subject.metadata.target as any, subject.entity, subject.generatedMap);
+                queryRunner.manager.merge(queryRunner, subject.metadata.target as any, subject.entity, subject.generatedMap);
         });
     }
 
@@ -829,10 +823,10 @@ export class SubjectExecutor {
      * Other drivers like postgres and sql server support RETURNING / OUTPUT statement which allows to return generated
      * id for each inserted row, that's why bulk insertion is not limited to junction tables in there.
      */
-    protected groupBulkSubjects(subjects: Subject[], type: "insert" | "delete"): [{ [key: string]: Subject[] }, string[]] {
+    protected groupBulkSubjects(queryRunner: QueryRunner, subjects: Subject[], type: "insert" | "delete"): [{ [key: string]: Subject[] }, string[]] {
         const group: { [key: string]: Subject[] } = {};
         const keys: string[] = [];
-        const groupingAllowed = type === "delete" || this.queryRunner.connection.driver.isReturningSqlSupported();
+        const groupingAllowed = type === "delete" || queryRunner.connection.driver.isReturningSqlSupported();
 
         subjects.forEach((subject, index) => {
             const key = groupingAllowed || subject.metadata.isJunction ? subject.metadata.name : subject.metadata.name + "_" + index;

@@ -44,17 +44,19 @@ describe("github issues > #6266 Many identical selects after insert bunch of ite
                     SelectQueryBuilder.prototype,
                     "select"
                 );
+                const qr = connection.createQueryRunner();
 
                 await connection
                     .createQueryBuilder()
                     .insert()
                     .into(Post)
                     .values(posts)
-                    .execute();
+                    .execute(qr);
 
                 assert.strictEqual(selectSpy.calledOnce, true);
 
                 selectSpy.restore();
+                await qr.release();
             })
         ));
 });

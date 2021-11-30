@@ -19,6 +19,7 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
   beforeEach(async () => {
     await reloadTestingDatabases(connections);
     for (let connection of connections) {
+      const qr = connection.createQueryRunner();
       let categoryRepo = connection.getRepository(Category);
       let siteRepo = connection.getRepository(Site);
       let memberRepo = connection.getRepository(Member);
@@ -75,26 +76,27 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
       m1.category = c1;
 
       // Create the categories
-      c1 = await categoryRepo.save(c1);
-      c2 = await categoryRepo.save(c2);
-      c3 = await categoryRepo.save(c3);
-      c4 = await categoryRepo.save(c4);
+      c1 = await categoryRepo.save(qr, c1);
+      c2 = await categoryRepo.save(qr, c2);
+      c3 = await categoryRepo.save(qr, c3);
+      c4 = await categoryRepo.save(qr, c4);
 
       // Create the sites
-      await siteRepo.save(s1);
-      await siteRepo.save(s2);
-      await siteRepo.save(s3);
-      await siteRepo.save(s4);
-      await siteRepo.save(s5);
+      await siteRepo.save(qr, s1);
+      await siteRepo.save(qr, s2);
+      await siteRepo.save(qr, s3);
+      await siteRepo.save(qr, s4);
+      await siteRepo.save(qr, s5);
 
       // Create the member relation
-      await memberRepo.save(m1);
+      await memberRepo.save(qr, m1);
 
       // Set the just created relations correctly
       c1.sites = [s1, s2];
       c2.sites = [];
       c3.sites = [s3, s4];
       c4.sites = [s5];
+      await qr.release();
     }
   });
 
@@ -102,7 +104,8 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
 
   it("should return tree without sites relations", async () => await Promise.all(connections.map(async connection => {
 
-    let result = await connection.getTreeRepository(Category).findTrees();
+    const qr = connection.createQueryRunner();
+    let result = await connection.getTreeRepository(Category).findTrees(qr);
 
     // The complete tree should exist but other relations than the parent- / child-relations should not be loaded
     expect(result).to.have.lengthOf(2);
@@ -111,11 +114,14 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
     expect(result[0].childCategories[0].childCategories).to.have.lengthOf(1);
     expect(result[0].childCategories[0].childCategories[0].sites).equal(undefined);
 
+    await qr.release();
   })));
 
   it("should return tree with sites relations", async () => await Promise.all(connections.map(async connection => {
 
-    let result = await connection.getTreeRepository(Category).findTrees({ relations: ["sites"] });
+    const qr = connection.createQueryRunner();
+    let result = await connection.getTreeRepository(Category).findTrees(qr, { relations: ["sites"] });
+    await qr.release();
 
     // The complete tree should exist and site relations should not be loaded for every category
     expect(result).to.have.lengthOf(2);
@@ -129,8 +135,10 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
   })));
 
   it("should return roots without member relations", async () => await Promise.all(connections.map(async connection => {
+    const qr = connection.createQueryRunner();
 
-    let result = await connection.getTreeRepository(Category).findRoots();
+    let result = await connection.getTreeRepository(Category).findRoots(qr);
+    await qr.release();
 
     expect(result).to.have.lengthOf(2);
     expect(result[0].sites).equals(undefined);
@@ -139,8 +147,10 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
   })));
 
   it("should return roots with member relations", async () => await Promise.all(connections.map(async connection => {
+    const qr = connection.createQueryRunner();
 
-    let result = await connection.getTreeRepository(Category).findRoots({ relations: ["members"] });
+    let result = await connection.getTreeRepository(Category).findRoots(qr, { relations: ["members"] });
+    await qr.release();
 
     expect(result).to.have.lengthOf(2);
     expect(result[0].sites).equals(undefined);
@@ -150,10 +160,12 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
   })));
 
   it("should return descendants without member relations", async () => await Promise.all(connections.map(async connection => {
-
-    let c1 = await connection.getRepository(Category).findOne({ title: "Category 1" });
-    let result = await connection.getTreeRepository(Category).findDescendants(c1!);
+    const qr = connection.createQueryRunner();
+    
+    let c1 = await connection.getRepository(Category).findOne(qr, { title: "Category 1" });
+    let result = await connection.getTreeRepository(Category).findDescendants(qr, c1!);
     result.sort((a, b) => a.pk - b.pk);
+    await qr.release();
 
     expect(result).to.have.lengthOf(3);
 
@@ -171,11 +183,13 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
   })));
 
   it("should return descendants with member relations", async () => await Promise.all(connections.map(async connection => {
-
-    let c1 = await connection.getRepository(Category).findOne({ title: "Category 1" });
-    let result = await connection.getTreeRepository(Category).findDescendants(c1!, { relations: ["members"] });
+    const qr = connection.createQueryRunner();
+    
+    let c1 = await connection.getRepository(Category).findOne(qr, { title: "Category 1" });
+    let result = await connection.getTreeRepository(Category).findDescendants(qr, c1!, { relations: ["members"] });
     result.sort((a, b) => a.pk - b.pk);
 
+    await qr.release();
     expect(result).to.have.lengthOf(3);
 
     expect(result[0].title).equals("Category 1");
@@ -195,10 +209,12 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
   })));
 
   it("should return descendants tree without member relations", async () => await Promise.all(connections.map(async connection => {
+    const qr = connection.createQueryRunner();
+    
+    let c1 = await connection.getRepository(Category).findOne(qr, { title: "Category 1" });
+    let result = await connection.getTreeRepository(Category).findDescendantsTree(qr, c1!);
 
-    let c1 = await connection.getRepository(Category).findOne({ title: "Category 1" });
-    let result = await connection.getTreeRepository(Category).findDescendantsTree(c1!);
-
+    await qr.release();
     expect(result.title).to.be.equal("Category 1");
 
     expect(result.childCategories[0].title).equals("Category 1.1");
@@ -209,10 +225,12 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
   })));
 
   it("should return descendants tree with member relations", async () => await Promise.all(connections.map(async connection => {
+    const qr = connection.createQueryRunner();
+    
+    let c1 = await connection.getRepository(Category).findOne(qr, { title: "Category 1" });
+    let result = await connection.getTreeRepository(Category).findDescendantsTree(qr, c1!, { relations: ["members"] });
 
-    let c1 = await connection.getRepository(Category).findOne({ title: "Category 1" });
-    let result = await connection.getTreeRepository(Category).findDescendantsTree(c1!, { relations: ["members"] });
-
+    await qr.release();
     expect(result.title).to.be.equal("Category 1");
 
     expect(result.childCategories[0].title).equals("Category 1.1");
@@ -225,11 +243,13 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
   })));
 
   it("should return ancestors without member relations", async () => await Promise.all(connections.map(async connection => {
-
-    let c3 = await connection.getRepository(Category).findOne({ title: "Category 1.1.1" });
-    let result = await connection.getTreeRepository(Category).findAncestors(c3!);
+    const qr = connection.createQueryRunner();
+    
+    let c3 = await connection.getRepository(Category).findOne(qr, { title: "Category 1.1.1" });
+    let result = await connection.getTreeRepository(Category).findAncestors(qr, c3!);
     result.sort((a, b) => a.pk - b.pk);
 
+    await qr.release();
     expect(result).to.have.lengthOf(3);
 
     expect(result[0].title).equals("Category 1");
@@ -246,11 +266,13 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
   })));
 
   it("should return ancestors with member relations", async () => await Promise.all(connections.map(async connection => {
-
-    let c3 = await connection.getRepository(Category).findOne({ title: "Category 1.1.1" });
-    let result = await connection.getTreeRepository(Category).findAncestors(c3!, { relations: ["members"] });
+    const qr = connection.createQueryRunner();
+    
+    let c3 = await connection.getRepository(Category).findOne(qr, { title: "Category 1.1.1" });
+    let result = await connection.getTreeRepository(Category).findAncestors(qr, c3!, { relations: ["members"] });
     result.sort((a, b) => a.pk - b.pk);
 
+    await qr.release();
     expect(result[0].title).equals("Category 1");
     expect(result[0].members).to.have.lengthOf(1);
     expect(result[0].members[0].title).equals("Test");
@@ -268,10 +290,12 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
   })));
 
   it("should return ancestors tree without member relations", async () => await Promise.all(connections.map(async connection => {
+    const qr = connection.createQueryRunner();
+    
+    let c3 = await connection.getRepository(Category).findOne(qr, { title: "Category 1.1.1" });
+    let result = await connection.getTreeRepository(Category).findAncestorsTree(qr, c3!);
 
-    let c3 = await connection.getRepository(Category).findOne({ title: "Category 1.1.1" });
-    let result = await connection.getTreeRepository(Category).findAncestorsTree(c3!);
-
+    await qr.release();
     expect(result.title).to.be.equal("Category 1.1.1");
 
     expect(result.parentCategory!.title).equals("Category 1.1");
@@ -282,10 +306,11 @@ describe("github issues > #8076 Add relation options to all tree queries (missin
   })));
 
   it("should return ancestors tree with member relations", async () => await Promise.all(connections.map(async connection => {
+    const qr = connection.createQueryRunner();
+    let c3 = await connection.getRepository(Category).findOne(qr, { title: "Category 1.1.1" });
+    let result = await connection.getTreeRepository(Category).findAncestorsTree(qr, c3!, { relations: ["members"] });
 
-    let c3 = await connection.getRepository(Category).findOne({ title: "Category 1.1.1" });
-    let result = await connection.getTreeRepository(Category).findAncestorsTree(c3!, { relations: ["members"] });
-
+    await qr.release();
     expect(result.title).to.be.equal("Category 1.1.1");
 
     expect(result.parentCategory!.title).equals("Category 1.1");

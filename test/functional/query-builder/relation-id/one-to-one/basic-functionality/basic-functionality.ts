@@ -19,29 +19,30 @@ describe("query builder > relation-id > one-to-one > basic-functionality", () =>
     after(() => closeTestingConnections(connections));
 
     it("should load ids when loadRelationIdAndMap used with OneToOne owner side relation", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const category = new Category();
         category.name = "kids";
-        await connection.manager.save(category);
+        await connection.manager.save(qr, category);
 
         const post = new Post();
         post.title = "about kids";
         post.category = category;
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         const category2 = new Category();
         category2.name = "cars";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const post2 = new Post();
         post2.title = "about cars";
         post2.category = category2;
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post2);
 
         let loadedPosts = await connection.manager
             .createQueryBuilder(Post, "post")
             .loadRelationIdAndMap("post.categoryId", "post.category")
-            .getMany();
+            .getMany(qr);
 
         expect(loadedPosts![0].categoryId).to.not.be.undefined;
         expect(loadedPosts![0].categoryId).to.be.equal(1);
@@ -52,36 +53,39 @@ describe("query builder > relation-id > one-to-one > basic-functionality", () =>
             .createQueryBuilder(Post, "post")
             .loadRelationIdAndMap("post.categoryId", "post.category")
             .where("post.id = :id", { id: post.id })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost!.categoryId).to.not.be.undefined;
         expect(loadedPost!.categoryId).to.be.equal(1);
+        
+        await qr.release();
     })));
 
     it("should load id when loadRelationIdAndMap used with OneToOne inverse side relation", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const category = new Category();
         category.name = "kids";
-        await connection.manager.save(category);
+        await connection.manager.save(qr, category);
 
         const post = new Post();
         post.title = "about kids";
         post.category2 = category;
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         const category2 = new Category();
         category2.name = "cars";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const post2 = new Post();
         post2.title = "about cars";
         post2.category2 = category2;
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post2);
 
         let loadedCategories = await connection.manager
             .createQueryBuilder(Category, "category")
             .loadRelationIdAndMap("category.postId", "category.post")
-            .getMany();
+            .getMany(qr);
 
         expect(loadedCategories![0].postId).to.not.be.undefined;
         expect(loadedCategories![0].postId).to.be.equal(1);
@@ -91,10 +95,12 @@ describe("query builder > relation-id > one-to-one > basic-functionality", () =>
         let loadedCategory = await connection.manager
             .createQueryBuilder(Category, "category")
             .loadRelationIdAndMap("category.postId", "category.post")
-            .getOne();
+            .getOne(qr);
 
         expect(loadedCategory!.postId).to.not.be.undefined;
         expect(loadedCategory!.postId).to.be.equal(1);
+        
+        await qr.release();
     })));
 
 });

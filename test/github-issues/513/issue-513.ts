@@ -17,7 +17,9 @@ describe("github issues > #513 Incorrect time/datetime types for SQLite", () => 
     after(() => closeTestingConnections(connections));
 
     it("should create datetime column type for datetime in sqlite", () => Promise.all(connections.map(async connection => {
-      const dbColumns: ObjectLiteral[] = await connection.manager.query("PRAGMA table_info(Post)");
+      
+      const qr = connection.createQueryRunner();
+      const dbColumns: ObjectLiteral[] = await connection.manager.query(qr, "PRAGMA table_info(Post)");
       expect(dbColumns).not.to.be.null;
       expect(dbColumns).not.to.be.undefined;
 
@@ -30,24 +32,29 @@ describe("github issues > #513 Incorrect time/datetime types for SQLite", () => 
 
       // Expect "datetime" type to translate to SQLite affinity type "DATETIME"
       columnType.should.equal("datetime");
+      await qr.release();
     })));
     
     it("should persist correct type in datetime column in sqlite", () => Promise.all(connections.map(async connection => {
       const now: Date = new Date();
 
+      const qr = connection.createQueryRunner();
       const post: Post = new Post();
       post.id = 1;
       post.dateTimeColumn = now;
       
-      await connection.manager.save(post);
+      await connection.manager.save(qr, post);
 
-      const storedPost = await connection.manager.findOne(Post, post.id);
+      const storedPost = await connection.manager.findOne(qr, Post, post.id);
       expect(storedPost).to.not.be.null;
       storedPost!.dateTimeColumn.toDateString().should.equal(now.toDateString());
+      await qr.release();
     })));
 
     it("should create datetime column type for time in sqlite", () => Promise.all(connections.map(async connection => {
-      const dbColumns: ObjectLiteral[] = await connection.manager.query("PRAGMA table_info(Post)");
+      
+      const qr = connection.createQueryRunner();
+      const dbColumns: ObjectLiteral[] = await connection.manager.query(qr, "PRAGMA table_info(Post)");
       expect(dbColumns).not.to.be.null;
       expect(dbColumns).not.to.be.undefined;
 
@@ -60,6 +67,7 @@ describe("github issues > #513 Incorrect time/datetime types for SQLite", () => 
 
       // Expect "time" type to translate to SQLite type "TEXT"
       columnType.should.equal("time");
+      await qr.release();
     })));
 
     it("should persist correct type in datetime column in sqlite", () => Promise.all(connections.map(async connection => {
@@ -69,13 +77,15 @@ describe("github issues > #513 Incorrect time/datetime types for SQLite", () => 
       post.id = 2;
       post.timeColumn = now; // Should maybe use Date type?
       
-      await connection.manager.save(post);
+      const qr = connection.createQueryRunner();
+      await connection.manager.save(qr, post);
 
-      const storedPost = await connection.manager.findOne(Post, post.id);
+      const storedPost = await connection.manager.findOne(qr, Post, post.id);
       expect(storedPost).to.not.be.null;
 
-        const expectedTimeString = DateUtils.mixedTimeToString(now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds());
+      const expectedTimeString = DateUtils.mixedTimeToString(now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds());
       storedPost!.timeColumn.toString().should.equal(expectedTimeString);
+      await qr.release();
     })));
 
 });

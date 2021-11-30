@@ -15,7 +15,8 @@ describe("embedded > multiple-primary-column", () => {
     after(() => closeTestingConnections(connections));
 
     it("should insert, load, update and remove entities with embeddeds when primary column defined in main and in embedded entities", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const postRepository = connection.getRepository(Post);
 
         const post1 = new Post();
@@ -26,7 +27,7 @@ describe("embedded > multiple-primary-column", () => {
         post1.counters.comments = 1;
         post1.counters.favorites = 2;
         post1.counters.likes = 3;
-        await connection.getRepository(Post).save(post1);
+        await connection.getRepository(Post).save(qr, post1);
 
         const post2 = new Post();
         post2.id = 2;
@@ -36,34 +37,36 @@ describe("embedded > multiple-primary-column", () => {
         post2.counters.comments = 2;
         post2.counters.favorites = 3;
         post2.counters.likes = 4;
-        await postRepository.save(post2);
+        await postRepository.save(qr, post2);
 
         const loadedPosts = await connection.manager
             .createQueryBuilder(Post, "post")
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         expect(loadedPosts[0].title).to.be.equal("About cars");
         expect(loadedPosts[0].counters.should.be.eql({ code: 1, comments: 1, favorites: 2, likes: 3 }));
         expect(loadedPosts[1].title).to.be.equal("About airplanes");
         expect(loadedPosts[1].counters.should.be.eql({ code: 2, comments: 2, favorites: 3, likes: 4 }));
 
-        const loadedPost = (await postRepository.findOne({ id: 1, counters: { code: 1 } }))!;
+        const loadedPost = (await postRepository.findOne(qr, { id: 1, counters: { code: 1 } }))!;
         expect(loadedPost.title).to.be.equal("About cars");
         expect(loadedPost.counters.should.be.eql({ code: 1, comments: 1, favorites: 2, likes: 3 }));
 
         loadedPost.counters.favorites += 1;
-        await postRepository.save(loadedPost);
+        await postRepository.save(qr, loadedPost);
 
-        const loadedPost2 = (await postRepository.findOne({ id: 1, counters: { code: 1 } }))!;
+        const loadedPost2 = (await postRepository.findOne(qr, { id: 1, counters: { code: 1 } }))!;
         expect(loadedPost.title).to.be.equal("About cars");
         expect(loadedPost.counters.should.be.eql({ code: 1, comments: 1, favorites: 3, likes: 3 }));
 
-        await postRepository.remove(loadedPost2);
+        await postRepository.remove(qr, loadedPost2);
 
-        const loadedPosts2 = (await postRepository.find())!;
+        const loadedPosts2 = (await postRepository.find(qr))!;
         expect(loadedPosts2.length).to.be.equal(1);
         expect(loadedPosts2[0].title).to.be.equal("About airplanes");
+    
+        await qr.release();
     })));
 
 });

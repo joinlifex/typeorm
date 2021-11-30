@@ -20,15 +20,16 @@ describe("mongodb > embedded columns listeners", () => {
     it("should work listeners in entity embeddeds correctly", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
 
+        const qr = connection.createQueryRunner();
         // save posts with embeddeds
         const post = new Post();
         post.title = "Post";
         post.text = "Everything about post";
         post.counters = new Counters();
         post.counters.information = new Information();
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = await postRepository.findOne({ title: "Post" });
+        const loadedPost = await postRepository.findOne(qr, { title: "Post" });
 
         expect(loadedPost).to.be.not.empty;
         expect(loadedPost!.counters).to.be.not.empty;
@@ -38,9 +39,9 @@ describe("mongodb > embedded columns listeners", () => {
         loadedPost!.text.should.be.equal("Everything about post");
 
         post.title = "Updated post";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedUpdatedPost = await postRepository.findOne({ title: "Updated post" });
+        const loadedUpdatedPost = await postRepository.findOne(qr, { title: "Updated post" });
 
         expect(loadedUpdatedPost).to.be.not.empty;
         expect(loadedUpdatedPost!.counters).to.be.not.empty;
@@ -51,18 +52,20 @@ describe("mongodb > embedded columns listeners", () => {
         loadedUpdatedPost!.title.should.be.equal("Updated post");
         loadedUpdatedPost!.text.should.be.equal("Everything about post");
 
-        await postRepository.remove(post);
+        await postRepository.remove(qr, post);
 
+        await qr.release();
     })));
 
     it("should not work listeners in entity embeddeds if property is optional", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getMongoRepository(Post);
 
+        const qr = connection.createQueryRunner();
         // save posts without embeddeds
         const post = new Post();
         post.title = "Post";
         post.text = "Everything about post";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         const cursor = postRepository.createCursor();
         const loadedPost = await cursor.next();
@@ -70,11 +73,13 @@ describe("mongodb > embedded columns listeners", () => {
         loadedPost.title.should.be.eql("Post");
         loadedPost.text.should.be.eql("Everything about post");
 
+        await qr.release();
     })));
 
     it("should work listeners in entity array embeddeds correctly", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getMongoRepository(Post);
 
+        const qr = connection.createQueryRunner();
         // save posts without embeddeds
         const post = new Post();
         post.title = "Post";
@@ -84,7 +89,7 @@ describe("mongodb > embedded columns listeners", () => {
         const tag2 = new Tags();
         tag2.name = "Tag #2";
         post.tags = [tag1, tag2];
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         const cursor = postRepository.createCursor();
         const loadedPost = await cursor.next();
@@ -94,5 +99,6 @@ describe("mongodb > embedded columns listeners", () => {
         expect(loadedPost!.tags).to.be.not.empty;
         loadedPost!.tags![0].used.should.be.equal(100);
         loadedPost!.tags![1].name.should.be.equal("Tag #2");
+        await qr.release();
     })));
 });

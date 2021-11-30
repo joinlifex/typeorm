@@ -15,23 +15,25 @@ describe("github issues > #1014 Transaction doesn't rollback", () => {
 
     it("should rollback transaction if some operation failed in it", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const testEntity = new TestEntity();
         testEntity.name = "Hello Test";
-        await connection.manager.save(testEntity, { reload: true });
+        await connection.manager.save(qr, testEntity, { reload: true });
 
         let error: any;
         try {
-            await connection.transaction(async manager => {
-                await manager.remove(testEntity);
+            await connection.transaction(qr, async queryRunner => {
+                await queryRunner.manager.remove(queryRunner, testEntity);
 
                 throw new Error();
             });
         } catch (err) { error = err; }
 
         expect(error).to.be.instanceof(Error);
-        const loadedTestEntity = await connection.manager.findOne(TestEntity, 1);
+        const loadedTestEntity = await connection.manager.findOne(qr, TestEntity, 1);
         expect(loadedTestEntity).not.to.be.undefined;
         loadedTestEntity!.should.be.eql({ id: 1, name: "Hello Test" });
+        await qr.release();
     })));
 
 });

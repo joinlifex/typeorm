@@ -16,15 +16,17 @@ describe("github issues > #1147 FindOptions should be able to accept custom wher
     after(() => closeTestingConnections(connections));
 
     it("should properly query using custom sql", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         for (let i = 1; i <= 5; i++) {
             const post1 = new Post();
             post1.title = `post ${i}`;
-            await connection.manager.save(post1);
+            await connection.manager.save(qr, post1);
         }
 
-        const posts = await connection.manager.find(Post, { where: "Post.title LIKE '%3'" });
+        const posts = await connection.manager.find(qr, Post, { where: "Post.title LIKE '%3'" });
         posts.length.should.be.equal(1);
         expect(posts[0].title).to.be.equal("post 3");
+        await qr.release();
     })));
 
 });

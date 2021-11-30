@@ -19,7 +19,7 @@ describe("github issues > #7852 saving a ManyToMany relation tries to insert (DE
   after(() => closeTestingConnections(connections));
 
   it("should insert (entity1.id, entity2.id)", () => Promise.all(connections.map(async connection => {
-
+    const qr = connection.createQueryRunner();
     const userRepository = connection.getRepository(User);
     const usersObjectRepository = connection.getRepository(UsersObject);
 
@@ -28,24 +28,25 @@ describe("github issues > #7852 saving a ManyToMany relation tries to insert (DE
     const userEntity = new User();
     userEntity.id = userId;
     userEntity.objects = [];
-    await userRepository.save(userEntity);
+    await userRepository.save(qr, userEntity);
 
     // Save on object
     const objectId = 1;
     const objectEntity = new UsersObject();
     objectEntity.id = objectId;
-    await usersObjectRepository.save(objectEntity);
+    await usersObjectRepository.save(qr, objectEntity);
 
     // Updating using save method
     userEntity.objects = [objectEntity];
-    await userRepository.save(userEntity);
+    await userRepository.save(qr, userEntity);
 
     const savedUser = await userRepository.createQueryBuilder("User")
       .leftJoinAndMapMany("User.objects", "User.objects", "objects")
-      .getOneOrFail();
+      .getOneOrFail(qr);
 
       expect(savedUser.objects.length).to.be.eql(1);
       expect(savedUser.objects[0]).to.be.instanceOf(UsersObject);
       expect(savedUser.objects[0].id).to.be.eql(objectId);
+      await qr.release();
   })));
 });

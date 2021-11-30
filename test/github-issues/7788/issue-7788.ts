@@ -20,32 +20,34 @@ describe("github issues > #7788 MongoDB update make changes only to first matche
 
     it("should update all documents related to search pattern", () => Promise.all(connections.map(async connection => {
         const testEntityRepository = connection.getMongoRepository(TestEntity);
+        const qr = connection.createQueryRunner();
 
         // save few posts
         const firstEntity = new TestEntity();
         firstEntity.id = "1";
         firstEntity.name = "Test";
-        await testEntityRepository.save(firstEntity);
+        await testEntityRepository.save(qr, firstEntity);
 
         const secondEntity = new TestEntity();
         secondEntity.id = "2";
         secondEntity.name = "Test";
-        await testEntityRepository.save(secondEntity);
+        await testEntityRepository.save(qr, secondEntity);
 
         const thirdEntity = new TestEntity();
         thirdEntity.id = "3";
         thirdEntity.name = "Original";
-        await testEntityRepository.save(thirdEntity);
+        await testEntityRepository.save(qr, thirdEntity);
 
         const fourthEntity = new TestEntity();
         fourthEntity.id = "4";
         fourthEntity.name = "Test";
-        await testEntityRepository.save(fourthEntity);
+        await testEntityRepository.save(qr, fourthEntity);
 
-        await testEntityRepository.update({ name: "Test" }, { name: "Updated" });
+        await testEntityRepository.update(qr, { name: "Test" }, { name: "Updated" });
 
-        const loadedEntities = await testEntityRepository.find();
+        const loadedEntities = await testEntityRepository.find(qr);
 
+        await qr.release();
         expect(loadedEntities[0]).to.be.instanceOf(TestEntity);
         expect(loadedEntities[0]!.id).to.be.eql(firstEntity.id);
         expect(loadedEntities[0]!.name).to.be.equal("Updated");

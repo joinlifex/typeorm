@@ -15,6 +15,7 @@ const options: ConnectionOptions = {
 };
 
 createConnection(options).then(connection => {
+    const qr = connection.createQueryRunner();
 
     let categoryRepository = connection.getTreeRepository(Category);
     
@@ -37,40 +38,40 @@ createConnection(options).then(connection => {
     category1.childCategories = [childCategory1, childCategory2];
 
     return categoryRepository
-        .save(category1)
+        .save(qr, category1)
         .then(category => {
             console.log("Categories has been saved. Lets now load it and all its descendants:");
-            return categoryRepository.findDescendants(category1);
+            return categoryRepository.findDescendants(qr, category1);
         })
         .then(categories => {
             console.log(categories);
             console.log("Descendants has been loaded. Now lets get them in a tree:");
-            return categoryRepository.findDescendantsTree(category1);
+            return categoryRepository.findDescendantsTree(qr, category1);
         })
         .then(categories => {
             console.log(categories);
             console.log("Descendants in a tree has been loaded. Now lets get a count of the descendants:");
-            return categoryRepository.countDescendants(category1);
+            return categoryRepository.countDescendants(qr, category1);
         })
         .then(count => {
             console.log(count);
             console.log("Descendants count has been loaded. Lets now load all ancestors of the childChildCategory1:");
-            return categoryRepository.findAncestors(childChildCategory1);
+            return categoryRepository.findAncestors(qr, childChildCategory1);
         })
         .then(categories => {
             console.log(categories);
             console.log("Ancestors has been loaded. Now lets get them in a tree:");
-            return categoryRepository.findAncestorsTree(childChildCategory1);
+            return categoryRepository.findAncestorsTree(qr, childChildCategory1);
         })
         .then(categories => {
             console.log(categories);
             console.log("Ancestors in a tree has been loaded. Now lets get a count of the ancestors:");
-            return categoryRepository.countAncestors(childChildCategory1);
+            return categoryRepository.countAncestors(qr, childChildCategory1);
         })
         .then(count => {
             console.log(count);
             console.log("Ancestors count has been loaded. Now lets get a all roots (categories without parents):");
-            return categoryRepository.findRoots();
+            return categoryRepository.findRoots(qr);
         })
         .then(categories => {
             console.log(categories);
@@ -102,9 +103,9 @@ createConnection(options).then(connection => {
     childChildCategory2.parentCategory = childCategory2;
 
     return categoryRepository
-        .save(childChildCategory1)
+        .save(qr, childChildCategory1)
         .then(category => {
-            return categoryRepository.save(childChildCategory2);
+            return categoryRepository.save(qr, childChildCategory2);
         })
         .then(category => {
             console.log("Categories has been saved. Lets load them now.");

@@ -23,30 +23,31 @@ describe("github issues > #1089 UUID in ClosureEntity", () => {
         table!.should.exist;
 
         const groupRepository = connection.getTreeRepository(Group);
-
+        const qr = connection.createQueryRunner();
         const a1 = new Group();
         a1.name = "a1";
-        await groupRepository.save(a1);
+        await groupRepository.save(qr, a1);
 
         const a11 = new Group();
         a11.name = "a11";
         a11.parent = a1;
-        await groupRepository.save(a11);
+        await groupRepository.save(qr, a11);
 
         const a12 = new Group();
         a12.name = "a12";
         a12.parent = a1;
-        await groupRepository.save(a12);
+        await groupRepository.save(qr, a12);
 
-        const rootGroups = await groupRepository.findRoots();
+        const rootGroups = await groupRepository.findRoots(qr);
         rootGroups.length.should.be.equal(1);
 
-        const a11Parent = await groupRepository.findAncestors(a11);
+        const a11Parent = await groupRepository.findAncestors(qr, a11);
         a11Parent.length.should.be.equal(2);
 
-        const a1Children = await groupRepository.findDescendants(a1);
+        const a1Children = await groupRepository.findDescendants(qr, a1);
         a1Children.length.should.be.equal(3);
 
+        await qr.release();
     })));
 
 });

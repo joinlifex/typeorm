@@ -15,18 +15,19 @@ describe("github issues > #703.findOne does not return an empty array on OneToMa
 
     it("should not return anything in joined relation if nothing was found", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const category = new Category();
         category.firstId = 1;
         category.secondId = 2;
         category.name = "category about posts";
-        await connection.manager.save(category);
+        await connection.manager.save(qr, category);
 
         const post = new Post();
         post.title = "new post";
         post.categories = [];
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
-        const loadedPost = await connection.getRepository(Post).findOne(1, {
+        const loadedPost = await connection.getRepository(Post).findOne(qr, 1, {
             relations: ["categories"]
         });
 
@@ -34,6 +35,7 @@ describe("github issues > #703.findOne does not return an empty array on OneToMa
         loadedPost!.title.should.be.equal("new post");
         loadedPost!.categories.length.should.be.equal(0);
 
+        await qr.release();
     })));
 
 });

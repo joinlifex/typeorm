@@ -25,6 +25,7 @@ describe("database schema > column types > mssql", () => { // https://github.com
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new Post();
         post.id = 1;
@@ -69,9 +70,9 @@ describe("database schema > column types > mssql", () => { // https://github.com
         post.simpleJson = { param: "VALUE" };
         post.simpleEnum = "A";
         post.simpleClassEnum1 = FruitEnum.Apple;
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.bit.should.be.equal(post.bit);
@@ -164,6 +165,7 @@ describe("database schema > column types > mssql", () => { // https://github.com
         table!.findColumnByName("simpleClassEnum1")!.enum![1].should.be.equal("pineapple");
         table!.findColumnByName("simpleClassEnum1")!.enum![2].should.be.equal("banana");
 
+        await qr.release();
     })));
 
     it("all types should work correctly - persist and hydrate when options are specified on columns", () => Promise.all(connections.map(async connection => {
@@ -172,6 +174,7 @@ describe("database schema > column types > mssql", () => { // https://github.com
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post_with_options");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new PostWithOptions();
         post.id = 1;
@@ -187,9 +190,9 @@ describe("database schema > column types > mssql", () => { // https://github.com
         post.datetime2 = new Date();
         post.time = new Date();
         post.datetimeoffset = new Date();
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.char.should.be.equal(post.char);
         loadedPost.varchar.should.be.equal(post.varchar);
@@ -239,6 +242,7 @@ describe("database schema > column types > mssql", () => { // https://github.com
         table!.findColumnByName("datetimeoffset")!.type.should.be.equal("datetimeoffset");
         table!.findColumnByName("datetimeoffset")!.precision!.should.be.equal(6);
 
+        await qr.release();
     })));
 
     it("all types should work correctly - persist and hydrate when types are not specified on columns", () => Promise.all(connections.map(async connection => {
@@ -247,6 +251,7 @@ describe("database schema > column types > mssql", () => { // https://github.com
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post_without_types");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new PostWithoutTypes();
         post.id = 1;
@@ -255,9 +260,9 @@ describe("database schema > column types > mssql", () => { // https://github.com
         post.binary = Buffer.from("A");
         post.datetime = new Date();
         post.datetime.setMilliseconds(0); // set milliseconds to zero because the SQL Server datetime type only has a 1/300 ms (~3.33̅ ms) resolution
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.bit.should.be.equal(post.bit);
@@ -270,6 +275,7 @@ describe("database schema > column types > mssql", () => { // https://github.com
         table!.findColumnByName("binary")!.type.should.be.equal("binary");
         table!.findColumnByName("datetime")!.type.should.be.equal("datetime");
 
+        await qr.release();
     })));
 
 });

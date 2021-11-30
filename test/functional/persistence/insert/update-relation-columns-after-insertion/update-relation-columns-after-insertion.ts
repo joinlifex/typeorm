@@ -15,20 +15,22 @@ describe("persistence > insert > update-relation-columns-after-insertion", () =>
     after(() => closeTestingConnections(connections));
 
     it("should work perfectly", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+            
         // create category
         const category1 = new Category();
         category1.name = "Category saved by cascades #1";
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         // create post
         const post1 = new Post();
         post1.title = "Hello Post #1";
         post1.category = category1;
-        await connection.manager.save(post1);
+        await connection.manager.save(qr, post1);
 
         // todo: HERE FOR CALCULATIONS WE NEED TO CALCULATE OVERALL NUMBER OF QUERIES TO PREVENT EXTRA QUERIES
 
+        await qr.release();
     })));
 
 });

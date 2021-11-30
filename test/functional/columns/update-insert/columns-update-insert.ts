@@ -16,6 +16,7 @@ describe("columns > update and insert control", () => {
     it("should respect column update and insert properties", () => Promise.all(connections.map(async connection => {
 
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // create and save a post first
         const post = new Post();
@@ -24,10 +25,10 @@ describe("columns > update and insert control", () => {
         post.authorFirstName = "Umed";
         post.authorMiddleName = "B";
         post.authorLastName = "Good";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // check if all columns are as expected
-        let loadedPost = await postRepository.findOne(post.id);
+        let loadedPost = await postRepository.findOne(qr, post.id);
         expect(loadedPost!.title).to.be.equal("About columns");
         expect(loadedPost!.text).to.be.equal("Some text about columns");
         expect(loadedPost!.authorFirstName).to.be.equal("Umed");
@@ -40,14 +41,16 @@ describe("columns > update and insert control", () => {
         post.authorFirstName = "Umed1";
         post.authorMiddleName = "B1";
         post.authorLastName = "Good1";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // check if all columns are as expected
-        loadedPost = await postRepository.findOne(post.id);
+        loadedPost = await postRepository.findOne(qr, post.id);
         expect(loadedPost!.title).to.be.equal("About columns1");
         expect(loadedPost!.text).to.be.equal("Some text about columns1");
         expect(loadedPost!.authorFirstName).to.be.equal("Umed");      // update blocked
         expect(loadedPost!.authorMiddleName).to.be.equal("B1");
         expect(loadedPost!.authorLastName).to.be.equal("Default");    // update blocked
+    
+        await qr.release();
     })));
 });

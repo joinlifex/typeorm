@@ -60,7 +60,7 @@ export class MongoRepository<Entity extends ObjectLiteral> extends Repository<En
      * Raw SQL query execution is not supported by MongoDB.
      * Calling this method will return an error.
      */
-    query(query: string, parameters?: any[]): Promise<any> {
+    query(queryRunner: QueryRunner, query: string, parameters?: any[]): Promise<any> {
         throw new TypeORMError(`Queries aren't supported by MongoDB.`);
     }
 
@@ -68,15 +68,15 @@ export class MongoRepository<Entity extends ObjectLiteral> extends Repository<En
      * Using Query Builder with MongoDB is not supported yet.
      * Calling this method will return an error.
      */
-    createQueryBuilder(alias: string, queryRunner?: QueryRunner): SelectQueryBuilder<Entity> {
+    createQueryBuilder(alias: string): SelectQueryBuilder<Entity> {
         throw new TypeORMError(`Query Builder is not supported by MongoDB.`);
     }
 
     /**
      * Finds entities that match given find options or conditions.
      */
-    find(optionsOrConditions?: FindManyOptions<Entity>|Partial<Entity>): Promise<Entity[]> {
-        return this.manager.find(this.metadata.target, optionsOrConditions);
+    find(queryRunner: QueryRunner, optionsOrConditions?: FindManyOptions<Entity>|Partial<Entity>): Promise<Entity[]> {
+        return this.manager.find(queryRunner, this.metadata.target, optionsOrConditions);
     }
 
     /**
@@ -84,23 +84,23 @@ export class MongoRepository<Entity extends ObjectLiteral> extends Repository<En
      * Also counts all entities that match given conditions,
      * but ignores pagination settings (from and take options).
      */
-    findAndCount(optionsOrConditions?: FindManyOptions<Entity>|Partial<Entity>): Promise<[ Entity[], number ]> {
-        return this.manager.findAndCount(this.metadata.target, optionsOrConditions);
+    findAndCount(queryRunner: QueryRunner, optionsOrConditions?: FindManyOptions<Entity>|Partial<Entity>): Promise<[ Entity[], number ]> {
+        return this.manager.findAndCount(queryRunner, this.metadata.target, optionsOrConditions);
     }
 
     /**
      * Finds entities by ids.
      * Optionally find options can be applied.
      */
-    findByIds(ids: any[], optionsOrConditions?: FindManyOptions<Entity>|Partial<Entity>): Promise<Entity[]> {
-        return this.manager.findByIds(this.metadata.target, ids, optionsOrConditions);
+    findByIds(queryRunner: QueryRunner, ids: any[], optionsOrConditions?: FindManyOptions<Entity>|Partial<Entity>): Promise<Entity[]> {
+        return this.manager.findByIds(queryRunner, this.metadata.target, ids, optionsOrConditions);
     }
 
     /**
      * Finds first entity that matches given conditions and/or find options.
      */
-    findOne(optionsOrConditions?: string|number|Date|ObjectID|FindOneOptions<Entity>|Partial<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity|undefined> {
-        return this.manager.findOne(this.metadata.target, optionsOrConditions as any, maybeOptions as any);
+    findOne(queryRunner: QueryRunner, optionsOrConditions?: string|number|Date|ObjectID|FindOneOptions<Entity>|Partial<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity|undefined> {
+        return this.manager.findOne(queryRunner, this.metadata.target, optionsOrConditions as any, maybeOptions as any);
     }
 
     /**
@@ -142,8 +142,8 @@ export class MongoRepository<Entity extends ObjectLiteral> extends Repository<En
     /**
      * Count number of matching documents in the db to a query.
      */
-    count(query?: ObjectLiteral, options?: MongoCountPreferences): Promise<number> {
-        return this.manager.count(this.metadata.target, query || {}, options);
+    count(queryRunner: QueryRunner, query?: ObjectLiteral, options?: MongoCountPreferences): Promise<number> {
+        return this.manager.count(queryRunner, this.metadata.target, query || {}, options);
     }
 
     /**

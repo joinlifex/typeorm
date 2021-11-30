@@ -12,6 +12,7 @@ describe("benchmark > bulk-save > case-querybuilder", () => {
 
     it("testing bulk save of 10000 objects", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const documents: Document[] = [];
         for (let i = 0; i < 10000; i++) {
             const document = new Document();
@@ -26,7 +27,7 @@ describe("benchmark > bulk-save > case-querybuilder", () => {
         }
 
 
-        await connection.createQueryRunner().query(`CREATE TABLE "document" ("id" text NOT NULL, "docId" text NOT NULL, "label" text NOT NULL, "context" text NOT NULL, "date" TIMESTAMP WITH TIME ZONE NOT NULL, CONSTRAINT "PK_e57d3357f83f3cdc0acffc3d777" PRIMARY KEY ("id"))`);
+        await qr.query(`CREATE TABLE "document" ("id" text NOT NULL, "docId" text NOT NULL, "label" text NOT NULL, "context" text NOT NULL, "date" TIMESTAMP WITH TIME ZONE NOT NULL, CONSTRAINT "PK_e57d3357f83f3cdc0acffc3d777" PRIMARY KEY ("id"))`);
         await connection.manager.createQueryBuilder()
             .insert()
             .into("document", [
@@ -37,7 +38,8 @@ describe("benchmark > bulk-save > case-querybuilder", () => {
               "date",
             ])
             .values(documents)
-            .execute();
+            .execute(qr);
+        await qr.release();
     })));
 
 });

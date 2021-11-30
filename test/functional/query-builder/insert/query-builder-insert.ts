@@ -21,6 +21,7 @@ describe("query builder > insert", () => {
 
     it("should perform insertion correctly", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user = new User();
         user.name = "Alex Messer";
 
@@ -28,7 +29,7 @@ describe("query builder > insert", () => {
             .insert()
             .into(User)
             .values(user)
-            .execute();
+            .execute(qr);
 
         await connection.createQueryBuilder()
             .insert()
@@ -36,21 +37,22 @@ describe("query builder > insert", () => {
             .values({
                 name: "Dima Zotov"
             })
-            .execute();
+            .execute(qr);
 
         await connection.getRepository(User)
             .createQueryBuilder("user")
             .insert()
             .values({ name: "Muhammad Mirzoev" })
-            .execute();
+            .execute(qr);
 
-        const users = await connection.getRepository(User).find();
+        const users = await connection.getRepository(User).find(qr);
         users.should.be.eql([
             { id: 1, name: "Alex Messer" },
             { id: 2, name: "Dima Zotov" },
             { id: 3, name: "Muhammad Mirzoev" }
         ]);
 
+        await qr.release();
     })));
 
     it("should perform bulk insertion correctly", () => Promise.all(connections.map(async connection => {
@@ -58,6 +60,7 @@ describe("query builder > insert", () => {
         if (connection.driver instanceof OracleDriver || connection.driver instanceof SapDriver)
             return;
 
+        const qr = connection.createQueryRunner();
         await connection.createQueryBuilder()
             .insert()
             .into(User)
@@ -66,31 +69,34 @@ describe("query builder > insert", () => {
                 { name: "Bakhrom Baubekov" },
                 { name: "Bakhodur Kandikov" },
             ])
-            .execute();
+            .execute(qr);
 
-        const users = await connection.getRepository(User).find();
+        const users = await connection.getRepository(User).find(qr);
         users.should.be.eql([
             { id: 1, name: "Umed Khudoiberdiev" },
             { id: 2, name: "Bakhrom Baubekov" },
             { id: 3, name: "Bakhodur Kandikov" }
         ]);
 
+        await qr.release();
     })));
 
     it("should be able to use sql functions", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         await connection.createQueryBuilder()
             .insert()
             .into(User)
             .values({
                 name: () => connection.driver instanceof SqlServerDriver ? "SUBSTRING('Dima Zotov', 1, 4)" : "SUBSTR('Dima Zotov', 1, 4)"
             })
-            .execute();
+            .execute(qr);
 
-        const loadedUser1 = await connection.getRepository(User).findOne({ name: "Dima" });
+        const loadedUser1 = await connection.getRepository(User).findOne(qr, { name: "Dima" });
         expect(loadedUser1).to.exist;
         loadedUser1!.name.should.be.equal("Dima");
 
+        await qr.release();
     })));
 
     it("should be able to insert entities with different properties set even inside embeds", () => Promise.all(connections.map(async connection => {
@@ -99,6 +105,7 @@ describe("query builder > insert", () => {
         if (connection.driver instanceof AbstractSqliteDriver || connection.driver instanceof OracleDriver || connection.driver instanceof SapDriver)
             return;
 
+        const qr = connection.createQueryRunner();
         await connection
             .createQueryBuilder()
             .insert()
@@ -113,9 +120,9 @@ describe("query builder > insert", () => {
             }, {
                 url: "2.jpg"
             }])
-            .execute();
+            .execute(qr);
 
-        const loadedPhoto1 = await connection.getRepository(Photo).findOne({ url: "1.jpg" });
+        const loadedPhoto1 = await connection.getRepository(Photo).findOne(qr, { url: "1.jpg" });
         expect(loadedPhoto1).to.exist;
         loadedPhoto1!.should.be.eql({
             id: 1,
@@ -127,7 +134,7 @@ describe("query builder > insert", () => {
             }
         });
 
-        const loadedPhoto2 = await connection.getRepository(Photo).findOne({ url: "2.jpg" });
+        const loadedPhoto2 = await connection.getRepository(Photo).findOne(qr, { url: "2.jpg" });
         expect(loadedPhoto2).to.exist;
         loadedPhoto2!.should.be.eql({
             id: 2,
@@ -139,6 +146,7 @@ describe("query builder > insert", () => {
             }
         });
 
+        await qr.release();
     })));
 
 });

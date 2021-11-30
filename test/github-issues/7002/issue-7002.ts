@@ -28,13 +28,15 @@ describe("github issues > #7002 cascade save fails if the child entity has Creat
             connections.map(async (connection) => {
                 const foo = new Foo();
                 foo.text = "This is a feature post";
+                const qr = connection.createQueryRunner();
 
-                await connection.manager.save(
-                    connection.getRepository(Bar).create({
+                await connection.manager.save(qr,
+                    connection.getRepository(Bar).create(qr, {
                         title: "Feature Post",
                         foo,
                     })
                 );
+                await qr.release();
             })
         ));
 });

@@ -21,6 +21,7 @@ describe("mongodb > embedded columns", () => {
     it("should insert / update / remove entity with embedded correctly", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
 
+        const qr = connection.createQueryRunner();
         // save few posts
         const post = new Post();
         post.title = "Post";
@@ -31,9 +32,9 @@ describe("mongodb > embedded columns", () => {
         post.counters.favorites = 10;
         post.counters.information = new Information();
         post.counters.information.description = "Hello post";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = await postRepository.findOne({ title: "Post" });
+        const loadedPost = await postRepository.findOne(qr, { title: "Post" });
 
         expect(loadedPost).to.be.not.empty;
         expect(loadedPost!.counters).to.be.not.empty;
@@ -51,9 +52,9 @@ describe("mongodb > embedded columns", () => {
         post.title = "Updated post";
         post.counters.comments = 2;
         post.counters.information.description = "Hello updated post";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedUpdatedPost = await postRepository.findOne({ title: "Updated post" });
+        const loadedUpdatedPost = await postRepository.findOne(qr, { title: "Updated post" });
 
         expect(loadedUpdatedPost).to.be.not.empty;
         expect(loadedUpdatedPost!.counters).to.be.not.empty;
@@ -68,18 +69,20 @@ describe("mongodb > embedded columns", () => {
         loadedUpdatedPost!.counters.information.should.be.instanceOf(Information);
         loadedUpdatedPost!.counters.information.description.should.be.equal("Hello updated post");
 
-        await postRepository.remove(post);
+        await postRepository.remove(qr, post);
 
-        const removedPost = await postRepository.findOne({ title: "Post" });
-        const removedUpdatedPost = await postRepository.findOne({ title: "Updated post" });
+        const removedPost = await postRepository.findOne(qr, { title: "Post" });
+        const removedUpdatedPost = await postRepository.findOne(qr, { title: "Updated post" });
         expect(removedPost).to.be.undefined;
         expect(removedUpdatedPost).to.be.undefined;
 
+        await qr.release();
     })));
 
     it("should store results in correct camelCase format", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getMongoRepository(Post);
 
+        const qr = connection.createQueryRunner();
         // save few posts
         const post = new Post();
         post.title = "Post";
@@ -90,7 +93,7 @@ describe("mongodb > embedded columns", () => {
         post.counters.favorites = 10;
         post.counters.information = new Information();
         post.counters.information.description = "Hello post";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         const cursor = postRepository.createCursor();
         const loadedPost = await cursor.next();
@@ -102,11 +105,13 @@ describe("mongodb > embedded columns", () => {
         loadedPost.counters.favorites.should.be.eql(10);
         loadedPost.counters.information.description.should.be.eql("Hello post");
 
+        await qr.release();
     })));
 
     it("should transform results to correct boolean value", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getMongoRepository(Post);
 
+        const qr = connection.createQueryRunner();
         // save few posts
         const post = new Post();
         post.title = "Post #1";
@@ -119,21 +124,23 @@ describe("mongodb > embedded columns", () => {
         post.counters.information.description = "Hello post";
         post.counters.information.editable = false;
         post.counters.information.visible = true;
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPosts = await postRepository.find();
+        const loadedPosts = await postRepository.find(qr);
 
         loadedPosts[0]!.counters.comments.should.be.equal(0);
         loadedPosts[0]!.counters.favorites.should.be.equal(1);
         loadedPosts[0]!.counters.information.visible.should.be.equal(true);
         loadedPosts[0]!.counters.information.editable.should.be.equal(false);
 
+        await qr.release();
     })));
 
     
     it("should transform entity with nested embedded columns correctly", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getMongoRepository(Post);
 
+        const qr = connection.createQueryRunner();
         // save few posts
         const post = new Post();
         post.title = "Post #1";
@@ -148,14 +155,15 @@ describe("mongodb > embedded columns", () => {
         post.counters.extraInformation.lastEdit = new EditHistory();
         post.counters.extraInformation.lastEdit.title = "Old Post Title";
         post.counters.extraInformation.lastEdit.text = "Not everything about post";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const [loadedPost] = await postRepository.find();
+        const [loadedPost] = await postRepository.find(qr);
 
         loadedPost.counters.comments.should.be.equal(0);
         loadedPost.counters.favorites.should.be.equal(1);
         loadedPost.counters.extraInformation.lastEdit.title.should.be.eql("Old Post Title");
         loadedPost.counters.extraInformation.lastEdit.text.should.be.eql("Not everything about post");
 
+        await qr.release();
     })));
 });

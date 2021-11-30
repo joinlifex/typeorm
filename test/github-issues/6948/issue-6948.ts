@@ -21,18 +21,20 @@ describe("github issues > #6948 TreeRepository's findRoots query incorrectly whe
     it("entity parent column should work with custom primary column names ", () =>
         Promise.all(
             connections.map(async (connection) => {
+                const qr = connection.createQueryRunner();
                 const categoryRepository = connection.getTreeRepository(
                     Category
                 );
-                await categoryRepository.save(
-                    categoryRepository.create({
+                await categoryRepository.save(qr, 
+                    categoryRepository.create(qr, {
                         cat_name: "Root node",
                     })
                 );
-                const rootNodes = await categoryRepository.findRoots();
+                const rootNodes = await categoryRepository.findRoots(qr);
                 rootNodes[0].should.deep.include({
                     cat_name: "Root node",
                 });
+                await qr.release();
             })
         ));
 });

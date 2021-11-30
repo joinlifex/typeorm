@@ -24,26 +24,29 @@ describe("github issues > #6815 RelationId() on nullable relation returns 'null'
 
     it("should return null as childId if child doesn't exist", () => Promise.all(
         connections.map(async connection => {
+            const qr = connection.createQueryRunner();
             const em = new EntityManager(connection);
-            const parent = em.create(ParentEntity);
-            await em.save(parent);
+            const parent = em.create(qr, ParentEntity);
+            await em.save(qr, parent);
 
-            const loaded = await em.findOneOrFail(ParentEntity, parent.id);
+            const loaded = await em.findOneOrFail(qr, ParentEntity, parent.id);
             expect(loaded.childId).to.be.null;
+            await qr.release();
         })
     ));
 
     it("should return string as childId if child exists", () => Promise.all(
         connections.map(async connection => {
+            const qr = connection.createQueryRunner();
             const em = new EntityManager(connection);
-            const child = em.create(ChildEntity);
-            await em.save(child);
+            const child = em.create(qr, ChildEntity);
+            await em.save(qr, child);
 
-            const parent = em.create(ParentEntity);
+            const parent = em.create(qr, ParentEntity);
             parent.child = child;
-            await em.save(parent);
+            await em.save(qr, parent);
 
-            const loaded = await em.findOneOrFail(ParentEntity, parent.id);
+            const loaded = await em.findOneOrFail(qr, ParentEntity, parent.id);
 
             if (connection.name === "cockroachdb") {
                 // CockroachDB returns id as a number.
@@ -51,6 +54,7 @@ describe("github issues > #6815 RelationId() on nullable relation returns 'null'
             } else {
                 expect(loaded.childId).to.equal(child.id);
             }
+            await qr.release();
         })
     ));
 });

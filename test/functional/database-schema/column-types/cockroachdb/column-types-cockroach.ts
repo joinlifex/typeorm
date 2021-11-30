@@ -23,6 +23,7 @@ describe("database schema > column types > cockroachdb", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new Post();
         post.id = 1;
@@ -48,7 +49,7 @@ describe("database schema > column types > cockroachdb", () => {
         post.charVarying = "This is char varying";
         post.characterVarying = "This is character varying";
         post.text = "This is text";
-        post.string = "This is string";
+        post["string"] = "This is string";
         post.bytes = Buffer.alloc(13, "This is bytes");
         post.bytea = Buffer.alloc(13, "This is bytea");
         post.blob = Buffer.alloc(12, "This is blob");
@@ -64,7 +65,7 @@ describe("database schema > column types > cockroachdb", () => {
         post.timestampWithoutTimeZone.setMilliseconds(0);
         post.timestamptz = new Date();
         post.timestamptz.setMilliseconds(0);
-        post.boolean = true;
+        post["boolean"] = true;
         post.bool = false;
         post.inet = "192.168.100.128";
         post.uuid = "0e37df36-f698-11e6-8dd4-cb9ced3df976";
@@ -73,9 +74,9 @@ describe("database schema > column types > cockroachdb", () => {
         post.array = ["1", "2", "3"];
         post.simpleArray = ["A", "B", "C"];
         post.simpleJson = { param: "VALUE" };
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.integer.should.be.equal(post.integer);
@@ -174,6 +175,7 @@ describe("database schema > column types > cockroachdb", () => {
         table!.findColumnByName("simpleArray")!.type.should.be.equal("string");
         table!.findColumnByName("simpleJson")!.type.should.be.equal("string");
 
+        await qr.release();
     })));
 
     it("all types should work correctly - persist and hydrate when options are specified on columns", () => Promise.all(connections.map(async connection => {
@@ -182,6 +184,7 @@ describe("database schema > column types > cockroachdb", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post_with_options");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new PostWithOptions();
         post.id = 1;
@@ -193,10 +196,10 @@ describe("database schema > column types > cockroachdb", () => {
         post.varchar = "This is varchar";
         post.characterVarying = "This is character varying";
         post.charVarying = "This is char varying";
-        post.string = "This is string";
-        await postRepository.save(post);
+        post["string"] = "This is string";
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.numeric.should.be.equal(post.numeric);
         loadedPost.decimal.should.be.equal(post.decimal);
@@ -230,6 +233,7 @@ describe("database schema > column types > cockroachdb", () => {
         table!.findColumnByName("string")!.type.should.be.equal("string");
         table!.findColumnByName("string")!.length!.should.be.equal("30");
 
+        await qr.release();
     })));
 
     it("all types should work correctly - persist and hydrate when types are not specified on columns", () => Promise.all(connections.map(async connection => {
@@ -238,16 +242,17 @@ describe("database schema > column types > cockroachdb", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post_without_types");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new PostWithoutTypes();
         post.id = 1;
         post.name = "Post";
-        post.boolean = true;
+        post["boolean"] = true;
         post.datetime = new Date();
         post.datetime.setMilliseconds(0);
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.boolean.should.be.equal(post.boolean);
@@ -258,6 +263,7 @@ describe("database schema > column types > cockroachdb", () => {
         table!.findColumnByName("boolean")!.type.should.be.equal("bool");
         table!.findColumnByName("datetime")!.type.should.be.equal("timestamp");
 
+        await qr.release();
     })));
 
 });

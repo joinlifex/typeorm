@@ -13,9 +13,11 @@ describe("sqlite driver > throws an error when queried after closing connection"
     after(() => closeTestingConnections(connections));
 
     it("should throw", () => Promise.all(connections.map(async connection => {
-        await connection.close()
-        await expect(connection.query('select * from sqlite_master;')).to.rejectedWith(
-            'Connection with sqlite database is not established. Check connection configuration.'
+        const qr = connection.createQueryRunner();
+        await connection.close();
+        await expect(connection.query(qr, "select * from sqlite_master;")).to.rejectedWith(
+            "Connection with sqlite database is not established. Check connection configuration."
         );
+        await qr.release();
     })));
 });

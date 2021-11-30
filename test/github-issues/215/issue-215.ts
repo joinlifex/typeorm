@@ -16,18 +16,19 @@ describe("github issues > #215 invalid replacements of join conditions", () => {
 
     it("should not do invalid replacements of join conditions", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const author = new Author();
         author.name = "John Doe";
-        await connection.manager.save(author);
+        await connection.manager.save(qr, author);
 
         const abbrev = new Abbreviation();
         abbrev.name = "test";
-        await connection.manager.save(abbrev);
+        await connection.manager.save(qr, abbrev);
 
         const post = new Post();
         post.author = author;
         post.abbreviation = abbrev;
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         // generated query should end with "ON p.abbreviation_id = ab.id"
         // not with ON p.abbreviation.id = ab.id (notice the dot) which would
@@ -36,9 +37,10 @@ describe("github issues > #215 invalid replacements of join conditions", () => {
             .createQueryBuilder(Post, "p")
             .leftJoinAndMapOne("p.author", Author, "n", "p.author_id = n.id")
             .leftJoinAndMapOne("p.abbreviation", Abbreviation, "ab", "p.abbreviation_id = ab.id")
-            .getMany();
+            .getMany(qr);
 
         loadedPosts.length.should.be.equal(1);
+        await qr.release();
     })));
 
 });

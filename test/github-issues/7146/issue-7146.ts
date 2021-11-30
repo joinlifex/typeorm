@@ -16,8 +16,10 @@ describe("github issues > #7146 Lazy relations resolve to 'undefined' instead of
     after(() => closeTestingConnections(connections));
 
     async function prepareData(connection: Connection) {
+        const qr = connection.createQueryRunner();
         const savedPost = new Post();
-        await connection.manager.save(savedPost);
+        await connection.manager.save(qr, savedPost);
+        await qr.release();
     }
 
     // The following 3 tests hilight the reported issue.
@@ -27,20 +29,26 @@ describe("github issues > #7146 Lazy relations resolve to 'undefined' instead of
 
         it("should return null if ManyToOne relation has NULL in database", () => Promise.all(connections.map(async connection => {
             await prepareData(connection);
-            const post = (await connection.manager.findOneOrFail(Post, 1));
+            const qr = connection.createQueryRunner();
+            const post = (await connection.manager.findOneOrFail(qr, Post, 1));
             expect(await post.lazyManyToOne).to.be.null;
+            await qr.release();
         })));
 
         it("should return null if OneToOne+JoinColumn relation has NULL in database", () => Promise.all(connections.map(async connection => {
             await prepareData(connection);
-            const post = (await connection.manager.findOneOrFail(Post, 1));
+            const qr = connection.createQueryRunner();
+            const post = (await connection.manager.findOneOrFail(qr, Post, 1));
             expect(await post.lazyOneToOneOwner).to.be.null;
+            await qr.release();
         })));
 
         it("should return null if OneToOne relation has NULL in database", () => Promise.all(connections.map(async connection => {
             await prepareData(connection);
-            const post = (await connection.manager.findOneOrFail(Post, 1));
+            const qr = connection.createQueryRunner();
+            const post = (await connection.manager.findOneOrFail(qr, Post, 1));
             expect(await post.lazyOneToOne).to.be.null;
+            await qr.release();
         })));
 
     });
@@ -49,20 +57,26 @@ describe("github issues > #7146 Lazy relations resolve to 'undefined' instead of
 
         it("should return null if ManyToOne relation has NULL in database", () => Promise.all(connections.map(async connection => {
             await prepareData(connection);
-            const post = (await connection.manager.findOneOrFail(Post, 1, { relations: ['lazyManyToOne'] }));
+            const qr = connection.createQueryRunner();
+            const post = (await connection.manager.findOneOrFail(qr, Post, 1, { relations: ["lazyManyToOne"] }));
             expect(await post.lazyManyToOne).to.be.null;
+            await qr.release();
         })));
 
         it("should return null if OneToOne+JoinColumn relation has NULL in database", () => Promise.all(connections.map(async connection => {
             await prepareData(connection);
-            const post = (await connection.manager.findOneOrFail(Post, 1, { relations: ['lazyOneToOneOwner'] }));
+            const qr = connection.createQueryRunner();
+            const post = (await connection.manager.findOneOrFail(qr, Post, 1, { relations: ["lazyOneToOneOwner"] }));
             expect(await post.lazyOneToOneOwner).to.be.null;
+            await qr.release();
         })));
 
         it("should return null if OneToOne relation has NULL in database", () => Promise.all(connections.map(async connection => {
             await prepareData(connection);
-            const post = (await connection.manager.findOneOrFail(Post, 1, { relations: ['lazyOneToOne'] }));
+            const qr = connection.createQueryRunner();
+            const post = (await connection.manager.findOneOrFail(qr, Post, 1, { relations: ["lazyOneToOne"] }));
             expect(await post.lazyOneToOne).to.be.null;
+            await qr.release();
         })));
 
     });
@@ -71,20 +85,26 @@ describe("github issues > #7146 Lazy relations resolve to 'undefined' instead of
 
         it("should return null if ManyToOne relation has NULL in database", () => Promise.all(connections.map(async connection => {
             await prepareData(connection);
-            const post = (await connection.manager.findOneOrFail(Post, 1));
+            const qr = connection.createQueryRunner();
+            const post = (await connection.manager.findOneOrFail(qr, Post, 1));
             expect(post.eagerManyToOne).to.be.null;
+            await qr.release();
         })));
 
         it("should return null if OneToOne+JoinColumn relation has NULL in database", () => Promise.all(connections.map(async connection => {
             await prepareData(connection);
-            const post = (await connection.manager.findOneOrFail(Post, 1));
+            const qr = connection.createQueryRunner();
+            const post = (await connection.manager.findOneOrFail(qr, Post, 1));
             expect(post.eagerOneToOneOwner).to.be.null;
+            await qr.release();
         })));
 
         it("should return null if OneToOne relation has NULL in database", () => Promise.all(connections.map(async connection => {
             await prepareData(connection);
-            const post = (await connection.manager.findOneOrFail(Post, 1));
+            const qr = connection.createQueryRunner();
+            const post = (await connection.manager.findOneOrFail(qr, Post, 1));
             expect(post.eagerOneToOne).to.be.null;
+            await qr.release();
         })));
 
     });

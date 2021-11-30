@@ -24,7 +24,8 @@ describe("persistence > partial persist", () => {
     // -------------------------------------------------------------------------
 
     it("should persist partial entities without data loss", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+            
         const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
@@ -33,7 +34,7 @@ describe("persistence > partial persist", () => {
         newCategory.id = 1;
         newCategory.name = "Animals";
         newCategory.position = 999;
-        await categoryRepository.save(newCategory);
+        await categoryRepository.save(qr, newCategory);
 
         // save a new post
         const newPost = new Post();
@@ -45,10 +46,10 @@ describe("persistence > partial persist", () => {
         newPost.counters.stars = 5;
         newPost.counters.commentCount = 2;
         newPost.counters.metadata = "Animals Metadata";
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         // load a post
-        const loadedPost = await postRepository.findOne(newPost.id, {
+        const loadedPost = await postRepository.findOne(qr, newPost.id, {
             join: {
                 alias: "post",
                 leftJoinAndSelect: {
@@ -68,10 +69,10 @@ describe("persistence > partial persist", () => {
         loadedPost!.counters.commentCount.should.be.equal(2);
 
         // now update partially
-        await postRepository.update({ title: "All about animals" }, { title: "All about bears" });
+        await postRepository.update(qr, { title: "All about animals" }, { title: "All about bears" });
 
         // now check if update worked as expected, title is updated and all other columns are not touched
-        const loadedPostAfterTitleUpdate = await postRepository.findOne(1, {
+        const loadedPostAfterTitleUpdate = await postRepository.findOne(qr, 1, {
             join: {
                 alias: "post",
                 leftJoinAndSelect: {
@@ -91,10 +92,10 @@ describe("persistence > partial persist", () => {
         loadedPostAfterTitleUpdate!.counters.commentCount.should.be.equal(2);
 
         // now update in partial embeddable column
-        await postRepository.update({ id: 1 }, { counters: { stars: 10 } });
+        await postRepository.update(qr, { id: 1 }, { counters: { stars: 10 } });
 
         // now check if update worked as expected, stars counter is updated and all other columns are not touched
-        const loadedPostAfterStarsUpdate = await postRepository.findOne(1, {
+        const loadedPostAfterStarsUpdate = await postRepository.findOne(qr, 1, {
             join: {
                 alias: "post",
                 leftJoinAndSelect: {
@@ -114,10 +115,10 @@ describe("persistence > partial persist", () => {
         loadedPostAfterStarsUpdate!.counters.commentCount.should.be.equal(2);
 
         // now update in relational column
-        await postRepository.save({ id: 1, categories: [{ id: 1, name: "Bears" }] });
+        await postRepository.save(qr, { id: 1, categories: [{ id: 1, name: "Bears" }] });
 
         // now check if update worked as expected, name of category is updated and all other columns are not touched
-        const loadedPostAfterCategoryUpdate = await postRepository.findOne(1, {
+        const loadedPostAfterCategoryUpdate = await postRepository.findOne(qr, 1, {
             join: {
                 alias: "post",
                 leftJoinAndSelect: {
@@ -136,6 +137,7 @@ describe("persistence > partial persist", () => {
         loadedPostAfterCategoryUpdate!.counters.stars.should.be.equal(10);
         loadedPostAfterCategoryUpdate!.counters.commentCount.should.be.equal(2);
 
+        await qr.release();
     })));
 
 });

@@ -15,8 +15,10 @@ describe("github issues > #2005", () => {
     it("should be able to find by boolean find", () => Promise.all(connections.map(async connection => {
         const user = new User();
         user.activated = true;
-        await connection.manager.save(user);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, user);
         user.activated.should.be.equal(true);
+        await qr.release();
     })));
 
 });

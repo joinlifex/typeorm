@@ -15,6 +15,7 @@ describe("github issues > #388 skip and take with string ID don't work", () => {
 
     it("should load posts with string id successfully", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const posts: Post[] = [];
         for (let i = 1; i <= 25; i++) {
             const post = new Post();
@@ -23,19 +24,20 @@ describe("github issues > #388 skip and take with string ID don't work", () => {
             post.index = i;
             posts.push(post);
         }
-        await connection.manager.save(posts);
+        await connection.manager.save(qr, posts);
 
         const loadedPosts = await connection.manager
             .createQueryBuilder(Post, "post")
             .skip(5)
             .take(10)
             .orderBy("post.index")
-            .getMany();
+            .getMany(qr);
 
         expect(loadedPosts).to.length(10);
         expect(loadedPosts[0].lala_id).to.be.equal("post #6");
         expect(loadedPosts[9].lala_id).to.be.equal("post #15");
 
+        await qr.release();
     })));
 
 });

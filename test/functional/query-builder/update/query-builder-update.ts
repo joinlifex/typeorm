@@ -21,18 +21,19 @@ describe("query builder > update", () => {
 
     it("should perform updation correctly", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user = new User();
         user.name = "Alex Messer";
 
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         await connection.createQueryBuilder()
             .update(User)
             .set({ name: "Dima Zotov" })
             .where("name = :name", { name: "Alex Messer" })
-            .execute();
+            .execute(qr);
 
-        const loadedUser1 = await connection.getRepository(User).findOne({ name: "Dima Zotov" });
+        const loadedUser1 = await connection.getRepository(User).findOne(qr, { name: "Dima Zotov" });
         expect(loadedUser1).to.exist;
         loadedUser1!.name.should.be.equal("Dima Zotov");
 
@@ -41,20 +42,22 @@ describe("query builder > update", () => {
             .update()
             .set({ name: "Muhammad Mirzoev" })
             .where("name = :name", { name: "Dima Zotov" })
-            .execute();
+            .execute(qr);
 
-        const loadedUser2 = await connection.getRepository(User).findOne({ name: "Muhammad Mirzoev" });
+        const loadedUser2 = await connection.getRepository(User).findOne(qr, { name: "Muhammad Mirzoev" });
         expect(loadedUser2).to.exist;
         loadedUser2!.name.should.be.equal("Muhammad Mirzoev");
 
+        await qr.release();
     })));
 
     it("should be able to use sql functions", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user = new User();
         user.name = "Alex Messer";
 
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         await connection.createQueryBuilder()
             .update(User)
@@ -62,22 +65,24 @@ describe("query builder > update", () => {
             .where("name = :name", {
                 name: "Alex Messer"
             })
-            .execute();
+            .execute(qr);
 
 
-        const loadedUser1 = await connection.getRepository(User).findOne({ name: "Dima" });
+        const loadedUser1 = await connection.getRepository(User).findOne(qr, { name: "Dima" });
         expect(loadedUser1).to.exist;
         loadedUser1!.name.should.be.equal("Dima");
 
+        await qr.release();
     })));
 
     it("should update and escape properly", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user = new User();
         user.name = "Dima";
         user.likesCount = 1;
 
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         const qb = connection.createQueryBuilder();
         await qb
@@ -85,18 +90,20 @@ describe("query builder > update", () => {
             .set({ likesCount: () => qb.escape(`likesCount`) + " + 1" })
             // .set({ likesCount: 2 })
             .where("likesCount = 1")
-            .execute();
+            .execute(qr);
 
-        const loadedUser1 = await connection.getRepository(User).findOne({ likesCount: 2 });
+        const loadedUser1 = await connection.getRepository(User).findOne(qr, { likesCount: 2 });
         expect(loadedUser1).to.exist;
         loadedUser1!.name.should.be.equal("Dima");
 
+        await qr.release();
     })));
 
     it("should update properties inside embeds as well", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         // save few photos
-        await connection.manager.save(Photo, {
+        await connection.manager.save(qr, Photo, {
             url: "1.jpg",
             counters: {
                 likes: 2,
@@ -104,7 +111,7 @@ describe("query builder > update", () => {
                 comments: 1,
             }
         });
-        await connection.manager.save(Photo, {
+        await connection.manager.save(qr, Photo, {
             url: "2.jpg",
             counters: {
                 likes: 0,
@@ -127,9 +134,9 @@ describe("query builder > update", () => {
                     likes: 2
                 }
             })
-            .execute();
+            .execute(qr);
 
-        const loadedPhoto1 = await connection.getRepository(Photo).findOne({ url: "1.jpg" });
+        const loadedPhoto1 = await connection.getRepository(Photo).findOne(qr, { url: "1.jpg" });
         expect(loadedPhoto1).to.exist;
         loadedPhoto1!.should.be.eql({
             id: 1,
@@ -141,7 +148,7 @@ describe("query builder > update", () => {
             }
         });
 
-        const loadedPhoto2 = await connection.getRepository(Photo).findOne({ url: "2.jpg" });
+        const loadedPhoto2 = await connection.getRepository(Photo).findOne(qr, { url: "2.jpg" });
         expect(loadedPhoto2).to.exist;
         loadedPhoto2!.should.be.eql({
             id: 2,
@@ -153,10 +160,12 @@ describe("query builder > update", () => {
             }
         });
 
+        await qr.release();
     })));
 
     it("should perform update with limit correctly", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user1 = new User();
         user1.name = "Alex Messer";
         const user2 = new User();
@@ -164,7 +173,7 @@ describe("query builder > update", () => {
         const user3 = new User();
         user3.name = "Brad Porter";
 
-        await connection.manager.save([user1, user2, user3]);
+        await connection.manager.save(qr, [user1, user2, user3]);
 
         const limitNum = 2;
         const nameToFind = "Dima Zotov";
@@ -174,9 +183,9 @@ describe("query builder > update", () => {
             .update(User)
             .set({ name: nameToFind })
             .limit(limitNum)
-            .execute();
+            .execute(qr);
 
-            const loadedUsers = await connection.getRepository(User).find({ name: nameToFind });
+            const loadedUsers = await connection.getRepository(User).find(qr, { name: nameToFind });
             expect(loadedUsers).to.exist;
             loadedUsers!.length.should.be.equal(limitNum);
         } else {
@@ -184,56 +193,63 @@ describe("query builder > update", () => {
             .update(User)
             .set({ name: nameToFind })
             .limit(limitNum)
-            .execute().should.be.rejectedWith(LimitOnUpdateNotSupportedError);
+            .execute(qr).should.be.rejectedWith(LimitOnUpdateNotSupportedError);
         }
+        
+        await qr.release();
     })));
 
     it("should throw error when update value is missing", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user = new User();
         user.name = "Alex Messer";
 
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         let error: Error | undefined;
         try {
             await connection.createQueryBuilder()
                 .update(User)
                 .where("name = :name", { name: "Alex Messer" })
-                .execute();
+                .execute(qr);
         } catch (err) {
             error = err;
         }
         expect(error).to.be.an.instanceof(UpdateValuesMissingError);
 
+        await qr.release();
     })));
 
     it("should throw error when update value is missing 2", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user = new User();
         user.name = "Alex Messer";
 
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         let error: Error | undefined;
         try {
             await connection.createQueryBuilder(User, "user")
                 .update()
                 .where("name = :name", { name: "Alex Messer" })
-                .execute();
+                .execute(qr);
         } catch (err) {
             error = err;
         }
         expect(error).to.be.an.instanceof(UpdateValuesMissingError);
 
+        await qr.release();
     })));
 
     it("should throw error when update property in set method is unknown", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user = new User();
         user.name = "Alex Messer";
 
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         let error: Error | undefined;
         try {
@@ -241,20 +257,22 @@ describe("query builder > update", () => {
                 .update(User)
                 .set({ unknownProp: true } as any)
                 .where("name = :name", { name: "Alex Messer" })
-                .execute();
+                .execute(qr);
         } catch (err) {
             error = err;
         }
         expect(error).to.be.an.instanceof(EntityColumnNotFound);
 
+        await qr.release();
     })));
 
     it("should throw error when unknown property in where criteria", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user = new User();
         user.name = "Alex Messer";
 
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         let error: Error | undefined;
         try {
@@ -262,12 +280,13 @@ describe("query builder > update", () => {
                 .update(User)
                 .set({ name: "John Doe" } as any)
                 .where( { unknownProp: "Alex Messer" })
-                .execute();
+                .execute(qr);
         } catch (err) {
             error = err;
         }
         expect(error).to.be.an.instanceof(EntityColumnNotFound);
 
+        await qr.release();
     })));
 
 });

@@ -16,10 +16,12 @@ describe("github issues > #1749 Can't delete tables in non-default schema", () =
 
     it("should delete entites from tables in different schemas", () => Promise.all(connections.map(async connection => {
         const bar = new Bar();
-        const persistedBar = await connection.manager.save(bar);
+        const qr = connection.createQueryRunner();
+        const persistedBar = await connection.manager.save(qr, bar);
 
-        await connection.manager.delete(Bar, persistedBar.id);
+        await connection.manager.delete(qr, Bar, persistedBar.id);
 
+        await qr.release();
     })));
 
 });

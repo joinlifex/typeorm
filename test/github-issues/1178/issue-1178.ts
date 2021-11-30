@@ -16,9 +16,10 @@ describe("github issues > #1178 subqueries must work in insert statements", () =
 
     it("should work fine", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user = new User();
         user.name = "Timber Saw";
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         await connection
             .getRepository(Post)
@@ -30,9 +31,9 @@ describe("github issues > #1178 subqueries must work in insert statements", () =
             })
             .setParameter("userName",  "Timber Saw")
             .returning("*")
-            .execute();
+            .execute(qr);
 
-        await connection.manager.findOne(Post, 1, { relations: ["user"] }).should.eventually.eql({
+        await connection.manager.findOne(qr, Post, 1, { relations: ["user"] }).should.eventually.eql({
             id: 1,
             name: "First post",
             user: {
@@ -40,6 +41,7 @@ describe("github issues > #1178 subqueries must work in insert statements", () =
                 name: "Timber Saw"
             }
         });
+        await qr.release();
     })));
 
 });

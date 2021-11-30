@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { createTestingConnections, closeTestingConnections, reloadTestingDatabases } from "../../utils/test-utils";
 import { Connection } from "../../../src/connection/Connection";
 import { expect } from "chai";
-import {Post, User} from "./entities"
+import {Post, User} from "./entities";
 
 describe("github issues > #7079 Error when sorting by an embedded entity while using join and skip/take", () => {
 
@@ -16,14 +16,15 @@ describe("github issues > #7079 Error when sorting by an embedded entity while u
     after(() => closeTestingConnections(connections));
 
     it("should be able to getMany with join and sorting by an embedded entity column while user take and skip", () => Promise.all(connections.map(async connection => {
-        const postRepo = connection.getRepository(Post)
-        const userRepo = connection.getRepository(User)
+        const postRepo = connection.getRepository(Post);
+        const userRepo = connection.getRepository(User);
+        const qr = connection.createQueryRunner();
 
         const users = [
             { id: 1, name: "Mike" },
             { id: 2, name: "Alice" }
-        ]
-        await userRepo.save(users)
+        ];
+        await userRepo.save(qr, users);
 
         const posts = [
             {
@@ -47,15 +48,16 @@ describe("github issues > #7079 Error when sorting by an embedded entity while u
                 blog: { date: new Date().toISOString() },
                 newsletter: { date: new Date().toISOString() }
             }
-        ]
-        await postRepo.save(posts);
+        ];
+        await postRepo.save(qr, posts);
 
         const result = await postRepo.createQueryBuilder("post")
             .leftJoinAndSelect("post.user", "user")
             .orderBy("post.blog.date")
             .take(2)
             .skip(1)
-            .getMany();
+            .getMany(qr);
+        await qr.release();
         expect(result.length).eq(2);
     })));
 

@@ -16,15 +16,15 @@ describe("database schema > enums", () => {
     after(() => closeTestingConnections(connections));
 
     it("should correctly use default values", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
         const enumEntityRepository = connection.getRepository(EnumEntity);
 
         const enumEntity = new EnumEntity();
         enumEntity.id = 1;
         enumEntity.enumWithoutdefault = StringEnum.EDITOR;
-        await enumEntityRepository.save(enumEntity);
+        await enumEntityRepository.save(qr, enumEntity);
 
-        const loadedEnumEntity = await enumEntityRepository.findOne(1);
+        const loadedEnumEntity = await enumEntityRepository.findOne(qr, 1);
         loadedEnumEntity!.numericEnum.should.be.eq(NumericEnum.MODERATOR);
         loadedEnumEntity!.stringEnum.should.be.eq(StringEnum.GHOST);
         loadedEnumEntity!.stringNumericEnum.should.be.eq(StringNumericEnum.FOUR);
@@ -32,11 +32,13 @@ describe("database schema > enums", () => {
         loadedEnumEntity!.arrayDefinedStringEnum.should.be.eq("ghost");
         loadedEnumEntity!.arrayDefinedNumericEnum.should.be.eq(12);
 
+        await qr.release();
     })));
 
 
     it("should correctly save and retrieve", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const enumEntityRepository = connection.getRepository(EnumEntity);
 
         const enumEntity = new EnumEntity();
@@ -48,9 +50,9 @@ describe("database schema > enums", () => {
         enumEntity.arrayDefinedStringEnum = "editor";
         enumEntity.arrayDefinedNumericEnum = 13;
         enumEntity.enumWithoutdefault = StringEnum.ADMIN;
-        await enumEntityRepository.save(enumEntity);
+        await enumEntityRepository.save(qr, enumEntity);
 
-        const loadedEnumEntity = await enumEntityRepository.findOne(1);
+        const loadedEnumEntity = await enumEntityRepository.findOne(qr, 1);
         loadedEnumEntity!.numericEnum.should.be.eq(NumericEnum.EDITOR);
         loadedEnumEntity!.stringEnum.should.be.eq(StringEnum.ADMIN);
         loadedEnumEntity!.stringNumericEnum.should.be.eq(StringNumericEnum.TWO);
@@ -58,6 +60,7 @@ describe("database schema > enums", () => {
         loadedEnumEntity!.arrayDefinedStringEnum.should.be.eq("editor");
         loadedEnumEntity!.arrayDefinedNumericEnum.should.be.eq(13);
 
+        await qr.release();
     })));
 
     it("should not generate queries when no model changes", () => Promise.all(connections.map(async connection => {

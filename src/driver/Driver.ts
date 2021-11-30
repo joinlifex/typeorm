@@ -117,7 +117,7 @@ export interface Driver {
     /**
      * Creates a query runner used for common queries.
      */
-    createQueryRunner(mode: ReplicationMode): QueryRunner;
+    createQueryRunner(mode: ReplicationMode, ctx?: number|string): QueryRunner;
 
     /**
      * Replaces parameters in the given sql with special escaping character

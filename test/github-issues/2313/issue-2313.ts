@@ -19,22 +19,24 @@ describe("github issues > #2313 - BaseEntity has no findOneOrFail() method", () 
         // These must run sequentially as we have the global context of the `Post` ActiveRecord class
         for (const connection of connections) {
             Post.useConnection(connection); // change connection each time because of AR specifics
+            const qr = connection.createQueryRunner();
 
             const post1 = new Post();
             post1.data = 123;
-            await post1.save();
+            await post1.save(qr, );
 
             const post2 = new Post();
             post2.data = 456;
-            await post2.save();
+            await post2.save(qr, );
 
-            const result1 = await Post.findOneOrFail(1);
+            const result1 = await Post.findOneOrFail(qr, 1);
 
             result1.data.should.be.eql(123);
 
-            const result2 = await Post.findOneOrFail(2);
+            const result2 = await Post.findOneOrFail(qr, 2);
 
             result2.data.should.be.eql(456);
+            await qr.release();
         }
     });
 
@@ -42,13 +44,15 @@ describe("github issues > #2313 - BaseEntity has no findOneOrFail() method", () 
         // These must run sequentially as we have the global context of the `Post` ActiveRecord class
         for (const connection of connections) {
             Post.useConnection(connection); // change connection each time because of AR specifics
+            const qr = connection.createQueryRunner();
 
             try {
-                await Post.findOneOrFail(100);
+                await Post.findOneOrFail(qr, 100);
                 expect.fail();
             } catch (e) {
                 e.should.be.instanceOf(EntityNotFoundError);
             }
+            await qr.release();
         }
     });
 

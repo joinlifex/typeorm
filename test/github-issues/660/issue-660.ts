@@ -48,18 +48,20 @@ describe("github issues > #660 Specifying a RETURNING or OUTPUT clause with Quer
         const user = new User();
         user.name = "Tim Merrison";
     
+        const qr = connection.createQueryRunner();
         if (connection.driver instanceof SqlServerDriver || connection.driver instanceof PostgresDriver) {
             const returning = await connection.createQueryBuilder()
                 .insert()
                 .into(User)
                 .values(user)
                 .returning(connection.driver instanceof PostgresDriver ? "*" : "inserted.*")
-                .execute();
+                .execute(qr);
     
             returning.raw.should.be.eql([
                 { id: 1, name: user.name }
             ]);
         }
+        await qr.release();
     })));
 
     it("should create an UPDATE statement, including RETURNING or OUTPUT clause (PostgreSQL and MSSQL only)", () => Promise.all(connections.map(async connection => {
@@ -91,7 +93,8 @@ describe("github issues > #660 Specifying a RETURNING or OUTPUT clause with Quer
         const user = new User();
         user.name = "Tim Merrison";
 
-        await connection.manager.save(user);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, user);
 
         if (connection.driver instanceof SqlServerDriver || connection.driver instanceof PostgresDriver) {
             const returning = await connection.createQueryBuilder()
@@ -99,12 +102,13 @@ describe("github issues > #660 Specifying a RETURNING or OUTPUT clause with Quer
                 .set({ name: "Joe Bloggs" })
                 .where("name = :name", { name: user.name })
                 .returning(connection.driver instanceof PostgresDriver ? "*" : "inserted.*")
-                .execute();
+                .execute(qr);
     
             returning.raw.should.be.eql([
                 { id: 1, name: "Joe Bloggs" }
             ]);
         }
+        await qr.release();
     })));
 
     it("should create a DELETE statement, including RETURNING or OUTPUT clause (PostgreSQL and MSSQL only)", () => Promise.all(connections.map(async connection => {
@@ -136,7 +140,8 @@ describe("github issues > #660 Specifying a RETURNING or OUTPUT clause with Quer
         const user = new User();
         user.name = "Tim Merrison";
 
-        await connection.manager.save(user);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, user);
 
         if (connection.driver instanceof SqlServerDriver || connection.driver instanceof PostgresDriver) {
             const returning = await connection.createQueryBuilder()
@@ -144,12 +149,13 @@ describe("github issues > #660 Specifying a RETURNING or OUTPUT clause with Quer
                 .from(User)
                 .where("name = :name", { name: user.name })
                 .returning(connection.driver instanceof PostgresDriver ? "*" : "deleted.*")
-                .execute();
+                .execute(qr);
     
             returning.raw.should.be.eql([
                 { id: 1, name: user.name }
             ]);
         }
+        await qr.release();
     })));
 
 });

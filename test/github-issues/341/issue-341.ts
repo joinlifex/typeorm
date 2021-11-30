@@ -16,23 +16,25 @@ describe("github issues > #341 OneToOne relation with referencedColumnName does 
 
     it("custom join column name and referencedColumnName", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const category = new Category();
         category.name = "category #1";
-        await connection.manager.save(category);
+        await connection.manager.save(qr, category);
 
         const post = new Post();
         post.title = "post #1";
         post.category = category;
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         const loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
             .leftJoinAndSelect("post.category", "category")
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost).not.to.be.undefined;
         expect(loadedPost!.category).not.to.be.undefined;
 
+        await qr.release();
     })));
 
 });

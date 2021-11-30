@@ -23,27 +23,28 @@ describe("repository > deleteById methods", function() {
 
     it("remove using deleteById method should delete successfully", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save a new posts
-        const newPost1 = postRepository.create();
+        const newPost1 = postRepository.create(qr);
         newPost1.title = "Super post #1";
-        const newPost2 = postRepository.create();
+        const newPost2 = postRepository.create(qr);
         newPost2.title = "Super post #2";
-        const newPost3 = postRepository.create();
+        const newPost3 = postRepository.create(qr);
         newPost3.title = "Super post #3";
-        const newPost4 = postRepository.create();
+        const newPost4 = postRepository.create(qr);
         newPost4.title = "Super post #4";
 
-        await postRepository.save(newPost1);
-        await postRepository.save(newPost2);
-        await postRepository.save(newPost3);
-        await postRepository.save(newPost4);
+        await postRepository.save(qr, newPost1);
+        await postRepository.save(qr, newPost2);
+        await postRepository.save(qr, newPost3);
+        await postRepository.save(qr, newPost4);
 
         // remove one
-        await postRepository.delete(1);
+        await postRepository.delete(qr, 1);
 
         // load to check
-        const loadedPosts = await postRepository.find();
+        const loadedPosts = await postRepository.find(qr);
 
         // assert
         loadedPosts.length.should.be.equal(3);
@@ -51,31 +52,33 @@ describe("repository > deleteById methods", function() {
         expect(loadedPosts.find(p => p.id === 2)).not.to.be.undefined;
         expect(loadedPosts.find(p => p.id === 3)).not.to.be.undefined;
         expect(loadedPosts.find(p => p.id === 4)).not.to.be.undefined;
+        await qr.release();
     })));
 
     it("remove using removeByIds method should delete successfully",  () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save a new posts
-        const newPost1 = postRepository.create();
+        const newPost1 = postRepository.create(qr);
         newPost1.title = "Super post #1";
-        const newPost2 = postRepository.create();
+        const newPost2 = postRepository.create(qr);
         newPost2.title = "Super post #2";
-        const newPost3 = postRepository.create();
+        const newPost3 = postRepository.create(qr);
         newPost3.title = "Super post #3";
-        const newPost4 = postRepository.create();
+        const newPost4 = postRepository.create(qr);
         newPost4.title = "Super post #4";
 
-        await postRepository.save(newPost1);
-        await postRepository.save(newPost2);
-        await postRepository.save(newPost3);
-        await postRepository.save(newPost4);
+        await postRepository.save(qr, newPost1);
+        await postRepository.save(qr, newPost2);
+        await postRepository.save(qr, newPost3);
+        await postRepository.save(qr, newPost4);
 
         // remove multiple
-        await postRepository.delete([2, 3]);
+        await postRepository.delete(qr, [2, 3]);
 
         // load to check
-        const loadedPosts = await postRepository.find();
+        const loadedPosts = await postRepository.find(qr);
 
         // assert
         loadedPosts.length.should.be.equal(2);
@@ -83,6 +86,7 @@ describe("repository > deleteById methods", function() {
         expect(loadedPosts.find(p => p.id === 2)).to.be.undefined;
         expect(loadedPosts.find(p => p.id === 3)).to.be.undefined;
         expect(loadedPosts.find(p => p.id === 4)).not.to.be.undefined;
+        await qr.release();
     })));
 
 });

@@ -18,6 +18,7 @@ const options: ConnectionOptions = {
 
 createConnection(options).then(connection => {
 
+    const qr = connection.createQueryRunner();
     let postRepository = connection.getRepository(Post);
     
     let category1 = new Category();
@@ -39,14 +40,14 @@ createConnection(options).then(connection => {
     author2.name = "Bakhrom";
 
     postRepository
-        .save(post)
+        .save(qr, post)
         .then(post => {
             return postRepository
                 .createQueryBuilder("post")
                 .leftJoin("post.categories", "categories")
                 .leftJoin("categories.author", "author")
                 .where("post.id=1")
-                .getOne();
+                .getOne(qr);
         })
         .then(loadedPost => {
             console.log("loadedPosts: ", loadedPost);
@@ -58,7 +59,7 @@ createConnection(options).then(connection => {
 
             post.author = author2;
             
-            return postRepository.save(post);
+            return postRepository.save(qr, post);
         })
         .then(updatedPost => {
             return postRepository
@@ -66,7 +67,7 @@ createConnection(options).then(connection => {
                 .leftJoinAndSelect("post.author", "author")
                 .leftJoinAndSelect("post.categories", "categories")
                 .where("post.id=:id", { id: post.id })
-                .getOne();
+                .getOne(qr);
         })
         .then(loadedPost => {
             console.log(loadedPost);
@@ -75,7 +76,7 @@ createConnection(options).then(connection => {
             console.log("updating with: ", author);
             loadedPost!.title = "Umed's post";
             loadedPost!.author = author;
-            return postRepository.save(loadedPost!);
+            return postRepository.save(qr, loadedPost!);
         })
         .then(updatedPost => {
             return postRepository
@@ -83,13 +84,13 @@ createConnection(options).then(connection => {
                 .leftJoinAndSelect("post.author", "author")
                 .leftJoinAndSelect("post.categories", "categories")
                 .where("post.id=:id", { id: post.id })
-                .getOne();
+                .getOne(qr);
         })
         .then(loadedPost => {
             console.log(loadedPost);
             console.log("Now lets remove post's author:");
             post.author = null;
-            return postRepository.save(post);
+            return postRepository.save(qr, post);
         })
         .then(updatedPost => {
             return postRepository
@@ -97,13 +98,13 @@ createConnection(options).then(connection => {
                 .leftJoinAndSelect("post.author", "author")
                 .leftJoinAndSelect("post.categories", "categories")
                 .where("post.id=:id", { id: post.id })
-                .getOne();
+                .getOne(qr);
         })
         .then(loadedPost => {
             console.log(loadedPost);
             console.log("Finally bakhrom's post:");
             post.author = author2;
-            return postRepository.save(post);
+            return postRepository.save(qr, post);
         })
         .then(updatedPost => {
             return postRepository
@@ -111,7 +112,7 @@ createConnection(options).then(connection => {
                 .leftJoinAndSelect("post.author", "author")
                 .leftJoinAndSelect("post.categories", "categories")
                 .where("post.id=:id", { id: post.id })
-                .getOne();
+                .getOne(qr);
         })
         .then(loadedPost => {
             console.log(loadedPost);

@@ -17,6 +17,7 @@ describe("github issues > #2128 skip preparePersistentValue for value functions"
 
     it("should be able to resolve value functions", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         await connection.createQueryBuilder()
             .insert()
             .into(Post)
@@ -29,7 +30,7 @@ describe("github issues > #2128 skip preparePersistentValue for value functions"
                     ]
                 }
             })
-            .execute();
+            .execute(qr);
 
         const metaAddition = JSON.stringify({
             author: "John Doe"
@@ -45,9 +46,9 @@ describe("github issues > #2128 skip preparePersistentValue for value functions"
             .where("title = :title", {
                 title: "First Post"
             })
-            .execute();
+            .execute(qr);
 
-        const loadedPost = await connection.getRepository(Post).findOne({ title: "First Post" });
+        const loadedPost = await connection.getRepository(Post).findOne(qr,{ title: "First Post" });
 
         expect(loadedPost!.meta).to.deep.equal({
              author: "John Doe",
@@ -57,6 +58,7 @@ describe("github issues > #2128 skip preparePersistentValue for value functions"
             ]
         });
 
+        await qr.release();
     })));
 
 });

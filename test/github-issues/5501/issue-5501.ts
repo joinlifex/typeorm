@@ -22,18 +22,20 @@ describe("github issues > #5501 Incorrect data loading from JSON string for colu
         const runTestCase = async (input: any, expected: any, message: string) => {
             id++;
 
-            await connection.getRepository(Post).save({ id , jsonField: input });
+            const qr = connection.createQueryRunner();
+            await connection.getRepository(Post).save(qr, { id , jsonField: input });
 
             const actual = (
                 await connection.createQueryBuilder()
                     .from("Post", "post")
                     .select("post.jsonField", "json")
                     .where("post.id = :id", {id})
-                    .getRawOne()
+                    .getRawOne(qr)
                 )!.json;
 
             expect(actual).to.be.equal(expected, message);
-        }
+            await qr.release();
+        };
 
         await runTestCase("hello world", "\"hello world\"", "normal string");
         await runTestCase("", "\"\"", "empty string");
@@ -53,21 +55,22 @@ describe("github issues > #5501 Incorrect data loading from JSON string for colu
 
     it("should correctly retrieve simple-json field", () => Promise.all(connections.map(async (connection) => {
         let id = 0;
+        const qr = connection.createQueryRunner();
         const runTestCase = async (input: string | null, expected: any, message: string) => {
             id++;
             await connection.createQueryBuilder()
                 .insert()
                 .into(Post)
-                .values({id, jsonField: () => ':field'} as any) // A bit of a hack to get the raw value inserting
-                .setParameter('field', input)
-                .execute();
+                .values({id, jsonField: () => ":field"} as any) // A bit of a hack to get the raw value inserting
+                .setParameter("field", input)
+                .execute(qr);
 
             const actual = (
-                    await connection.getRepository(Post).findOne({ where: { id } })
+                    await connection.getRepository(Post).findOne(qr, { where: { id } })
                 )!.jsonField;
 
             expect(actual).to.be.eql(expected, message);
-        }
+        };
 
         await runTestCase("\"hello world\"", "hello world", "normal string");
         await runTestCase("\"\"", "", "empty string");
@@ -83,16 +86,19 @@ describe("github issues > #5501 Incorrect data loading from JSON string for colu
             [{"hello":"earth","planet":true},{"hello":"moon","planet":false}],
             "a complex object example"
         );
+        await qr.release();
     })));
 
     it("should throw an error when the data in the database is invalid", () => Promise.all(connections.map(async (connection) => {
+        
+        const qr = connection.createQueryRunner();
         const insert = (id: number, value: string | null) =>
             connection.createQueryBuilder()
                 .insert()
                 .into(Post)
-                .values({ id, jsonField: () => ':field' } as any) // A bit of a hack to get the raw value inserting
-                .setParameter('field', value)
-                .execute()
+                .values({ id, jsonField: () => ":field" } as any) // A bit of a hack to get the raw value inserting
+                .setParameter("field", value)
+                .execute(qr);
 
         // This was the likely data within the database in #4440
         // This will happen if you've tried to manually insert the data in ways where
@@ -104,9 +110,10 @@ describe("github issues > #5501 Incorrect data loading from JSON string for colu
 
         const getJson = async (id: number) =>
             (
-                await repo.findOne({ where: { id } })
+                await repo.findOne(qr, { where: { id } })
             )!.jsonField;
 
         await expect(getJson(1)).to.be.rejected;
+        await qr.release();
     })));
 });

@@ -26,6 +26,7 @@ describe("github issues > #8018 Non-unique relation property names causes entity
     it("should create child entities of the correct type", async () =>
         await Promise.all(
             connections.map(async (connection) => {
+                const qr = connection.createQueryRunner();
                 const parent = new Parent();
                 parent.name = "parent";
 
@@ -37,12 +38,12 @@ describe("github issues > #8018 Non-unique relation property names causes entity
                 child2.name = "child2";
                 child2.parent = parent;
 
-                await connection.manager.save([parent, child1, child2]);
+                await connection.manager.save(qr, [parent, child1, child2]);
 
-                const result = await connection.manager.find(Parent, {
+                const result = await connection.manager.find(qr, Parent, {
                     relations: ["children"],
                 });
-
+                await qr.release();
                 expect(result).to.have.lengthOf(1);
                 expect(result[0].children).to.have.lengthOf(2);
                 expect(result[0].children![0]).to.be.instanceOf(Child);

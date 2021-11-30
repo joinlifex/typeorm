@@ -23,9 +23,11 @@ describe("github issues > #7882  .findOne reduces relations to an empty array", 
         const relations = [ "exampleText" ];
 
         const repo = connection.getRepository(Example);
+        const qr = connection.createQueryRunner();
+        
+        await repo.find(qr, { relations });
 
-        await repo.find({ relations });
-
+        await qr.release();
         expect(relations).to.be.eql([ "exampleText" ]);
     })));
 });

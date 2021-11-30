@@ -156,7 +156,7 @@ export class AuroraDataApiPostgresDriver extends PostgresWrapper implements Driv
      * Executes given query.
      */
     protected executeQuery(connection: any, query: string) {
-        return this.connection.query(query);
+        return this.connection.query(this.connection.createQueryRunner(), query);
     }
 
     /**

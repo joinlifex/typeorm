@@ -19,27 +19,38 @@ describe("entity-metadata > create", () => {
         after(() => closeTestingConnections(connections));
 
         it("should call the constructor when creating an object", () => Promise.all(connections.map(async connection => {
-            const entity = connection.manager.create(TestCreate);
+            const qr = connection.createQueryRunner();
+            const entity = connection.manager.create(qr, TestCreate);
 
             expect(entity.hasCalledConstructor).to.be.true;
-        })))
+        
+            await qr.release();
+        })));
 
         it("should set the default property values", () => Promise.all(connections.map(async connection => {
-            const entity = connection.manager.create(TestCreate);
+            const qr = connection.createQueryRunner();
+            const entity = connection.manager.create(qr, TestCreate);
 
             expect(entity.foo).to.be.equal("bar");
-        })))
+        
+            await qr.release();
+        })));
 
         it("should call the constructor when retrieving an object", () => Promise.all(connections.map(async connection => {
+             
+            const qr = connection.createQueryRunner();
+
             const repo = connection.manager.getRepository(TestCreate);
 
-            const { id } = await repo.save({ foo: "baz" });
+            const { id } = await repo.save(qr, { foo: "baz" });
 
-            const entity = await repo.findOneOrFail(id);
+            const entity = await repo.findOneOrFail(qr, id);
 
             expect(entity.hasCalledConstructor).to.be.true;
-        })))
-    })
+        
+            await qr.release();
+        })));
+    });
 
     describe("with entitySkipConstructor", () => {
         let connections: Connection[];
@@ -57,25 +68,34 @@ describe("entity-metadata > create", () => {
         after(() => closeTestingConnections(connections));
 
         it("should call the constructor when creating an object", () => Promise.all(connections.map(async connection => {
-            const entity = connection.manager.create(TestCreate);
+            const qr = connection.createQueryRunner();
+            const entity = connection.manager.create(qr, TestCreate);
 
             expect(entity.hasCalledConstructor).to.be.true;
-        })))
+        
+            await qr.release();
+        })));
 
         it("should set the default property values when creating an object", () => Promise.all(connections.map(async connection => {
-            const entity = connection.manager.create(TestCreate);
+            const qr = connection.createQueryRunner();
+            const entity = connection.manager.create(qr, TestCreate);
 
             expect(entity.foo).to.be.equal("bar");
-        })))
+        
+            await qr.release();
+        })));
 
         it("should not call the constructor when retrieving an object", () => Promise.all(connections.map(async connection => {
+            const qr = connection.createQueryRunner();
             const repo = connection.manager.getRepository(TestCreate);
 
-            const { id } = await repo.save({ foo: "baz" });
+            const { id } = await repo.save(qr, { foo: "baz" });
 
-            const entity = await repo.findOneOrFail(id);
+            const entity = await repo.findOneOrFail(qr, id);
 
             expect(entity.hasCalledConstructor).not.to.be.true;
-        })))
-    })
-})
+        
+            await qr.release();
+        })));
+    });
+});

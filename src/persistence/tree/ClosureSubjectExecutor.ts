@@ -16,7 +16,7 @@ export class ClosureSubjectExecutor {
     // Constructor
     // -------------------------------------------------------------------------
 
-    constructor(protected queryRunner: QueryRunner) {
+    constructor() {
     }
 
     // -------------------------------------------------------------------------
@@ -26,7 +26,7 @@ export class ClosureSubjectExecutor {
     /**
      * Executes operations when subject is being inserted.
      */
-    async insert(subject: Subject): Promise<void> {
+    async insert(queryRunner: QueryRunner, subject: Subject): Promise<void> {
 
         // create values to be inserted into the closure junction
         const closureJunctionInsertMap: ObjectLiteral = {};
@@ -38,7 +38,7 @@ export class ClosureSubjectExecutor {
         });
 
         // insert values into the closure junction table
-        await this.queryRunner
+        await queryRunner
             .manager
             .createQueryBuilder()
             .insert()
@@ -46,15 +46,15 @@ export class ClosureSubjectExecutor {
             .values(closureJunctionInsertMap)
             .updateEntity(false)
             .callListeners(false)
-            .execute();
+            .execute(queryRunner);
 
         let parent = subject.metadata.treeParentRelation!.getEntityValue(subject.entity!); // if entity was attached via parent
         if (!parent && subject.parentSubject && subject.parentSubject.entity) // if entity was attached via children
             parent = subject.parentSubject.insertedValueSet ? subject.parentSubject.insertedValueSet : subject.parentSubject.entity;
 
         if (parent) {
-            const escape = (alias: string) => this.queryRunner.connection.driver.escape(alias);
-            const tableName = this.getTableName(subject.metadata.closureJunctionTable.tablePath);
+            const escape = (alias: string) => queryRunner.connection.driver.escape(alias);
+            const tableName = this.getTableName(queryRunner, subject.metadata.closureJunctionTable.tablePath);
             const queryParams: any[] = [];
 
             const ancestorColumnNames = subject.metadata.closureJunctionTable.ancestorColumns.map(column => {
@@ -65,7 +65,7 @@ export class ClosureSubjectExecutor {
             });
             const childEntityIds1 = subject.metadata.primaryColumns.map(column => {
                 queryParams.push(column.getEntityValue(subject.insertedValueSet ? subject.insertedValueSet : subject.entity!));
-                return this.queryRunner.connection.driver.createParameter("child_entity_" + column.databaseName, queryParams.length - 1);
+                return queryRunner.connection.driver.createParameter("child_entity_" + column.databaseName, queryParams.length - 1);
             });
 
             const whereCondition = subject.metadata.closureJunctionTable.descendantColumns.map(column => {
@@ -76,11 +76,11 @@ export class ClosureSubjectExecutor {
                     throw new CannotAttachTreeChildrenEntityError(subject.metadata.name);
 
                 queryParams.push(parentId);
-                const parameterName = this.queryRunner.connection.driver.createParameter("parent_entity_" + column.referencedColumn!.databaseName, queryParams.length - 1);
+                const parameterName = queryRunner.connection.driver.createParameter("parent_entity_" + column.referencedColumn!.databaseName, queryParams.length - 1);
                 return `${columnName} = ${parameterName}`;
             });
 
-            await this.queryRunner.query(
+            await queryRunner.query(
                 `INSERT INTO ${tableName} (${[...ancestorColumnNames, ...descendantColumnNames].join(", ")}) ` +
                 `SELECT ${ancestorColumnNames.join(", ")}, ${childEntityIds1.join(", ")} FROM ${tableName} WHERE ${whereCondition.join(" AND ")}`,
                 queryParams
@@ -91,7 +91,7 @@ export class ClosureSubjectExecutor {
     /**
      * Executes operations when subject is being updated.
      */
-    async update(subject: Subject): Promise<void> {
+    async update(queryRunner: QueryRunner, subject: Subject): Promise<void> {
         let parent = subject.metadata.treeParentRelation!.getEntityValue(subject.entity!); // if entity was attached via parent
         if (!parent && subject.parentSubject && subject.parentSubject.entity) // if entity was attached via children
             parent = subject.parentSubject.entity;
@@ -116,7 +116,7 @@ export class ClosureSubjectExecutor {
             return;
         }
 
-        const escape = (alias: string) => this.queryRunner.connection.driver.escape(alias);
+        const escape = (alias: string) => queryRunner.connection.driver.escape(alias);
         const closureTable = subject.metadata.closureJunctionTable;
 
         const ancestorColumnNames = closureTable.ancestorColumns.map(column => {
@@ -152,7 +152,7 @@ export class ClosureSubjectExecutor {
             parameters[`value_${column.databaseName}`] = entity![column.databaseName];
         }
 
-        await this.queryRunner
+        await queryRunner
             .manager
             .createQueryBuilder()
             .delete()
@@ -160,7 +160,7 @@ export class ClosureSubjectExecutor {
             .where(qb => `(${descendantColumnNames.join(", ")}) IN (${createSubQuery(qb, "descendant")})`)
             .andWhere(qb => `(${ancestorColumnNames.join(", ")}) NOT IN (${createSubQuery(qb, "ancestor")})`)
             .setParameters(parameters)
-            .execute();
+            .execute(queryRunner);
 
         /**
          * Only insert new parent if it exits
@@ -171,7 +171,7 @@ export class ClosureSubjectExecutor {
             // Insert logic
             const queryParams: any[] = [];
 
-            const tableName = this.getTableName(closureTable.tablePath);
+            const tableName = this.getTableName(queryRunner, closureTable.tablePath);
             const superAlias = escape("supertree");
             const subAlias = escape("subtree");
 
@@ -185,7 +185,7 @@ export class ClosureSubjectExecutor {
                 const entityId = column.referencedColumn!.getEntityValue(entity!);
 
                 queryParams.push(entityId);
-                const parameterName = this.queryRunner.connection.driver.createParameter("entity_" + column.referencedColumn!.databaseName, queryParams.length - 1);
+                const parameterName = queryRunner.connection.driver.createParameter("entity_" + column.referencedColumn!.databaseName, queryParams.length - 1);
                 return `${subAlias}.${columnName} = ${parameterName}`;
             });
 
@@ -197,12 +197,12 @@ export class ClosureSubjectExecutor {
                     throw new CannotAttachTreeChildrenEntityError(subject.metadata.name);
 
                 queryParams.push(parentId);
-                const parameterName = this.queryRunner.connection.driver.createParameter("parent_entity_" + column.referencedColumn!.databaseName, queryParams.length - 1);
+                const parameterName = queryRunner.connection.driver.createParameter("parent_entity_" + column.referencedColumn!.databaseName, queryParams.length - 1);
                 return `${superAlias}.${columnName} = ${parameterName}`;
             });
 
 
-            await this.queryRunner.query(
+            await queryRunner.query(
                 `INSERT INTO ${tableName} (${[...ancestorColumnNames, ...descendantColumnNames].join(", ")}) ` +
                 `SELECT ${select.join(", ")} ` +
                 `FROM ${tableName} AS ${superAlias}, ${tableName} AS ${subAlias} ` +
@@ -215,16 +215,16 @@ export class ClosureSubjectExecutor {
     /**
     * Executes operations when subject is being removed.
     */
-    async remove(subjects: Subject|Subject[]): Promise<void> {
+    async remove(queryRunner: QueryRunner, subjects: Subject|Subject[]): Promise<void> {
         // Only mssql need to execute deletes for the juntion table as it doesn't support multi cascade paths.
-        if (!(this.queryRunner.connection.driver instanceof SqlServerDriver)) {
+        if (!(queryRunner.connection.driver instanceof SqlServerDriver)) {
             return;
         }
 
         if (!Array.isArray(subjects))
             subjects = [subjects];
 
-        const escape = (alias: string) => this.queryRunner.connection.driver.escape(alias);
+        const escape = (alias: string) => queryRunner.connection.driver.escape(alias);
         const identifiers = subjects.map(subject => subject.identifier);
         const closureTable = subjects[0].metadata.closureJunctionTable;
 
@@ -238,25 +238,25 @@ export class ClosureSubjectExecutor {
         const ancestorWhere = generateWheres(closureTable.ancestorColumns);
         const descendantWhere = generateWheres(closureTable.descendantColumns);
 
-        await this.queryRunner
+        await queryRunner
             .manager
             .createQueryBuilder()
             .delete()
             .from(closureTable.tablePath)
             .where(ancestorWhere)
             .orWhere(descendantWhere)
-            .execute();
+            .execute(queryRunner);
     }
 
     /**
      * Gets escaped table name with schema name if SqlServer or Postgres driver used with custom
      * schema name, otherwise returns escaped table name.
      */
-    protected getTableName(tablePath: string): string {
+    protected getTableName(queryRunner: QueryRunner, tablePath: string): string {
         return tablePath.split(".")
             .map(i => {
                 // this condition need because in SQL Server driver when custom database name was specified and schema name was not, we got `dbName..tableName` string, and doesn't need to escape middle empty string
-                return i === "" ? i : this.queryRunner.connection.driver.escape(i);
+                return i === "" ? i : queryRunner.connection.driver.escape(i);
             }).join(".");
     }
 }

@@ -15,20 +15,21 @@ describe.skip("persistence > cascades > remove", () => {
 
     it("should soft-remove everything by cascades properly", () => Promise.all(connections.map(async connection => {
 
-        await connection.manager.save(new Photo("Photo #1"));
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, new Photo("Photo #1"));
 
         const user = new User();
         user.id = 1;
         user.name = "Mr. Cascade Danger";
         user.manyPhotos = [new Photo("one-to-many #1"), new Photo("one-to-many #2")];
         user.manyToManyPhotos = [new Photo("many-to-many #1"), new Photo("many-to-many #2"), new Photo("many-to-many #3")];
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         const loadedUser = await connection.manager
             .createQueryBuilder(User, "user")
             .leftJoinAndSelect("user.manyPhotos", "manyPhotos")
             .leftJoinAndSelect("user.manyToManyPhotos", "manyToManyPhotos")
-            .getOne();
+            .getOne(qr);
 
         loadedUser!.id.should.be.equal(1);
         loadedUser!.name.should.be.equal("Mr. Cascade Danger");
@@ -44,11 +45,13 @@ describe.skip("persistence > cascades > remove", () => {
         manyToManyPhotoNames.should.deep.include("many-to-many #2");
         manyToManyPhotoNames.should.deep.include("many-to-many #3");
 
-        await connection.manager.softRemove(user);
+        await connection.manager.softRemove(qr, user);
 
-        const allPhotos = await connection.manager.find(Photo, {deletedAt: IsNull()});
+        const allPhotos = await connection.manager.find(qr, Photo, {deletedAt: IsNull()});
         allPhotos.length.should.be.equal(1);
         allPhotos[0].name.should.be.equal("Photo #1");
+    
+        await qr.release();
     })));
 
 });

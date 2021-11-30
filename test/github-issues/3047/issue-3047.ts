@@ -32,13 +32,14 @@ describe("github issues > #3047 Mysqsl on duplicate key update use current value
       try {
          if (connection.driver instanceof MysqlDriver) {
             const UserRepository = connection.manager.getRepository(User);
+            const qr = connection.createQueryRunner();
 
             await UserRepository
               .createQueryBuilder()
               .insert()
               .into(User)
               .values(user1)
-              .execute();
+              .execute(qr);
 
             await UserRepository
               .createQueryBuilder()
@@ -46,12 +47,13 @@ describe("github issues > #3047 Mysqsl on duplicate key update use current value
               .into(User)
               .values(user2)
               .orUpdate(["is_updated"])
-              .execute();
+              .execute(qr);
 
-            let loadedUser = await UserRepository.find();
+            let loadedUser = await UserRepository.find(qr);
             expect(loadedUser).not.to.be.undefined;
             expect(loadedUser).to.have.lengthOf(1);
             expect(loadedUser[0]).to.includes({ is_updated: "yes" });
+            await qr.release();
         }
       } catch (err) {
         throw new Error(err);
@@ -63,13 +65,14 @@ describe("github issues > #3047 Mysqsl on duplicate key update use current value
         if (connection.driver instanceof PostgresDriver) {
 
           const UserRepository = connection.manager.getRepository(User);
+          const qr = connection.createQueryRunner();
 
           await UserRepository
             .createQueryBuilder()
             .insert()
             .into(User)
             .values(user1)
-            .execute();
+            .execute(qr);
 
           await UserRepository
             .createQueryBuilder()
@@ -77,12 +80,13 @@ describe("github issues > #3047 Mysqsl on duplicate key update use current value
             .into(User)
             .values(user2)
             .orUpdate([ "is_updated" ], [ "first_name", "last_name" ])
-            .execute();
+            .execute(qr);
 
-          let loadedUser = await UserRepository.find();
+          let loadedUser = await UserRepository.find(qr);
           expect(loadedUser).not.to.be.undefined;
           expect(loadedUser).to.have.lengthOf(1);
           expect(loadedUser[0]).to.includes({ is_updated: "yes" });
+          await qr.release();
         }
       } catch (err) {
         throw new Error(err);

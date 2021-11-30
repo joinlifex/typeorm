@@ -41,6 +41,8 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
      */
     driver: PostgresDriver;
 
+    ctx?: number|string;
+
     // -------------------------------------------------------------------------
     // Protected Properties
     // -------------------------------------------------------------------------
@@ -59,12 +61,14 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
     // Constructor
     // -------------------------------------------------------------------------
 
-    constructor(driver: PostgresDriver, mode: ReplicationMode) {
+    constructor(driver: PostgresDriver, mode: ReplicationMode, ctx?: number|string) {
         super();
+        this.ctx = ctx;
         this.driver = driver;
         this.connection = driver.connection;
         this.mode = mode;
         this.broadcaster = new Broadcaster(this);
+        this.release.bind(this);
     }
 
     // -------------------------------------------------------------------------
@@ -84,6 +88,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
 
         if (this.mode === "slave" && this.driver.isReplicated)  {
             this.databaseConnectionPromise = this.driver.obtainSlaveConnection().then(([connection, release]: any[]) => {
+                    
                 this.driver.connectedQueryRunners.push(this);
                 this.databaseConnection = connection;
 
@@ -95,6 +100,10 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                 this.databaseConnection.on("error", onErrorCallback);
 
                 return this.databaseConnection;
+            }).then((dbConnection) => {
+                if (typeof this.ctx !== "undefined")
+                    return dbConnection.query(`set "${this.getContextVarName()}" = ${this.ctx};`).then(() => dbConnection);
+                return dbConnection;
             });
 
         } else { // master
@@ -108,8 +117,11 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                     release();
                 };
                 this.databaseConnection.on("error", onErrorCallback);
-
                 return this.databaseConnection;
+            }).then((dbConnection) => {
+                if (typeof this.ctx !== "undefined")
+                    return dbConnection.query(`SET "rls.tenant_id" = ${this.ctx};`).then(() => dbConnection);
+                return dbConnection;
             });
         }
 
@@ -122,13 +134,17 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
      */
     private async releasePostgresConnection(err?: Error) {
         if (this.isReleased) {
-            return
+            return;
+        }
+        if (typeof this.ctx !== "undefined") {
+            await this.databaseConnection.query(`RESET ${this.getContextVarName()};`);
+            this.ctx = undefined;
         }
 
         this.isReleased = true;
         if (this.releaseCallback) {
             this.releaseCallback(err);
-            this.releaseCallback = undefined
+            this.releaseCallback = undefined;
         }
 
         const index = this.driver.connectedQueryRunners.indexOf(this);
@@ -153,7 +169,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         if (this.isTransactionActive)
             throw new TransactionAlreadyStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionStart');
+        await this.broadcaster.broadcast("BeforeTransactionStart");
 
         this.isTransactionActive = true;
         await this.query("START TRANSACTION");
@@ -161,7 +177,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
             await this.query("SET TRANSACTION ISOLATION LEVEL " + isolationLevel);
         }
 
-        await this.broadcaster.broadcast('AfterTransactionStart');
+        await this.broadcaster.broadcast("AfterTransactionStart");
     }
 
     /**
@@ -172,12 +188,12 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionCommit');
+        await this.broadcaster.broadcast("BeforeTransactionCommit");
 
         await this.query("COMMIT");
         this.isTransactionActive = false;
 
-        await this.broadcaster.broadcast('AfterTransactionCommit');
+        await this.broadcaster.broadcast("AfterTransactionCommit");
     }
 
     /**
@@ -188,12 +204,12 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionRollback');
+        await this.broadcaster.broadcast("BeforeTransactionRollback");
 
         await this.query("ROLLBACK");
         this.isTransactionActive = false;
 
-        await this.broadcaster.broadcast('AfterTransactionRollback');
+        await this.broadcaster.broadcast("AfterTransactionRollback");
     }
 
     /**
@@ -218,11 +234,11 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
 
             const result = new QueryResult();
             if (raw) {
-                if (raw.hasOwnProperty('rows')) {
+                if (raw.hasOwnProperty("rows")) {
                     result.records = raw.rows;
                 }
 
-                if (raw.hasOwnProperty('rowCount')) {
+                if (raw.hasOwnProperty("rowCount")) {
                     result.affected = raw.rowCount;
                 }
 
@@ -403,25 +419,25 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         const downQueries: Query[] = [];
 
         // if table have column with ENUM type, we must create this type in postgres.
-        const enumColumns = table.columns.filter(column => column.type === "enum" || column.type === "simple-enum")
-        const createdEnumTypes: string[] = []
+        const enumColumns = table.columns.filter(column => column.type === "enum" || column.type === "simple-enum");
+        const createdEnumTypes: string[] = [];
         for (const column of enumColumns) {
             // TODO: Should also check if values of existing type matches expected ones
             const hasEnum = await this.hasEnumType(table, column);
-            const enumName = this.buildEnumName(table, column)
+            const enumName = this.buildEnumName(table, column);
 
             // if enum with the same "enumName" is defined more then once, me must prevent double creation
             if (!hasEnum && createdEnumTypes.indexOf(enumName) === -1) {
-                createdEnumTypes.push(enumName)
+                createdEnumTypes.push(enumName);
                 upQueries.push(this.createEnumTypeSql(table, column, enumName));
                 downQueries.push(this.dropEnumTypeSql(table, column, enumName));
             }
         }
 
         // if table have column with generated type, we must add the expression to the metadata table
-        const generatedColumns = table.columns.filter(column => column.generatedType === "STORED" && column.asExpression)
+        const generatedColumns = table.columns.filter(column => column.generatedType === "STORED" && column.asExpression);
         for (const column of generatedColumns) {
-            const tableNameWithSchema = (await this.getTableNameWithSchema(table.name)).split('.');
+            const tableNameWithSchema = (await this.getTableNameWithSchema(table.name)).split(".");
             const tableName = tableNameWithSchema[1];
             const schema = tableNameWithSchema[0];
 
@@ -432,7 +448,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                 type: MetadataTableType.GENERATED_COLUMN,
                 name: column.name,
                 value: column.asExpression
-            })
+            });
 
             const deleteQuery = this.deleteTypeormMetadataSql({
                 database: this.driver.database,
@@ -440,7 +456,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                 table: tableName,
                 type: MetadataTableType.GENERATED_COLUMN,
                 name: column.name
-            })
+            });
 
             upQueries.push(deleteQuery);
             upQueries.push(insertQuery);
@@ -688,7 +704,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         }
 
         if (column.generatedType === "STORED" && column.asExpression) {
-            const tableNameWithSchema = (await this.getTableNameWithSchema(table.name)).split('.');
+            const tableNameWithSchema = (await this.getTableNameWithSchema(table.name)).split(".");
             const tableName = tableNameWithSchema[1];
             const schema = tableNameWithSchema[0];
 
@@ -699,7 +715,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                 type: MetadataTableType.GENERATED_COLUMN,
                 name: column.name,
                 value: column.asExpression
-            })
+            });
 
             const deleteQuery = this.deleteTypeormMetadataSql({
                 database: this.driver.database,
@@ -707,7 +723,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                 table: tableName,
                 type: MetadataTableType.GENERATED_COLUMN,
                 name: column.name
-            })
+            });
 
             upQueries.push(deleteQuery);
             upQueries.push(insertQuery);
@@ -763,7 +779,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         let clonedTable = table.clone();
         const upQueries: Query[] = [];
         const downQueries: Query[] = [];
-        let defaultValueChanged = false
+        let defaultValueChanged = false;
 
         const oldColumn = oldTableColumnOrName instanceof TableColumn
             ? oldTableColumnOrName
@@ -922,7 +938,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                 // if column have default value, we must drop it to avoid issues with type casting
                 if (oldColumn.default !== null && oldColumn.default !== undefined) {
                     // mark default as changed to prevent double update
-                    defaultValueChanged = true
+                    defaultValueChanged = true;
                     upQueries.push(new Query(`ALTER TABLE ${this.escapePath(table)} ALTER COLUMN "${oldColumn.name}" DROP DEFAULT`));
                     downQueries.push(new Query(`ALTER TABLE ${this.escapePath(table)} ALTER COLUMN "${oldColumn.name}" SET DEFAULT ${oldColumn.default}`));
                 }
@@ -1066,7 +1082,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                 // Convert generated column data to normal column
                 if (!newColumn.generatedType || newColumn.generatedType === "VIRTUAL") {
                     // We can copy the generated data to the new column
-                    const tableNameWithSchema = (await this.getTableNameWithSchema(table.name)).split('.');
+                    const tableNameWithSchema = (await this.getTableNameWithSchema(table.name)).split(".");
                     const tableName = tableNameWithSchema[1];
                     const schema = tableNameWithSchema[0];
 
@@ -1189,7 +1205,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         }
 
         if (column.generatedType === "STORED") {
-            const tableNameWithSchema = (await this.getTableNameWithSchema(table.name)).split('.');
+            const tableNameWithSchema = (await this.getTableNameWithSchema(table.name)).split(".");
             const tableName = tableNameWithSchema[1];
             const schema = tableNameWithSchema[0];
             const insertQuery = this.deleteTypeormMetadataSql({
@@ -1198,7 +1214,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                 table: tableName,
                 type: MetadataTableType.GENERATED_COLUMN,
                 name: column.name
-            })
+            });
             const deleteQuery = this.insertTypeormMetadataSql({
                 database: this.driver.database,
                 schema,
@@ -1206,7 +1222,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                 type: MetadataTableType.GENERATED_COLUMN,
                 name: column.name,
                 value: column.asExpression
-            })
+            });
 
             upQueries.push(insertQuery);
             downQueries.push(deleteQuery);
@@ -1561,7 +1577,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
 
         await this.startTransaction();
         try {
-            const version = await this.getVersion()
+            const version = await this.getVersion();
             // drop views
             const selectViewDropsQuery = `SELECT 'DROP VIEW IF EXISTS "' || schemaname || '"."' || viewname || '" CASCADE;' as "query" ` +
              `FROM "pg_views" WHERE "schemaname" IN (${schemaNamesString}) AND "viewname" NOT IN ('geography_columns', 'geometry_columns', 'raster_columns', 'raster_overviews')`;
@@ -1598,6 +1614,9 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         }
     }
 
+    getContextVarName(): string {
+        return this.driver.options.contextVarName || "rls.tenant_id";
+    }
     // -------------------------------------------------------------------------
     // Protected Methods
     // -------------------------------------------------------------------------
@@ -1613,7 +1632,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         }
 
         const currentDatabase = await this.getCurrentDatabase();
-        const currentSchema = await this.getCurrentSchema()
+        const currentSchema = await this.getCurrentSchema();
         const viewsCondition = viewNames.length === 0 ? "1=1" : viewNames
             .map(tableName => this.driver.parseTableName(tableName))
             .map(({ schema, tableName }) => {
@@ -1659,7 +1678,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         const dbTables: { table_schema: string, table_name: string }[] = [];
 
         if (!tableNames) {
-            const tablesSql = `SELECT "table_schema", "table_name" FROM "information_schema"."tables"`
+            const tablesSql = `SELECT "table_schema", "table_name" FROM "information_schema"."tables"`;
             dbTables.push(...await this.query(tablesSql));
         } else {
             const tablesCondition = tableNames
@@ -1763,7 +1782,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
             const getSchemaFromKey = (dbObject: any, key: string) => {
                 return dbObject[key] === currentSchema && (!this.driver.options.schema || this.driver.options.schema === currentSchema)
                     ? undefined
-                    : dbObject[key]
+                    : dbObject[key];
             };
             // We do not need to join schema name, when database is by default.
             const schema = getSchemaFromKey(dbTable, "table_schema");
@@ -1813,11 +1832,11 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                     // check if column has user-defined data type.
                     // NOTE: if ENUM type defined with "array:true" it comes with ARRAY type instead of USER-DEFINED
                     if (dbColumn["data_type"] === "USER-DEFINED" || dbColumn["data_type"] === "ARRAY") {
-                        const { name } = await this.getUserDefinedTypeName(table, tableColumn)
+                        const { name } = await this.getUserDefinedTypeName(table, tableColumn);
 
                         // check if `enumName` is specified by user
-                        const builtEnumName = this.buildEnumName(table, tableColumn, false, true)
-                        const enumName = builtEnumName !== name ? name : undefined
+                        const builtEnumName = this.buildEnumName(table, tableColumn, false, true);
+                        const enumName = builtEnumName !== name ? name : undefined;
 
                         // check if type is ENUM
                         const sql = `SELECT "e"."enumlabel" AS "value" FROM "pg_enum" "e" ` +
@@ -1829,7 +1848,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                         if (results.length) {
                             tableColumn.type = "enum";
                             tableColumn.enum = results.map(result => result["value"]);
-                            tableColumn.enumName = enumName
+                            tableColumn.enumName = enumName;
                         }
 
                         if (dbColumn["data_type"] === "ARRAY") {
@@ -1905,8 +1924,8 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                     const isConstraintComposite = uniqueConstraints.every((uniqueConstraint) => {
                         return dbConstraints.some(dbConstraint => dbConstraint["constraint_type"] === "UNIQUE"
                                 && dbConstraint["constraint_name"] === uniqueConstraint["constraint_name"]
-                                && dbConstraint["column_name"] !== dbColumn["column_name"])
-                    })
+                                && dbConstraint["column_name"] !== dbColumn["column_name"]);
+                    });
                     tableColumn.isUnique = uniqueConstraints.length > 0 && !isConstraintComposite;
 
                     if (dbColumn.is_identity === "YES") { // Postgres 10+ Identity column
@@ -2177,7 +2196,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
     }
 
     protected async insertViewDefinitionSql(view: View): Promise<Query> {
-        const currentSchema = await this.getCurrentSchema()
+        const currentSchema = await this.getCurrentSchema();
 
         let { schema, tableName: name } = this.driver.parseTableName(view);
 
@@ -2185,9 +2204,9 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
             schema = currentSchema;
         }
 
-        const type = view.materialized ? MetadataTableType.MATERIALIZED_VIEW : MetadataTableType.VIEW
+        const type = view.materialized ? MetadataTableType.MATERIALIZED_VIEW : MetadataTableType.VIEW;
         const expression = typeof view.expression === "string" ? view.expression.trim() : view.expression(this.connection).getQuery();
-        return this.insertTypeormMetadataSql({ type, schema, name, value: expression })
+        return this.insertTypeormMetadataSql({ type, schema, name, value: expression });
     }
 
     /**
@@ -2202,7 +2221,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
      * Builds remove view sql.
      */
     protected async deleteViewDefinitionSql(view: View): Promise<Query> {
-        const currentSchema = await this.getCurrentSchema()
+        const currentSchema = await this.getCurrentSchema();
 
         let { schema, tableName: name } = this.driver.parseTableName(view);
 
@@ -2210,8 +2229,8 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
             schema = currentSchema;
         }
 
-        const type = view.materialized ? MetadataTableType.MATERIALIZED_VIEW : MetadataTableType.VIEW
-        return this.deleteTypeormMetadataSql({ type, schema, name })
+        const type = view.materialized ? MetadataTableType.MATERIALIZED_VIEW : MetadataTableType.VIEW;
+        return this.deleteTypeormMetadataSql({ type, schema, name });
     }
 
     /**
@@ -2399,7 +2418,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         const { schema, tableName } = this.driver.parseTableName(table);
         let enumName = column.enumName ? column.enumName : `${tableName}_${column.name.toLowerCase()}_enum`;
         if (schema && withSchema)
-            enumName = `${schema}.${enumName}`
+            enumName = `${schema}.${enumName}`;
         if (toOld)
             enumName = enumName + "_old";
         return enumName.split(".").map(i => {
@@ -2422,9 +2441,9 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         // The array type typically has the same name as the base type with the underscore character (_) prepended.
         // ----
         // so, we must remove this underscore character from enum type name
-        let udtName = result[0]["udt_name"]
+        let udtName = result[0]["udt_name"];
         if (udtName.indexOf("_") === 0) {
-            udtName = udtName.substr(1, udtName.length)
+            udtName = udtName.substr(1, udtName.length);
         }
         return {
             schema: result[0]["udt_schema"],

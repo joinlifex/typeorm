@@ -17,6 +17,7 @@ describe("persistence > cascade operations with custom name", () => {
 
         it("should remove relation", () => Promise.all(connections.map(async connection => {
 
+            const qr = connection.createQueryRunner();
             // create first post and category and save them
             const post1 = new Post();
             post1.title = "Hello Post #1";
@@ -25,14 +26,14 @@ describe("persistence > cascade operations with custom name", () => {
             category1.name = "Category saved by cascades #1";
             category1.posts = [post1];
 
-            await connection.manager.save(category1);
+            await connection.manager.save(qr, category1);
 
             category1.posts = [];
 
-            await connection.manager.save(category1);
+            await connection.manager.save(qr, category1);
 
             // now check
-            const posts = await connection.manager.find(Post, {
+            const posts = await connection.manager.find(qr, Post, {
                 join: {
                     alias: "post",
                     leftJoinAndSelect: {
@@ -49,6 +50,8 @@ describe("persistence > cascade operations with custom name", () => {
                 title: "Hello Post #1",
                 category: null
             }]);
+        
+            await qr.release();
         })));
 
     });

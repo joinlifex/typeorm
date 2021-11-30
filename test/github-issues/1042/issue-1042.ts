@@ -18,6 +18,7 @@ describe("github issues > #1042 EntityMetadata.createPropertyPath does not work 
 
     it("should update object columns fine, at the same time embedded should work properly", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         // create and save a new user
         const user = new User();
         user.name = "Timber Saw aka Lumberjack";
@@ -30,10 +31,10 @@ describe("github issues > #1042 EntityMetadata.createPropertyPath does not work 
         user.information.maritalStatus = "married";
         user.information.gender = "male";
         user.information.address = "Dostoevsky Street";
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         // load and check if saved user is correct
-        const loadedUser = await connection.manager.findOne(User, 1);
+        const loadedUser = await connection.manager.findOne(qr, User, 1);
         expect(loadedUser).not.to.be.undefined;
         loadedUser!.should.be.eql({
             id: 1,
@@ -63,10 +64,10 @@ describe("github issues > #1042 EntityMetadata.createPropertyPath does not work 
             .where({
                 id: 1
             })
-            .execute();
+            .execute(qr);
 
         // load and check again
-        const loadedUser2 = await connection.manager.findOne(User, 1);
+        const loadedUser2 = await connection.manager.findOne(qr, User, 1);
         expect(loadedUser2).not.to.be.undefined;
         loadedUser2!.should.be.eql({
             id: 1,
@@ -97,10 +98,10 @@ describe("github issues > #1042 EntityMetadata.createPropertyPath does not work 
             .where({
                 id: 1
             })
-            .execute();
+            .execute(qr);
 
         // load and check again
-        const loadedUser3 = await connection.manager.findOne(User, 1);
+        const loadedUser3 = await connection.manager.findOne(qr, User, 1);
         expect(loadedUser3).not.to.be.undefined;
         loadedUser3!.should.be.eql({
             id: 1,
@@ -131,10 +132,10 @@ describe("github issues > #1042 EntityMetadata.createPropertyPath does not work 
             .where({
                 id: 1
             })
-            .execute();
+            .execute(qr);
 
         // load and check again
-        const loadedUser4 = await connection.manager.findOne(User, 1);
+        const loadedUser4 = await connection.manager.findOne(qr, User, 1);
         expect(loadedUser4).not.to.be.undefined;
         loadedUser4!.should.be.eql({
             id: 1,
@@ -151,6 +152,7 @@ describe("github issues > #1042 EntityMetadata.createPropertyPath does not work 
                 address: "Chehov Street",
             }
         });
+        await qr.release();
     })));
 
 });

@@ -31,10 +31,12 @@ describe("sqljs driver > startup", () => {
     it("should write a new file after first write operation", () => Promise.all(connections.map(async connection => {
         let post = new Post();
         post.title = "The title";
+        const qr = connection.createQueryRunner();
 
         const repository = connection.getRepository(Post);
-        await repository.save(post);
+        await repository.save(qr, post);
 
         expect(PlatformTools.fileExist(pathToSqlite)).to.be.true;
+        await qr.release();
     })));
 });

@@ -99,7 +99,7 @@ export class MigrationGenerateCommand implements yargs.CommandModule {
             });
 
             const upSqls: string[] = [], downSqls: string[] = [];
-
+            console.log(connectionOptions);
             const connection = await createConnection(connectionOptions);
             try {
                 const sqlInMemory = await connection.driver.createSchemaBuilder().log();

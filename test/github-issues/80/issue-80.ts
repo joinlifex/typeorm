@@ -16,15 +16,19 @@ describe("github issues > #80 repository.save fails when empty array is sent to 
     it("should persist successfully and return persisted entity", () => Promise.all(connections.map(async connection => {
         const post = new Post();
         post.title = "Hello Post #1";
-        const returnedPost = await connection.manager.save(post);
+        const qr = connection.createQueryRunner();
+        const returnedPost = await connection.manager.save(qr, post);
 
+        await qr.release();
         expect(returnedPost).not.to.be.undefined;
         returnedPost.should.be.equal(post);
     })));
 
     it("should not fail if empty array is given to persist method", () => Promise.all(connections.map(async connection => {
         const posts: Post[] = [];
-        const returnedPosts = await connection.manager.save(posts);
+        const qr = connection.createQueryRunner();
+        const returnedPosts = await connection.manager.save(qr, posts);
+        await qr.release();
         expect(returnedPosts).not.to.be.undefined;
         returnedPosts.should.be.equal(posts);
     })));

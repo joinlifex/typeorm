@@ -14,6 +14,7 @@ describe(`query builder > find with the global condition of "non-deleted"`, () =
 
     it(`The global condition of "non-deleted" should be set for the entity with delete date columns`, () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const post1 = new Post();
         post1.title = "title#1";
         const post2 = new Post();
@@ -21,18 +22,18 @@ describe(`query builder > find with the global condition of "non-deleted"`, () =
         const post3 = new Post();
         post3.title = "title#3";
 
-        await connection.manager.save(post1);
-        await connection.manager.save(post2);
-        await connection.manager.save(post3);
+        await connection.manager.save(qr, post1);
+        await connection.manager.save(qr, post2);
+        await connection.manager.save(qr, post3);
 
-        await connection.manager.softRemove(post1);
+        await connection.manager.softRemove(qr, post1);
 
         const loadedPosts = await connection
             .createQueryBuilder()
             .select("post")
             .from(Post, "post")
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         loadedPosts!.length.should.be.equal(2);
         loadedPosts![0].title.should.be.equals("title#2");
@@ -43,13 +44,15 @@ describe(`query builder > find with the global condition of "non-deleted"`, () =
             .select("post")
             .from(Post, "post")
             .orderBy("post.id")
-            .getOne();
+            .getOne(qr);
             loadedPost!.title.should.be.equals("title#2");
 
+        await qr.release();
     })));
 
     it(`The global condition of "non-deleted" should not be set when "withDeleted" is called`, () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const post1 = new Post();
         post1.title = "title#1";
         const post2 = new Post();
@@ -57,11 +60,11 @@ describe(`query builder > find with the global condition of "non-deleted"`, () =
         const post3 = new Post();
         post3.title = "title#3";
 
-        await connection.manager.save(post1);
-        await connection.manager.save(post2);
-        await connection.manager.save(post3);
+        await connection.manager.save(qr, post1);
+        await connection.manager.save(qr, post2);
+        await connection.manager.save(qr, post3);
 
-        await connection.manager.softRemove(post1);
+        await connection.manager.softRemove(qr, post1);
 
         const loadedPosts = await connection
             .createQueryBuilder()
@@ -69,7 +72,7 @@ describe(`query builder > find with the global condition of "non-deleted"`, () =
             .from(Post, "post")
             .withDeleted()
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         loadedPosts!.length.should.be.equal(3);
         loadedPosts![0].title.should.be.equals("title#1");
@@ -82,8 +85,9 @@ describe(`query builder > find with the global condition of "non-deleted"`, () =
             .from(Post, "post")
             .withDeleted()
             .orderBy("post.id")
-            .getOne();
+            .getOne(qr);
             loadedPost!.title.should.be.equals("title#1");
 
+        await qr.release();
     })));
 });

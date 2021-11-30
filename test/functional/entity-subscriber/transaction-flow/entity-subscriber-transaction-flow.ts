@@ -94,7 +94,7 @@ describe("entity subscriber > transaction flow", () => {
                     return call.args[0] === "BEGIN TRANSACTION"
                         || call.args[0] === "START TRANSACTION"
                         || call.args[0] === "SET TRANSACTION ISOLATION LEVEL READ COMMITTED";
-                })
+                });
                 expect(queryCallBeforeTransactionStart).to.be.undefined;
 
                 await queryRunner.startTransaction(isolationLevel);

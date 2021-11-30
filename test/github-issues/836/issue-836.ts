@@ -16,11 +16,12 @@ describe("github issues > #836 .save won't update entity when it contains OneToO
     it("should work perfectly", () => Promise.all(connections.map(async connection => {
 
         // just insert another dummy user
+        const queryRunner = connection.createQueryRunner();
         const user1 = new User();
         user1.email = "user1@user.com";
         user1.username = "User 1";
         user1.privilege = 0;
-        await connection.manager.save(user1);
+        await connection.manager.save(queryRunner, user1);
 
         // create a user but do not insert it
         const user2 = new User();
@@ -33,10 +34,10 @@ describe("github issues > #836 .save won't update entity when it contains OneToO
         credential.password = "ABC";
         credential.salt = "CDE";
         credential.user = user2;
-        await connection.manager.save(credential);
+        await connection.manager.save(queryRunner, credential);
 
         // check if credentials and user are saved properly
-        const loadedCredentials = await connection.manager.findOne(UserCredential, 2, { relations: ["user"] });
+        const loadedCredentials = await connection.manager.findOne(queryRunner, UserCredential, 2, { relations: ["user"] });
         loadedCredentials!.should.be.eql({
             user: {
                 id: 2,
@@ -48,6 +49,7 @@ describe("github issues > #836 .save won't update entity when it contains OneToO
             salt: "CDE"
         });
 
+        queryRunner.release();
     })));
 
 });

@@ -28,7 +28,10 @@ describe("github issues > #2259 Missing type for generated columns", () => {
             name: "table",
             columns: [id]
         });
-        await connection.createQueryRunner().createTable(client);
+        const qr = connection.createQueryRunner();
+        await qr.createTable(client);
+        
+        await qr.release();
     })));
 
 });

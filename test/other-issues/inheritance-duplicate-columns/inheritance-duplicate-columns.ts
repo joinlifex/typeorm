@@ -15,16 +15,18 @@ describe("other issues > double inheritance produces multiple duplicated columns
 
     it("should not produce duplicate columns", () => Promise.all(connections.map(async function(connection) {
 
+        const queryRunner = connection.createQueryRunner();
         // insert a post
         const post = new Post();
         post.title = "hello";
-        await connection.manager.save(post);
+        await connection.manager.save(queryRunner, post);
 
         // check if it was inserted correctly
-        const loadedPost = await connection.manager.findOne(Post);
+        const loadedPost = await connection.manager.findOne(queryRunner, Post);
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.title.should.be.equal("hello");
 
+        queryRunner.release();
     })));
 
 });

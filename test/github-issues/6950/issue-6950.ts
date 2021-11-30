@@ -3,8 +3,8 @@ import { Connection } from "../../../src";
 
 import { createTestingConnections, closeTestingConnections } from "../../utils/test-utils";
 
-import { Post as Post1 } from "./entity/post_with_null_1.entity"
-import { Post as Post2 } from "./entity/post_with_null_2.entity"
+import { Post as Post1 } from "./entity/post_with_null_1.entity";
+import { Post as Post2 } from "./entity/post_with_null_2.entity";
 
 describe("github issues > #6950 postgres: Inappropiate migration generated for `default: null`", () => {
     describe("null default", () => {
@@ -31,7 +31,7 @@ describe("github issues > #6950 postgres: Inappropiate migration generated for `
             sqlInMemory.downQueries.length.should.be.equal(0);
 
         })));
-    })
+    });
 
     describe("null default and nullable", () => {
         let connections: Connection[];
@@ -58,5 +58,5 @@ describe("github issues > #6950 postgres: Inappropiate migration generated for `
 
         })));
 
-    })
+    });
 });

@@ -21,7 +21,9 @@ describe("github issue > #2200 Bug - Issue with snake_case naming strategy", () 
 
 
     it("Renammed alias allow to query correctly", () => Promise.all(connections.map(async connection => {
-        await connection.getRepository(Booking).find({take: 10});
+        const qr = connection.createQueryRunner();
+        await connection.getRepository(Booking).find(qr, {take: 10});
+        await qr.release();
     })));
 
 });

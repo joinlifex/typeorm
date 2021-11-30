@@ -15,21 +15,23 @@ describe("github issues > #3256 wrong subscriber methods being called", () => {
 
     it("if entity was changed, subscriber should be take updated columns", () => Promise.all(connections.map(async function(connection) {
 
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.id = 1;
         post.title = "hello world";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         post.inserted.should.be.equal(true);
         post.updated.should.be.equal(false);
 
-        const loadedPost = await connection.getRepository(Post).findOne(1);
+        const loadedPost = await connection.getRepository(Post).findOne(qr, 1);
         loadedPost!.title = "updated world";
-        await connection.manager.save(loadedPost);
+        await connection.manager.save(qr, loadedPost);
 
         loadedPost!.inserted.should.be.equal(false);
         loadedPost!.updated.should.be.equal(true);
 
+        await qr.release();
     })));
 
 });

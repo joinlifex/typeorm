@@ -35,11 +35,6 @@ export class Repository<Entity extends ObjectLiteral> {
      */
     readonly metadata: EntityMetadata;
 
-    /**
-     * Query runner provider used for this repository.
-     */
-    readonly queryRunner?: QueryRunner;
-
     // -------------------------------------------------------------------------
     // Public Methods
     // -------------------------------------------------------------------------
@@ -47,8 +42,8 @@ export class Repository<Entity extends ObjectLiteral> {
     /**
      * Creates a new query builder that can be used to build a sql query.
      */
-    createQueryBuilder(alias?: string, queryRunner?: QueryRunner): SelectQueryBuilder<Entity> {
-        return this.manager.createQueryBuilder<Entity>(this.metadata.target as any, alias || this.metadata.targetName, queryRunner || this.queryRunner);
+    createQueryBuilder(alias?: string): SelectQueryBuilder<Entity> {
+        return this.manager.createQueryBuilder<Entity>(this.metadata.target as any, alias || this.metadata.targetName);
     }
 
     /**
@@ -78,33 +73,33 @@ export class Repository<Entity extends ObjectLiteral> {
     /**
      * Creates a new entity instance.
      */
-    create(): Entity;
+    create(queryRunner: QueryRunner): Entity;
 
     /**
      * Creates new entities and copies all entity properties from given objects into their new entities.
      * Note that it copies only properties that are present in entity schema.
      */
-    create(entityLikeArray: DeepPartial<Entity>[]): Entity[];
+    create(queryRunner: QueryRunner, entityLikeArray: DeepPartial<Entity>[]): Entity[];
 
     /**
      * Creates a new entity instance and copies all entity properties from this object into a new entity.
      * Note that it copies only properties that are present in entity schema.
      */
-    create(entityLike: DeepPartial<Entity>): Entity;
+    create(queryRunner: QueryRunner, entityLike: DeepPartial<Entity>): Entity;
 
     /**
      * Creates a new entity instance or instances.
      * Can copy properties from the given object into new entities.
      */
-    create(plainEntityLikeOrPlainEntityLikes?: DeepPartial<Entity>|DeepPartial<Entity>[]): Entity|Entity[] {
-        return this.manager.create<any>(this.metadata.target as any, plainEntityLikeOrPlainEntityLikes as any);
+    create(queryRunner: QueryRunner, plainEntityLikeOrPlainEntityLikes?: DeepPartial<Entity>|DeepPartial<Entity>[]): Entity|Entity[] {
+        return this.manager.create<any>(queryRunner, this.metadata.target as any, plainEntityLikeOrPlainEntityLikes as any);
     }
 
     /**
      * Merges multiple entities (or entity-like objects) into a given entity.
      */
-    merge(mergeIntoEntity: Entity, ...entityLikes: DeepPartial<Entity>[]): Entity {
-        return this.manager.merge(this.metadata.target as any, mergeIntoEntity, ...entityLikes);
+    merge(queryRunner: QueryRunner, mergeIntoEntity: Entity, ...entityLikes: DeepPartial<Entity>[]): Entity {
+        return this.manager.merge(queryRunner, this.metadata.target as any, mergeIntoEntity, ...entityLikes);
     }
 
     /**
@@ -116,110 +111,83 @@ export class Repository<Entity extends ObjectLiteral> {
      * Note that given entity-like object must have an entity id / primary key to find entity by.
      * Returns undefined if entity with given id was not found.
      */
-    preload(entityLike: DeepPartial<Entity>): Promise<Entity|undefined> {
-        return this.manager.preload(this.metadata.target as any, entityLike);
+    preload(queryRunner: QueryRunner, entityLike: DeepPartial<Entity>): Promise<Entity|undefined> {
+        return this.manager.preload(queryRunner, this.metadata.target as any, entityLike);
     }
 
     /**
      * Saves all given entities in the database.
      * If entities do not exist in the database then inserts, otherwise updates.
      */
-    save<T extends DeepPartial<Entity>>(entities: T[], options: SaveOptions & { reload: false }): Promise<T[]>;
+     save<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entities: T[], options: SaveOptions & { reload: false }): Promise<T[]>;
 
+     /**
+      * Saves all given entities in the database.
+      * If entities do not exist in the database then inserts, otherwise updates.
+      */
+     save<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entities: T[], options?: SaveOptions): Promise<(T & Entity)[]>;
+ 
+     /**
+      * Saves a given entity in the database.
+      * If entity does not exist in the database then inserts, otherwise updates.
+      */
+     save<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entity: T, options: SaveOptions & { reload: false }): Promise<T>;
+ 
+     /**
+      * Saves a given entity in the database.
+      * If entity does not exist in the database then inserts, otherwise updates.
+      */
+     save<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entity: T, options?: SaveOptions): Promise<T & Entity>;
+ 
+     /**
+      * Saves one or many given entities.
+      */
+     save<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T|T[], options?: SaveOptions): Promise<T|T[]> {
+         return this.manager.save<Entity, T>(queryRunner, this.metadata.target as any, entityOrEntities as any, options);
+     }
     /**
-     * Saves all given entities in the database.
-     * If entities do not exist in the database then inserts, otherwise updates.
+     * Removes many given entities.
      */
-    save<T extends DeepPartial<Entity>>(entities: T[], options?: SaveOptions): Promise<(T & Entity)[]>;
-
+    remove(queryRunner: QueryRunner, entityOrEntities: Entity[], options?: RemoveOptions): Promise<Entity[]>;
     /**
-     * Saves a given entity in the database.
-     * If entity does not exist in the database then inserts, otherwise updates.
+     * Removes one given entity.
      */
-    save<T extends DeepPartial<Entity>>(entity: T, options: SaveOptions & { reload: false }): Promise<T>;
-
-    /**
-     * Saves a given entity in the database.
-     * If entity does not exist in the database then inserts, otherwise updates.
-     */
-    save<T extends DeepPartial<Entity>>(entity: T, options?: SaveOptions): Promise<T & Entity>;
-
-    /**
-     * Saves one or many given entities.
-     */
-    save<T extends DeepPartial<Entity>>(entityOrEntities: T|T[], options?: SaveOptions): Promise<T|T[]> {
-        return this.manager.save<Entity, T>(this.metadata.target as any, entityOrEntities as any, options);
-    }
-
-    /**
-     * Removes a given entities from the database.
-     */
-    remove(entities: Entity[], options?: RemoveOptions): Promise<Entity[]>;
-
-    /**
-     * Removes a given entity from the database.
-     */
-    remove(entity: Entity, options?: RemoveOptions): Promise<Entity>;
-
+    remove(queryRunner: QueryRunner, entityOrEntities: Entity, options?: RemoveOptions): Promise<Entity>;
     /**
      * Removes one or many given entities.
      */
-    remove(entityOrEntities: Entity|Entity[], options?: RemoveOptions): Promise<Entity|Entity[]> {
-        return this.manager.remove(this.metadata.target as any, entityOrEntities as any, options);
+    remove(queryRunner: QueryRunner, entityOrEntities: Entity|Entity[], options?: RemoveOptions): Promise<Entity|Entity[]> {
+        return this.manager.remove(queryRunner, this.metadata.target as any, entityOrEntities as any, options);
     }
-
     /**
-     * Records the delete date of all given entities.
+     * Records the delete date of one given entity.
      */
-    softRemove<T extends DeepPartial<Entity>>(entities: T[], options: SaveOptions & { reload: false }): Promise<T[]>;
-
+    softRemove<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T, options?: SaveOptions & { reload?: false }): Promise<T>;
     /**
-     * Records the delete date of all given entities.
+     * Records the delete date of many given entities.
      */
-    softRemove<T extends DeepPartial<Entity>>(entities: T[], options?: SaveOptions): Promise<(T & Entity)[]>;
-
-    /**
-     * Records the delete date of a given entity.
-     */
-    softRemove<T extends DeepPartial<Entity>>(entity: T, options: SaveOptions & { reload: false }): Promise<T>;
-
-    /**
-     * Records the delete date of a given entity.
-     */
-    softRemove<T extends DeepPartial<Entity>>(entity: T, options?: SaveOptions): Promise<T & Entity>;
+     softRemove<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T[], options?: SaveOptions & { reload?: false }): Promise<T[]>;
 
     /**
      * Records the delete date of one or many given entities.
      */
-    softRemove<T extends DeepPartial<Entity>>(entityOrEntities: T|T[], options?: SaveOptions): Promise<T|T[]> {
-        return this.manager.softRemove<Entity, T>(this.metadata.target as any, entityOrEntities as any, options);
+    softRemove<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T|T[], options?: SaveOptions & { reload?: false }): Promise<T|T[]> {
+        return this.manager.softRemove<Entity, T>(queryRunner, this.metadata.target, entityOrEntities, options);
     }
 
     /**
-     * Recovers all given entities in the database.
+     * Recovers one given entity.
      */
-    recover<T extends DeepPartial<Entity>>(entities: T[], options: SaveOptions & { reload: false }): Promise<T[]>;
-
-    /**
-     * Recovers all given entities in the database.
-     */
-    recover<T extends DeepPartial<Entity>>(entities: T[], options?: SaveOptions): Promise<(T & Entity)[]>;
-
-    /**
-     * Recovers a given entity in the database.
-     */
-    recover<T extends DeepPartial<Entity>>(entity: T, options: SaveOptions & { reload: false }): Promise<T>;
-
-    /**
-     * Recovers a given entity in the database.
-     */
-    recover<T extends DeepPartial<Entity>>(entity: T, options?: SaveOptions): Promise<T & Entity>;
-
+     recover<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T, options?: SaveOptions & { reload?: false }): Promise<T>;
+     /**
+      * Recovers many given entities.
+      */
+     recover<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T[], options?: SaveOptions & { reload?: false }): Promise<T[]>;
     /**
      * Recovers one or many given entities.
      */
-    recover<T extends DeepPartial<Entity>>(entityOrEntities: T|T[], options?: SaveOptions): Promise<T|T[]> {
-        return this.manager.recover<Entity, T>(this.metadata.target as any, entityOrEntities as any, options);
+    recover<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T|T[], options?: SaveOptions & { reload?: false }): Promise<T|T[]> {
+        return this.manager.recover<Entity, T>(queryRunner, this.metadata.target as any, entityOrEntities as any, options);
     }
 
     /**
@@ -228,8 +196,8 @@ export class Repository<Entity extends ObjectLiteral> {
      * Executes fast and efficient INSERT query.
      * Does not check if entity exist in the database, so query will fail if duplicate entity is being inserted.
      */
-    insert(entity: QueryDeepPartialEntity<Entity>|(QueryDeepPartialEntity<Entity>[])): Promise<InsertResult> {
-        return this.manager.insert(this.metadata.target as any, entity);
+    insert(queryRunner: QueryRunner, entity: QueryDeepPartialEntity<Entity>|(QueryDeepPartialEntity<Entity>[])): Promise<InsertResult> {
+        return this.manager.insert(queryRunner, this.metadata.target as any, entity);
     }
 
     /**
@@ -238,8 +206,8 @@ export class Repository<Entity extends ObjectLiteral> {
      * Executes fast and efficient UPDATE query.
      * Does not check if entity exist in the database.
      */
-    update(criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindConditions<Entity>, partialEntity: QueryDeepPartialEntity<Entity>): Promise<UpdateResult> {
-        return this.manager.update(this.metadata.target as any, criteria as any, partialEntity);
+    update(queryRunner: QueryRunner, criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindConditions<Entity>, partialEntity: QueryDeepPartialEntity<Entity>): Promise<UpdateResult> {
+        return this.manager.update(queryRunner, this.metadata.target as any, criteria as any, partialEntity);
     }
 
     /**
@@ -247,10 +215,10 @@ export class Repository<Entity extends ObjectLiteral> {
      * Unlike save method executes a primitive operation without cascades, relations and other operations included.
      * Executes fast and efficient INSERT ... ON CONFLICT DO UPDATE/ON DUPLICATE KEY UPDATE query.
      */
-    upsert(
+    upsert(queryRunner: QueryRunner, 
         entityOrEntities: QueryDeepPartialEntity<Entity> | (QueryDeepPartialEntity<Entity>[]),
         conflictPathsOrOptions: string[] | UpsertOptions<Entity>): Promise<InsertResult> {
-        return this.manager.upsert(this.metadata.target as any, entityOrEntities, conflictPathsOrOptions);
+        return this.manager.upsert(queryRunner, this.metadata.target as any, entityOrEntities, conflictPathsOrOptions);
     }
 
     /**
@@ -259,8 +227,8 @@ export class Repository<Entity extends ObjectLiteral> {
      * Executes fast and efficient DELETE query.
      * Does not check if entity exist in the database.
      */
-    delete(criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindConditions<Entity>): Promise<DeleteResult> {
-        return this.manager.delete(this.metadata.target as any, criteria as any);
+    delete(queryRunner: QueryRunner, criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindConditions<Entity>): Promise<DeleteResult> {
+        return this.manager.delete(queryRunner, this.metadata.target as any, criteria as any);
     }
 
     /**
@@ -269,8 +237,8 @@ export class Repository<Entity extends ObjectLiteral> {
      * Executes fast and efficient SOFT-DELETE query.
      * Does not check if entity exist in the database.
      */
-    softDelete(criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindConditions<Entity>): Promise<UpdateResult> {
-        return this.manager.softDelete(this.metadata.target as any, criteria as any);
+    softDelete(queryRunner: QueryRunner, criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindConditions<Entity>): Promise<UpdateResult> {
+        return this.manager.softDelete(queryRunner, this.metadata.target as any, criteria as any);
     }
 
     /**
@@ -279,137 +247,59 @@ export class Repository<Entity extends ObjectLiteral> {
      * Executes fast and efficient SOFT-DELETE query.
      * Does not check if entity exist in the database.
      */
-    restore(criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindConditions<Entity>): Promise<UpdateResult> {
-        return this.manager.restore(this.metadata.target as any, criteria as any);
+    restore(queryRunner: QueryRunner, criteria: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindConditions<Entity>): Promise<UpdateResult> {
+        return this.manager.restore(queryRunner, this.metadata.target as any, criteria as any);
     }
-
-    /**
-     * Counts entities that match given options.
-     */
-    count(options?: FindManyOptions<Entity>): Promise<number>;
-
-    /**
-     * Counts entities that match given conditions.
-     */
-    count(conditions?: FindConditions<Entity>): Promise<number>;
 
     /**
      * Counts entities that match given find options or conditions.
      */
-    count(optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<number> {
-        return this.manager.count(this.metadata.target as any, optionsOrConditions as any);
+    count(queryRunner: QueryRunner, optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<number> {
+        return this.manager.count(queryRunner, this.metadata.target as any, optionsOrConditions as any);
     }
-
-    /**
-     * Finds entities that match given options.
-     */
-    find(options?: FindManyOptions<Entity>): Promise<Entity[]>;
-
-    /**
-     * Finds entities that match given conditions.
-     */
-    find(conditions?: FindConditions<Entity>): Promise<Entity[]>;
 
     /**
      * Finds entities that match given find options or conditions.
      */
-    find(optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<Entity[]> {
-        return this.manager.find(this.metadata.target as any, optionsOrConditions as any);
+    find(queryRunner: QueryRunner, optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<Entity[]> {
+        return this.manager.find(queryRunner, this.metadata.target as any, optionsOrConditions as any);
     }
-
-    /**
-     * Finds entities that match given find options.
-     * Also counts all entities that match given conditions,
-     * but ignores pagination settings (from and take options).
-     */
-    findAndCount(options?: FindManyOptions<Entity>): Promise<[ Entity[], number ]>;
-
-    /**
-     * Finds entities that match given conditions.
-     * Also counts all entities that match given conditions,
-     * but ignores pagination settings (from and take options).
-     */
-    findAndCount(conditions?: FindConditions<Entity>): Promise<[ Entity[], number ]>;
-
     /**
      * Finds entities that match given find options or conditions.
      * Also counts all entities that match given conditions,
      * but ignores pagination settings (from and take options).
      */
-    findAndCount(optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<[ Entity[], number ]> {
-        return this.manager.findAndCount(this.metadata.target as any, optionsOrConditions as any);
+    findAndCount(queryRunner: QueryRunner, optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<[ Entity[], number ]> {
+        return this.manager.findAndCount(queryRunner, this.metadata.target as any, optionsOrConditions as any);
     }
-
     /**
      * Finds entities by ids.
      * Optionally find options can be applied.
      */
-    findByIds(ids: any[], options?: FindManyOptions<Entity>): Promise<Entity[]>;
-
-    /**
-     * Finds entities by ids.
-     * Optionally conditions can be applied.
-     */
-    findByIds(ids: any[], conditions?: FindConditions<Entity>): Promise<Entity[]>;
-
-    /**
-     * Finds entities by ids.
-     * Optionally find options can be applied.
-     */
-    findByIds(ids: any[], optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<Entity[]> {
-        return this.manager.findByIds(this.metadata.target as any, ids, optionsOrConditions as any);
+    findByIds(queryRunner: QueryRunner, ids: any[], optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<Entity[]> {
+        return this.manager.findByIds(queryRunner, this.metadata.target as any, ids, optionsOrConditions as any);
     }
 
     /**
-     * Finds first entity that matches given options.
-     */
-    findOne(id?: string|number|Date|ObjectID, options?: FindOneOptions<Entity>): Promise<Entity|undefined>;
-
-    /**
-     * Finds first entity that matches given options.
-     */
-    findOne(options?: FindOneOptions<Entity>): Promise<Entity|undefined>;
-
-    /**
      * Finds first entity that matches given conditions.
      */
-    findOne(conditions?: FindConditions<Entity>, options?: FindOneOptions<Entity>): Promise<Entity|undefined>;
-
-    /**
-     * Finds first entity that matches given conditions.
-     */
-    findOne(optionsOrConditions?: string|number|Date|ObjectID|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity|undefined> {
-        return this.manager.findOne(this.metadata.target as any, optionsOrConditions as any, maybeOptions);
+    findOne(queryRunner: QueryRunner, optionsOrConditions?: string|number|Date|ObjectID|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity|undefined> {
+        return this.manager.findOne(queryRunner, this.metadata.target as any, optionsOrConditions as any, maybeOptions);
     }
 
     /**
-     * Finds first entity that matches given options.
-     */
-    findOneOrFail(id?: string|number|Date|ObjectID, options?: FindOneOptions<Entity>): Promise<Entity>;
-
-    /**
-     * Finds first entity that matches given options.
-     */
-    findOneOrFail(options?: FindOneOptions<Entity>): Promise<Entity>;
-
-    /**
      * Finds first entity that matches given conditions.
      */
-    findOneOrFail(conditions?: FindConditions<Entity>, options?: FindOneOptions<Entity>): Promise<Entity>;
-
-    /**
-     * Finds first entity that matches given conditions.
-     */
-    findOneOrFail(optionsOrConditions?: string|number|Date|ObjectID|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity> {
-        return this.manager.findOneOrFail(this.metadata.target as any, optionsOrConditions as any, maybeOptions);
+    findOneOrFail(queryRunner: QueryRunner, optionsOrConditions?: string|number|Date|ObjectID|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity> {
+        return this.manager.findOneOrFail(queryRunner, this.metadata.target as any, optionsOrConditions as any, maybeOptions);
     }
 
     /**
      * Executes a raw SQL query and returns a raw database results.
      * Raw query execution is supported only by relational databases (MongoDB is not supported).
      */
-    query(query: string, parameters?: any[]): Promise<any> {
-        return this.manager.query(query, parameters);
+    query(queryRunner: QueryRunner, query: string, parameters?: any[]): Promise<any> {
+        return this.manager.query(queryRunner, query, parameters);
     }
 
     /**
@@ -418,22 +308,22 @@ export class Repository<Entity extends ObjectLiteral> {
      * Note: this method uses TRUNCATE and may not work as you expect in transactions on some platforms.
      * @see https://stackoverflow.com/a/5972738/925151
      */
-    clear(): Promise<void> {
-        return this.manager.clear(this.metadata.target);
+    clear(queryRunner: QueryRunner): Promise<void> {
+        return this.manager.clear(queryRunner, this.metadata.target);
     }
 
     /**
      * Increments some column by provided value of the entities matched given conditions.
      */
-    increment(conditions: FindConditions<Entity>, propertyPath: string, value: number | string): Promise<UpdateResult> {
-        return this.manager.increment(this.metadata.target, conditions, propertyPath, value);
+    increment(queryRunner: QueryRunner, conditions: FindConditions<Entity>, propertyPath: string, value: number | string): Promise<UpdateResult> {
+        return this.manager.increment(queryRunner, this.metadata.target, conditions, propertyPath, value);
     }
 
     /**
      * Decrements some column by provided value of the entities matched given conditions.
      */
-    decrement(conditions: FindConditions<Entity>, propertyPath: string, value: number | string): Promise<UpdateResult> {
-        return this.manager.decrement(this.metadata.target, conditions, propertyPath, value);
+    decrement(queryRunner: QueryRunner, conditions: FindConditions<Entity>, propertyPath: string, value: number | string): Promise<UpdateResult> {
+        return this.manager.decrement(queryRunner, this.metadata.target, conditions, propertyPath, value);
     }
 
 }

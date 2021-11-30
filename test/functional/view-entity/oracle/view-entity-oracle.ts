@@ -27,25 +27,26 @@ describe("view entity > oracle", () => {
 
     it("should correctly return data from View", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const category1 = new Category();
         category1.name = "Cars";
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "Airplanes";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const post1 = new Post();
         post1.name = "About BMW";
         post1.categoryId = category1.id;
-        await connection.manager.save(post1);
+        await connection.manager.save(qr, post1);
 
         const post2 = new Post();
         post2.name = "About Boeing";
         post2.categoryId = category2.id;
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post2);
 
-        const postCategories = await connection.manager.find(PostCategory);
+        const postCategories = await connection.manager.find(qr, PostCategory);
         postCategories.length.should.be.equal(2);
 
         postCategories[0].id.should.be.equal(1);
@@ -56,5 +57,6 @@ describe("view entity > oracle", () => {
         postCategories[1].postName.should.be.equal("About Boeing");
         postCategories[1].categoryName.should.be.equal("Airplanes");
 
+        await qr.release();
     })));
 });

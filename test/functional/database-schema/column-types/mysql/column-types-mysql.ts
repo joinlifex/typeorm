@@ -24,6 +24,7 @@ describe("database schema > column types > mysql", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new Post();
         post.id = 1;
@@ -43,7 +44,7 @@ describe("database schema > column types > mysql", () => {
         post.numeric = "822337";
         post.fixed = "822337";
         post.bool = true;
-        post.boolean = false;
+        post["boolean"] = false;
         post.char = "A";
         post.nChar = "A";
         post.nationalChar = "A";
@@ -82,9 +83,9 @@ describe("database schema > column types > mysql", () => {
         post.simpleJson = { param: "VALUE" };
         post.simpleEnum = "A";
         post.simpleClassEnum1 = FruitEnum.Apple;
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.bit.toString().should.be.equal(post.bit.toString());
         loadedPost.int.should.be.equal(post.int);
@@ -208,6 +209,7 @@ describe("database schema > column types > mysql", () => {
         table!.findColumnByName("simpleClassEnum1")!.enum![1].should.be.equal("pineapple");
         table!.findColumnByName("simpleClassEnum1")!.enum![2].should.be.equal("banana");
 
+        await qr.release();
     })));
 
     it("all types should work correctly - persist and hydrate when options are specified on columns", () => Promise.all(connections.map(async connection => {
@@ -216,6 +218,7 @@ describe("database schema > column types > mysql", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post_with_options");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new PostWithOptions();
         post.id = 1;
@@ -228,9 +231,9 @@ describe("database schema > column types > mysql", () => {
         post.datetime = new Date();
         post.timestamp = new Date();
         post.time = "15:30:00.256";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.float.should.be.equal(post.float);
@@ -265,6 +268,7 @@ describe("database schema > column types > mysql", () => {
         table!.findColumnByName("time")!.type.should.be.equal("time");
         table!.findColumnByName("time")!.precision!.should.be.equal(3);
 
+        await qr.release();
     })));
 
     it("all types should work correctly - persist and hydrate when types are not specified on columns", () => Promise.all(connections.map(async connection => {
@@ -273,17 +277,18 @@ describe("database schema > column types > mysql", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post_without_types");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new PostWithoutTypes();
         post.id = 1;
         post.name = "Post";
-        post.boolean = true;
+        post["boolean"] = true;
         post.blob = Buffer.from("A");
         post.datetime = new Date();
         post.datetime.setMilliseconds(0); // set milliseconds to zero, because if datetime type specified without precision, milliseconds won't save in database
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.boolean.should.be.equal(post.boolean);
@@ -296,6 +301,7 @@ describe("database schema > column types > mysql", () => {
         table!.findColumnByName("blob")!.type.should.be.equal("blob");
         table!.findColumnByName("datetime")!.type.should.be.equal("datetime");
 
+        await qr.release();
     })));
 
 });

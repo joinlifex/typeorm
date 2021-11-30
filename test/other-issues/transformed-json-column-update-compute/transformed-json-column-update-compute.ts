@@ -19,35 +19,37 @@ describe("other issues > correctly compute change for transformed json / jsonb c
 
 	it("should not update entity if transformed JSON column did not change", () => Promise.all(connections.map(async connection => {
 		const repository = connection.getRepository(DummyJSONEntity);
-
-		const dummy = repository.create({
+		let queryRunner = connection.createQueryRunner();
+		const dummy = repository.create(queryRunner, {
 			value: {
 				secretProperty: "hello"
 			},
 		});
 
-		await repository.save(dummy);
+		await repository.save(queryRunner, dummy);
 
-		await repository.save(dummy);
+		await repository.save(queryRunner, dummy);
 
-		const dummyEntity = await repository.findOneOrFail(dummy.id);
+		const dummyEntity = await repository.findOneOrFail(queryRunner, dummy.id);
 		expect(dummyEntity.version).to.equal(1);
+		queryRunner.release();
 	})));
 
 	it("should not update entity if transformed JSONB column did not change", () => Promise.all(connections.map(async connection => {
 		const repository = connection.getRepository(DummyJSONBEntity);
-
-		const dummy = repository.create({
+		let queryRunner = connection.createQueryRunner();
+		const dummy = repository.create(queryRunner, {
 			value: {
 				secretProperty: "hello"
 			},
 		});
 
-		await repository.save(dummy);
+		await repository.save(queryRunner, dummy);
 
-		await repository.save(dummy);
+		await repository.save(queryRunner, dummy);
 
-		const dummyEntity = await repository.findOneOrFail(dummy.id);
+		const dummyEntity = await repository.findOneOrFail(queryRunner, dummy.id);
 		expect(dummyEntity.version).to.equal(1);
+		queryRunner.release();
 	})));
 });

@@ -27,7 +27,7 @@ describe("github issues > #7276 Schema sync not able to find diff correctly and 
             sqlInMemory.upQueries.length.should.be.equal(0);
             sqlInMemory.downQueries.length.should.be.equal(0);
         })));
-    })
+    });
 
     describe("mssql", () => {
         let connections: Connection[];
@@ -51,5 +51,5 @@ describe("github issues > #7276 Schema sync not able to find diff correctly and 
             sqlInMemory.upQueries.length.should.be.equal(0);
             sqlInMemory.downQueries.length.should.be.equal(0);
         })));
-    })
+    });
 });

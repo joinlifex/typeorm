@@ -18,33 +18,36 @@ describe("github issues > #1055 ind with relations not working, correct syntax c
     it("should be able to find by object reference", () => Promise.all(connections.map(async connection => {
         const manager = connection.manager;
 
+        const qr = connection.createQueryRunner();
         const parent = new Parent();
         parent.name = "Parent";
-        await manager.save(parent);
+        await manager.save(qr, parent);
 
-        const loadedParent = await manager.findOne(Parent, 1);
+        const loadedParent = await manager.findOne(qr, Parent, 1);
         expect(loadedParent).not.to.be.undefined;
 
         if (!loadedParent) return;
 
-        const child = connection.manager.create(Child, { // use alternative way of creating (to fix #1180 at the same time as well)
+        const child = connection.manager.create(qr, Child, { // use alternative way of creating (to fix #1180 at the same time as well)
             name: "Child",
             parent: loadedParent
         });
-        await manager.save(child);
+        await manager.save(qr, child);
 
-        const foundChild = await manager.findOne(Child, { parent: loadedParent });
+        const foundChild = await manager.findOne(qr, Child, { parent: loadedParent });
         expect(foundChild).not.to.be.undefined;
+        await qr.release();
     })));
 
     it("should not have type errors with the primary key type", () => Promise.all(connections.map(async connection => {
         const manager = connection.manager;
 
+        const qr = connection.createQueryRunner();
         const parent = new Parent();
         parent.name = "Parent";
-        await manager.save(parent);
+        await manager.save(qr, parent);
 
-        const loadedParent = await manager.findOne(Parent, 1);
+        const loadedParent = await manager.findOne(qr, Parent, 1);
         expect(loadedParent).not.to.be.undefined;
 
         if (!loadedParent) return;
@@ -52,9 +55,10 @@ describe("github issues > #1055 ind with relations not working, correct syntax c
         const child = new Child();
         child.name = "Child";
         child.parent = Promise.resolve(loadedParent);
-        await manager.save(child);
+        await manager.save(qr, child);
 
-        const foundChild = await manager.findOne(Child, { parent: loadedParent.id });
+        const foundChild = await manager.findOne(qr, Child, { parent: loadedParent.id });
         expect(foundChild).not.to.be.undefined;
+        await qr.release();
     })));
 });

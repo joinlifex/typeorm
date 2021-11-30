@@ -159,6 +159,7 @@ export function createQueryBuilder<Entity>(entityClass?: EntityTarget<Entity>, a
     if (entityClass) {
         return getRepository(entityClass, connectionName).createQueryBuilder(alias);
     }
+    const connection = getConnection(connectionName);
 
-    return getConnection(connectionName).createQueryBuilder();
+    return connection.createQueryBuilder();
 }

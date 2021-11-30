@@ -33,13 +33,13 @@ createConnection(options).then(connection => {
     post.author = author;
 
     let postRepository = connection.getRepository(Post);
-
+    const qr = connection.createQueryRunner();
     postRepository
-        .save(post)
+        .save(qr, post)
         .then(post => {
             console.log("Post has been saved");
             console.log("---------------------------");
-            return postRepository.findOne(post.id);
+            return postRepository.findOne(qr, post.id);
         })
         .then(loadedPost => {
             console.log("post is loaded. Its uid is " + loadedPost!.uid);
@@ -50,19 +50,19 @@ createConnection(options).then(connection => {
                 .leftJoinAndSelect("p.author", "author")
                 .leftJoinAndSelect("p.categories", "categories")
                 .where("p.id = :id", { id: loadedPost!.id })
-                .getOne();
+                .getOne(qr);
         })
         .then(loadedPost => {
             console.log("load finished. Now lets update entity");
             console.log("---------------------------");
             loadedPost!.text = "post updated";
             loadedPost!.author.name = "Bakha";
-            return postRepository.save(loadedPost!);
+            return postRepository.save(qr, loadedPost!);
         })
         .then(loadedPost => {
             console.log("update finished. Now lets remove entity");
             console.log("---------------------------");
-            return postRepository.remove(loadedPost);
+            return postRepository.remove(qr, loadedPost);
         })
         .then(loadedPost => {
             console.log("post removed.");

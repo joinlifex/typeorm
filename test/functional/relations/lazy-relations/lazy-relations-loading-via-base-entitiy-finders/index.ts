@@ -19,17 +19,20 @@ describe("lazy-relations-loading-via-base-entity-finders", () => {
 
     it("works", async () => {
         for (let connection of connections) {
+            const qr = connection.createQueryRunner();
             Category.useConnection(connection);
             Post.useConnection(connection);
             const category = new Category();
             category.name = "hello";
-            await category.save();
+            await category.save(qr);
             const post = new Post();
             post.title = "hello post";
             post.category = Promise.resolve(category);
-            await post.save();
-            expect((await Post.findOneOrFail({category})).id).equal(post.id);
-            expect((await Post.findOneOrFail({category: {id: category.id}})).id).equal(post.id);
+            await post.save(qr);
+            expect((await Post.findOneOrFail(qr, {category})).id).equal(post.id);
+            expect((await Post.findOneOrFail(qr, {category: {id: category.id}})).id).equal(post.id);
+            
+            await qr.release();
         }
     });
 });

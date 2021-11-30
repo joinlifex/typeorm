@@ -16,6 +16,7 @@ describe.skip("github issues > #56 relationships only work when both primary key
 
     it("should persist successfully and return persisted entity", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const token = new AccessToken();
         token.access_token = "12345";
 
@@ -23,8 +24,8 @@ describe.skip("github issues > #56 relationships only work when both primary key
         user.email = "mwelnick@test.com";
         user.access_token = token;
 
-        return connection.getRepository(AccessToken).save(token).then(token => {
-            return connection.getRepository(User).save(user);
+        const res = connection.getRepository(AccessToken).save(qr, token).then(token => {
+            return connection.getRepository(User).save(qr, user);
         }).then (user => {
             expect(user).not.to.be.undefined;
             user.should.be.eql({
@@ -35,7 +36,8 @@ describe.skip("github issues > #56 relationships only work when both primary key
                 }
             });
         });
-
+        await qr.release();
+        return res;
     })));
 
 });

@@ -15,42 +15,51 @@ describe("driver > convert raw results to entity", () => {
 
     it("should return null value in entity property when record column is null", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.id = 1;
 
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = await postRepository.findOne(1);
+        const loadedPost = await postRepository.findOne(qr, 1);
         if (loadedPost) {
             expect(loadedPost.isNew).to.be.equal(null);
         }
+        
+        await qr.release();
     })));
 
     it("should return true in entity property when record column is true", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.id = 1;
         post.isNew = true;
 
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = await postRepository.findOne(1);
+        const loadedPost = await postRepository.findOne(qr, 1);
         if (loadedPost) {
             expect(loadedPost.isNew).to.be.equal(true);
         }
+        
+        await qr.release();
     })));
 
     it("should return false in entity property when record column is false", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.id = 1;
         post.isNew = false;
 
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = await postRepository.findOne(1);
+        const loadedPost = await postRepository.findOne(qr, 1);
         if (loadedPost) {
             expect(loadedPost.isNew).to.be.equal(false);
         }
+        
+        await qr.release();
     })));
 });

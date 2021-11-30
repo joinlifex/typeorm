@@ -16,17 +16,18 @@ describe("github issues > #3352 sync drops text column", () => {
     after(() => closeTestingConnections(connections));
 
     it("should not drop text column", () => Promise.all(connections.map(async function(connection) {
-
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.id = 1;
         post.text = "hello world";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         await connection.synchronize();
 
-        const loadedPost = await connection.manager.find(Post, { text: "hello world" });
+        const loadedPost = await connection.manager.find(qr, Post, { text: "hello world" });
         expect(loadedPost).to.be.not.empty;
 
+        await qr.release();
     })));
 
 });

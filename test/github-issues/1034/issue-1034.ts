@@ -23,19 +23,21 @@ describe("github issues > #1034 Issue using setter with promises", () => {
 
         const circle: Circle = new Circle();
         circle.setId("1");
+        const qr = connection.createQueryRunner();
 
         // Entities persistance
-        await connection.manager.save(user);
-        await connection.manager.save(circle);
+        await connection.manager.save(qr, user);
+        await connection.manager.save(qr, circle);
 
         users.push(user);
-        const circleFromDB = await connection.manager.findOne(Circle, circle.getId());
+        const circleFromDB = await connection.manager.findOne(qr, Circle, circle.getId());
         expect(circleFromDB).is.not.undefined;
 
         // Setting users with setter
         circleFromDB!.setUsers(Promise.resolve(users));
         await Promise.resolve(); // this is unpleasant way to fix this issue
         expect(users).deep.equal(await circleFromDB!.getUsers());
+        await qr.release();
     })));
 
 });

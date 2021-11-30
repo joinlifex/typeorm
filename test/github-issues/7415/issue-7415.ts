@@ -26,31 +26,32 @@ describe("github issues > #7415 Tree entities with embedded primary columns are 
         Promise.all(
             connections.map(async (connection) => {
                 const manager = connection.manager;
+                const qr = connection.createQueryRunner();
 
                 const a1 = new Category("1");
-                await manager.save(a1);
+                await manager.save(qr, a1);
 
                 const a2 = new Category("2");
-                await manager.save(a2);
+                await manager.save(qr, a2);
 
                 const a11 = new Category("1.1", a1);
-                await manager.save(a11);
+                await manager.save(qr, a11);
 
                 const a12 = new Category("1.2", a1);
-                await manager.save(a12);
+                await manager.save(qr, a12);
 
                 const a13 = new Category("1.3", a1);
-                await manager.save(a13);
+                await manager.save(qr, a13);
 
                 const a121 = new Category("1.2.1", a12);
-                await manager.save(a121);
+                await manager.save(qr, a121);
 
                 const a122 = new Category("1.2.2", a12);
-                await manager.save(a122);
+                await manager.save(qr, a122);
 
                 const repository = manager.getTreeRepository(Category);
 
-                const descendantsTree = await repository.findDescendantsTree(
+                const descendantsTree = await repository.findDescendantsTree(qr, 
                     a1
                 );
 
@@ -71,8 +72,9 @@ describe("github issues > #7415 Tree entities with embedded primary columns are 
 
                 expect(descendantsTree).to.be.eql(expectedDescendantsTree);
 
-                const ancestorsTree = await repository.findAncestorsTree(a121);
+                const ancestorsTree = await repository.findAncestorsTree(qr, a121);
 
+                await qr.release();
                 const expectedAncestorsTree = {
                     id: new Slug("1.2.1"),
                     parent: {

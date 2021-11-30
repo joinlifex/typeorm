@@ -48,7 +48,7 @@ describe("query runner > create view", () => {
 
         let postMatView = await queryRunner.getView("new_post_materialized_view");
         expect(postMatView).to.be.exist;
-        expect(postMatView!.materialized).to.be.true
+        expect(postMatView!.materialized).to.be.true;
 
         await queryRunner.executeMemoryDownSql();
 

@@ -15,21 +15,23 @@ describe.skip("github issues > #1591 Define order of relation data when querying
     after(() => closeTestingConnections(connections));
 
     it("should query correct number of users with joined data ordering applied", () => Promise.all(connections.map(async connection => {
+        
+        const qr = connection.createQueryRunner();
         for (let i = 0; i < 30; i++) {
             const photo1 = new Photo();
             photo1.name = "Photo #" + i + "_1";
             photo1.date = new Date(2018, 0, i);
-            await connection.manager.save(photo1);
+            await connection.manager.save(qr, photo1);
 
             const photo2 = new Photo();
             photo2.name = "Photo #" + i + "_1";
             photo2.date = new Date(2016, 0, i);
-            await connection.manager.save(photo2);
+            await connection.manager.save(qr, photo2);
 
             const user = new User();
             user.name = "User #" + i;
             user.photos = [photo1, photo2];
-            await connection.manager.save(user);
+            await connection.manager.save(qr, user);
         }
 
         await connection
@@ -39,8 +41,9 @@ describe.skip("github issues > #1591 Define order of relation data when querying
             .addOrderBy("photo.date")
             .skip(0)
             .take(5)
-            .getMany();
+            .getMany(qr);
 
+        await qr.release();
     })));
 
 });

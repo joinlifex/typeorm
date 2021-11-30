@@ -15,6 +15,7 @@ const options: ConnectionOptions = {
 };
 
 createConnection(options).then(connection => {
+    const qr = connection.createQueryRunner();
 
     let entity = new EverythingEntity();
     entity.date = new Date(1980, 11, 1);
@@ -41,10 +42,10 @@ createConnection(options).then(connection => {
     let postRepository = connection.getRepository(EverythingEntity);
 
     postRepository
-        .save(entity)
+        .save(qr, entity)
         .then(entity => {
             console.log("EverythingEntity has been saved. Lets insert a new one to update it later");
-            return postRepository.save({
+            return postRepository.save(qr, {
                 ...entity,
                 id: undefined
             }) as Promise<EverythingEntity>;
@@ -72,22 +73,22 @@ createConnection(options).then(connection => {
             entity.alsoJson = { olleh: "hello", dlrow: "world" };
             entity.enum = SampleEnum.TWO;
 
-            return postRepository.save(entity);
+            return postRepository.save(qr, entity);
         })
         .then(entity => {
             console.log("Entity has been updated. Persist once again to make find and remove then");
-            return postRepository.save({
+            return postRepository.save(qr, {
                 ...entity,
                 id: undefined
             }) as Promise<EverythingEntity>;
         })
         .then(entity => {
-            return postRepository.findOne(entity.id);
+            return postRepository.findOne(qr, entity.id);
         })
         .then(entity => {
             console.log("Entity is loaded: ", entity);
             console.log("Now remove it");
-            return postRepository.remove(entity!);
+            return postRepository.remove(qr, entity!);
         })
         .then(entity => {
             console.log("Entity has been removed");

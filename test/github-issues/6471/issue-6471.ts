@@ -29,9 +29,9 @@ describe("github issues > #6471 Postgres enum is recreated in every new generate
     })));
 
     it("should handle `enumName` change", () => Promise.all(connections.map(async connection => {
-        const entityMetadata = connection.getMetadata(SomeEntity)
-        const columnMetadata = entityMetadata.columns.find(column => column.databaseName === "creationMechanism")
-        columnMetadata!.enumName = "changed_enum_name"
+        const entityMetadata = connection.getMetadata(SomeEntity);
+        const columnMetadata = entityMetadata.columns.find(column => column.databaseName === "creationMechanism");
+        columnMetadata!.enumName = "changed_enum_name";
 
         const sqlInMemory = await connection.driver.createSchemaBuilder().log();
         sqlInMemory.upQueries.length.should.be.greaterThan(0);

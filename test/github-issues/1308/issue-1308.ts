@@ -18,22 +18,25 @@ describe("github issues > #1308 Raw Postgresql Update query result is always an 
   after(() => closeTestingConnections(connections));
 
   async function prepareData(connection: Connection) {
+    const qr = connection.createQueryRunner();
     const author = new Author();
     author.id = 1;
     author.name = "Jane Doe";
-    await connection.manager.save(author);
+    await connection.manager.save(qr,author);
+    await qr.release();
   }
 
   it("Update query returns the number of affected rows", () =>
     Promise.all(
       connections.map(async connection => {
         await prepareData(connection);
+        const qr = connection.createQueryRunner();
 
         const result1 = await connection.createQueryBuilder()
           .update(Author)
           .set({ name: "John Doe" })
           .where("name = :name", { name: "Jonas Doe" })
-          .execute();
+          .execute(qr);
 
         result1.affected!.should.be.eql(0);
 
@@ -41,9 +44,10 @@ describe("github issues > #1308 Raw Postgresql Update query result is always an 
           .update(Author)
           .set({ name: "John Doe" })
           .where("name = :name", { name: "Jane Doe" })
-          .execute();
+          .execute(qr);
 
         result2.affected!.should.be.eql(1);
+        await qr.release();
       })
     ));
 });

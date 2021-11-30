@@ -18,22 +18,23 @@ describe("repository > find options", () => {
     after(() => closeTestingConnections(connections));
 
     it("should load relations", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const user = new User();
         user.name = "Alex Messer";
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         const category = new Category();
         category.name = "Boys";
-        await connection.manager.save(category);
+        await connection.manager.save(qr, category);
 
         const post = new Post();
         post.title = "About Alex Messer";
         post.author = user;
         post.categories = [category];
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
-        const loadedPost = await connection.getRepository(Post).findOne({
+        const loadedPost = await connection.getRepository(Post).findOne(qr, {
             relations: ["author", "categories"]
         });
         expect(loadedPost).to.be.eql({
@@ -48,17 +49,18 @@ describe("repository > find options", () => {
                 name: "Boys"
             }]
         });
-
+        
+        await qr.release();
     })));
 
     it("should execute select query inside transaction", () => Promise.all(connections.map(async connection => {
 
+        const queryRunner = await connection.createQueryRunner();
         const user = new User();
         user.name = "Alex Messer";
-        await connection.manager.save(user);
+        await connection.manager.save(queryRunner, user);
 
 
-        const queryRunner = await connection.createQueryRunner();
 
         const startTransactionFn = sinon.spy(queryRunner, "startTransaction");
         const commitTransactionFn = sinon.spy(queryRunner, "commitTransaction");
@@ -67,9 +69,9 @@ describe("repository > find options", () => {
         expect(commitTransactionFn.called).to.be.false;
 
         await connection
-            .createEntityManager(queryRunner)
+            .createEntityManager()
             .getRepository(User)
-            .findOne(1, {
+            .findOne(queryRunner, 1, {
                 transaction: true
             });
 
@@ -81,10 +83,11 @@ describe("repository > find options", () => {
     })));
 
     it("should select specific columns", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const category = new Category();
         category.name = "Bears";
-        await connection.manager.save(category);
+        await connection.manager.save(qr, category);
 
         const categories = [category];
         const photos = [];
@@ -97,21 +100,21 @@ describe("repository > find options", () => {
             photo.isPublished = false;
             photo.categories = categories;
             photos.push(photo);
-            await connection.manager.save(photo);
+            await connection.manager.save(qr, photo);
         }
 
-        const loadedPhoto = await connection.getRepository(Photo).findOne({
+        const loadedPhoto = await connection.getRepository(Photo).findOne(qr, {
             select: ["name"],
             where: {
                 id: 5
             }
         });
 
-        const loadedPhotos1 = await connection.getRepository(Photo).find({
+        const loadedPhotos1 = await connection.getRepository(Photo).find(qr, {
             select: ["filename", "views"],
         });
 
-        const loadedPhotos2 = await connection.getRepository(Photo).find({
+        const loadedPhotos2 = await connection.getRepository(Photo).find(qr, {
             select: ["id", "name", "description"],
             relations: ["categories"],
         });
@@ -120,7 +123,7 @@ describe("repository > find options", () => {
         //     .select(["photo.name", "photo.description"])
         //     .addSelect(["category.name"])
         //     .leftJoin("photo.categories", "category")
-        //     .getMany();
+        //     .getMany(qr);
 
         expect(loadedPhoto).to.be.eql({
             name: "Me and Bears 5"
@@ -145,23 +148,25 @@ describe("repository > find options", () => {
         //         name: category.name,
         //     })),
         // })));
+        await qr.release();
     })));
 
     it("should select by given conditions", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const category1 = new Category();
         category1.name = "Bears";
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "Dogs";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const category3 = new Category();
         category3.name = "Cats";
-        await connection.manager.save(category3);
+        await connection.manager.save(qr, category3);
 
-        const loadedCategories1 = await connection.getRepository(Category).find({
+        const loadedCategories1 = await connection.getRepository(Category).find(qr, {
             where: {
                 name: "Bears"
             }
@@ -172,7 +177,7 @@ describe("repository > find options", () => {
             name: "Bears"
         }]);
 
-        const loadedCategories2 = await connection.getRepository(Category).find({
+        const loadedCategories2 = await connection.getRepository(Category).find(qr, {
             where: [{
                 name: "Bears"
             }, {
@@ -188,6 +193,7 @@ describe("repository > find options", () => {
             name: "Cats"
         }]);
 
+        await qr.release();
     })));
 
 });
@@ -203,39 +209,40 @@ describe("repository > find options > cache", () => {
     after(() => closeTestingConnections(connections));
 
     it("repository should cache results properly", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         // first prepare data - insert users
         const user1 = new User();
         user1.name = "Harry";
-        await connection.manager.save(user1);
+        await connection.manager.save(qr, user1);
 
         const user2 = new User();
         user2.name = "Ron";
-        await connection.manager.save(user2);
+        await connection.manager.save(qr, user2);
 
         const user3 = new User();
         user3.name = "Hermione";
-        await connection.manager.save(user3);
+        await connection.manager.save(qr, user3);
 
         // select for the first time with caching enabled
         const users1 = await connection.getRepository(User)
-            .find({cache: true});
+            .find(qr, {cache: true});
 
         expect(users1.length).to.be.equal(3);
 
         // insert new entity
         const user4 = new User();
         user4.name = "Ginny";
-        await connection.manager.save(user4);
+        await connection.manager.save(qr, user4);
 
         // without cache it must return really how many there entities are
-        const users2 = await connection.getRepository(User).find();
+        const users2 = await connection.getRepository(User).find(qr);
 
         expect(users2.length).to.be.equal(4);
 
         // but with cache enabled it must not return newly inserted entity since cache is not expired yet
         const users3 = await connection.getRepository(User)
-            .find({cache: true});
+            .find(qr, {cache: true});
         expect(users3.length).to.be.equal(3);
 
         // give some time for cache to expire
@@ -243,8 +250,9 @@ describe("repository > find options > cache", () => {
 
         // now, when our cache has expired we check if we have new user inserted even with cache enabled
         const users4 = await connection.getRepository(User)
-            .find({cache: true});
+            .find(qr, {cache: true});
         expect(users4.length).to.be.equal(4);
 
+        await qr.release();
     })));
 });

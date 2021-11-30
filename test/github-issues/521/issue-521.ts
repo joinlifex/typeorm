@@ -13,7 +13,6 @@ describe("github issues > #521 Attributes in UPDATE in QB arent getting replaced
     after(() => closeTestingConnections(connections));
 
     it("should replace parameters", () => Promise.all(connections.map(async connection => {
-
         const qb = connection.getRepository(Car).createQueryBuilder("car");
         const [query, parameters] = qb
             .update({

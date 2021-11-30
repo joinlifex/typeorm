@@ -15,10 +15,12 @@ describe("indices > basic unique index test", () => {
     describe("unique index", function() {
 
         it("should work without errors", () => Promise.all(connections.map(async connection => {
+            const qr = connection.createQueryRunner();
             const customer = new Customer();
             customer.nameEnglish = "Umed";
             customer.nameHebrew = "Uma";
-            await connection.manager.save(customer);
+            await connection.manager.save(qr, customer);
+            await qr.release();
         })));
 
     });

@@ -18,8 +18,9 @@ describe("github issues > #1099 BUG - QueryBuilder MySQL skip sql is wrong", () 
 
     it("drivers which does not support offset without limit should throw an exception, other drivers must work fine", () => Promise.all(connections.map(async connection => {
         let animals = ["cat", "dog", "bear", "snake"];
+        const qr = connection.createQueryRunner();
         for (let animal of animals) {
-            await connection.getRepository(Animal).save({name: animal});
+            await connection.getRepository(Animal).save(qr, {name: animal});
         }
 
         const qb = connection.getRepository(Animal)
@@ -29,10 +30,11 @@ describe("github issues > #1099 BUG - QueryBuilder MySQL skip sql is wrong", () 
             .skip(1);
 
         if (connection.driver instanceof MysqlDriver || connection.driver instanceof AuroraDataApiDriver  || connection.driver instanceof SapDriver ) {
-            await qb.getManyAndCount().should.be.rejectedWith(OffsetWithoutLimitNotSupportedError);
+            await qb.getManyAndCount(qr).should.be.rejectedWith(OffsetWithoutLimitNotSupportedError);
         } else {
-            await qb.getManyAndCount().should.eventually.be.eql([[{ id: 2, name: "dog", categories: [] }, { id: 3, name: "bear", categories: [] }, { id: 4, name: "snake", categories: [] }, ], 4]);
+            await qb.getManyAndCount(qr).should.eventually.be.eql([[{ id: 2, name: "dog", categories: [] }, { id: 3, name: "bear", categories: [] }, { id: 4, name: "snake", categories: [] }, ], 4]);
         }
+        await qr.release();
     })));
 
 });

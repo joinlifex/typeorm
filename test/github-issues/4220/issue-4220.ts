@@ -40,6 +40,7 @@ describe("github issues > #4220 Fix the bug when using buffer as the key.", () =
        ];
 
        const repo = await connection.getRepository(User);
+       const qr = connection.createQueryRunner();
 
         await Promise.all(
         [...Array(10)].map((_, index) => {
@@ -47,14 +48,15 @@ describe("github issues > #4220 Fix the bug when using buffer as the key.", () =
             user.name = "random-name";
             user.id = Buffer.from(ids[index], "hex");  
             return user;   
-        }).map(user => repo.save(user))
+        }).map(user => repo.save(qr, user))
       );
 
       const result = await repo
       .createQueryBuilder("user")
-      .getMany();
+      .getMany(qr);
 
       expect(result.length).equal(10);
       expect(result[0].id.toString("hex").toUpperCase()).equal(ids[0]);
+      await qr.release();
     })));
 });

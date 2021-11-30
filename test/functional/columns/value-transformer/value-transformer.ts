@@ -22,20 +22,21 @@ describe("columns > value-transformer functionality", () => {
     it("should marshal data using the provided value-transformer", () => Promise.all(connections.map(async connection => {
 
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // create and save a post first
         const post = new Post();
         post.title = "About columns";
         post.tags = ["simple", "transformer"];
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // then update all its properties and save again
         post.title = "About columns1";
         post.tags = ["very", "simple"];
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // check if all columns are updated except for readonly columns
-        const loadedPost = await postRepository.findOne(post.id);
+        const loadedPost = await postRepository.findOne(qr, post.id);
         expect(loadedPost!.title).to.be.equal("About columns1");
         expect(loadedPost!.tags).to.deep.eq(["very", "simple"]);
 
@@ -46,77 +47,84 @@ describe("columns > value-transformer functionality", () => {
         phoneBook.phones = new Map();
         phoneBook.phones.set("work", 123456);
         phoneBook.phones.set("mobile", 1234567);
-        await phoneBookRepository.save(phoneBook);
+        await phoneBookRepository.save(qr, phoneBook);
 
-        const loadedPhoneBook = await phoneBookRepository.findOne(phoneBook.id);
+        const loadedPhoneBook = await phoneBookRepository.findOne(qr, phoneBook.id);
         expect(loadedPhoneBook!.name).to.be.equal("George");
         expect(loadedPhoneBook!.phones).not.to.be.undefined;
         expect(loadedPhoneBook!.phones.get("work")).to.equal(123456);
         expect(loadedPhoneBook!.phones.get("mobile")).to.equal(1234567);
 
-
+        await qr.release();
     })));
 
     it("should apply three transformers in the right order", () => Promise.all(connections.map(async connection => {
         const userRepository = await connection.getRepository(User);
+        const qr = connection.createQueryRunner();
         const email = `${connection.name}@JOHN.doe`;
         const user = new User();
         user.email = email;
 
-        await userRepository.save(user);
+        await userRepository.save(qr, user);
 
-        const dbUser = await userRepository.findOne();
+        const dbUser = await userRepository.findOne(qr);
         dbUser && dbUser.email.should.be.eql(email.toLocaleLowerCase());
 
+        await qr.release();
     })));
 
     it("should apply all the transformers", () => Promise.all(connections.map(async connection => {
         const categoryRepository = await connection.getRepository(Category);
+        const qr = connection.createQueryRunner();
         const description = `  ${connection.name}-DESCRIPTION   `;
         const category = new Category();
         category.description = description;
 
-        await categoryRepository.save(category);
+        await categoryRepository.save(qr, category);
 
-        const dbCategory = await categoryRepository.findOne();
+        const dbCategory = await categoryRepository.findOne(qr);
         dbCategory && dbCategory.description.should.be.eql(description.toLocaleLowerCase().trim());
 
+        await qr.release();
     })));
 
     it("should apply no transformer", () => Promise.all(connections.map(async connection => {
         const viewRepository = await connection.getRepository(View);
+        const qr = connection.createQueryRunner();
         const title = `${connection.name}`;
         const view = new View();
         view.title = title;
 
-        await viewRepository.save(view);
+        await viewRepository.save(qr, view);
 
-        const dbView = await viewRepository.findOne();
+        const dbView = await viewRepository.findOne(qr);
         dbView && dbView.title.should.be.eql(title);
 
+        await qr.release();
     })));
 
     it("should marshal data using a complex value-transformer", () => Promise.all(connections.map(async connection => {
 
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // create and save a post first
         const post = new Post();
         post.title = "Complex transformers!";
         post.tags = ["complex", "transformer"];
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        let loadedPost = await postRepository.findOne(post.id);
+        let loadedPost = await postRepository.findOne(qr, post.id);
         expect(loadedPost!.complex).to.eq(null);
 
         // then update all its properties and save again
         post.title = "Complex transformers2!";
         post.tags = ["very", "complex", "actually"];
         post.complex = new Complex("3 2.5");
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // check if all columns are updated except for readonly columns
-        loadedPost = await postRepository.findOne(post.id);
+        loadedPost = await postRepository.findOne(qr, post.id);
         expect(loadedPost!.title).to.be.equal("Complex transformers2!");
         expect(loadedPost!.tags).to.deep.eq(["very", "complex", "actually"]);
         expect(loadedPost!.complex!.x).to.eq(3);
@@ -126,18 +134,18 @@ describe("columns > value-transformer functionality", () => {
         post.title = "Complex transformers3!";
         post.tags = ["very", "lacking", "actually"];
         post.complex = null;
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        loadedPost = await postRepository.findOne(post.id);
+        loadedPost = await postRepository.findOne(qr, post.id);
         expect(loadedPost!.complex).to.eq(null);
 
         // then update all its properties and save again
         post.title = "Complex transformers4!";
         post.tags = ["very", "here", "again!"];
         post.complex = new Complex("0.5 0.5");
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        loadedPost = await postRepository.findOne(post.id);
+        loadedPost = await postRepository.findOne(qr, post.id);
         expect(loadedPost!.complex!.x).to.eq(0.5);
         expect(loadedPost!.complex!.y).to.eq(0.5);
 
@@ -145,10 +153,12 @@ describe("columns > value-transformer functionality", () => {
         post.title = "Complex transformers5!";
         post.tags = ["now", "really", "lacking!"];
         post.complex = new Complex("1.05 2.3");
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        loadedPost = await postRepository.findOne(post.id);
+        loadedPost = await postRepository.findOne(qr, post.id);
         expect(loadedPost!.complex!.x).to.eq(1.05);
         expect(loadedPost!.complex!.y).to.eq(2.3);
+        
+        await qr.release();
     })));
 });

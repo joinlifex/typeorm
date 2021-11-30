@@ -22,6 +22,7 @@ describe("github issues > #3246 Saving an entity with a 1:1 cascading insert doe
     after(() => closeTestingConnections(connections));
 
     it("should insert and return the order with id", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         let company = new Broker();
         company.name = "Acme Inc.";
 
@@ -33,12 +34,13 @@ describe("github issues > #3246 Saving an entity with a 1:1 cascading insert doe
         order.orderCustomer = orderCustomer;
 
         const myCompanyRepository = connection.manager.getCustomRepository(BrokerRepository);
-        const createdCompany = await myCompanyRepository.createBroker(company);
+        const createdCompany = await myCompanyRepository.createBroker(qr, company);
         const myOrderRepository = connection.manager.getCustomRepository(OrderRepository);
         order.company = createdCompany;
 
-        const result = await myOrderRepository.createOrder(order);
+        const result = await myOrderRepository.createOrder(qr, order);
 
         expect(result.id).not.to.be.undefined;
+        await qr.release();
     })));
  });

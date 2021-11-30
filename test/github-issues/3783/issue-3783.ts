@@ -32,20 +32,22 @@ describe("github issues > #3783 Tree functionality broken", () => {
 
         c11.parentCategory = c1;
         c12.parentCategory = c1;
+        const qr = connection.createQueryRunner();
 
-        await categoryRepository.save(a1);
-        await categoryRepository.save(b1);
-        await categoryRepository.save(c1);
-        await categoryRepository.save(c11);
-        await categoryRepository.save(c12);
+        await categoryRepository.save(qr, a1);
+        await categoryRepository.save(qr, b1);
+        await categoryRepository.save(qr, c1);
+        await categoryRepository.save(qr, c11);
+        await categoryRepository.save(qr, c12);
 
-        const roots = await categoryRepository.findRoots();
+        const roots = await categoryRepository.findRoots(qr);
         roots.length.should.be.eql(3);
 
-        const c1Tree = await categoryRepository.findDescendantsTree(c1);
+        const c1Tree = await categoryRepository.findDescendantsTree(qr, c1);
         c1Tree.should.be.equal(c1);
         c1Tree!.childCategories.length.should.be.eql(2);
 
+        await qr.release();
     })));
 
 });

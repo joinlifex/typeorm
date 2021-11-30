@@ -15,23 +15,25 @@ describe("github issues > #4947 beforeUpdate subscriber entity argument is undef
 
     it("if entity has been updated via repository update(), subscriber should get passed entity to change", () => Promise.all(connections.map(async function (connection) {
 
+        const qr = connection.createQueryRunner();
         let repo = connection.getRepository(Post);
 
-        await repo.save(new Post());
+        await repo.save(qr, new Post());
 
-        const createdPost = await repo.findOne();
+        const createdPost = await repo.findOne(qr);
 
         // test that the newly inserted post was touched by beforeInsert PostSubscriber event
         expect(createdPost).not.to.be.undefined;
         expect(createdPost!.title).to.equal("set in subscriber when created");
 
         // change the entity
-        await repo.update(createdPost!.id, {colToUpdate: 1});
+        await repo.update(qr, createdPost!.id, {colToUpdate: 1});
 
-        const updatedPost = await repo.findOne();
+        const updatedPost = await repo.findOne(qr);
 
         // test that the updated post was touched by beforeUpdate PostSubscriber event
         expect(updatedPost).not.to.be.undefined;
         expect(updatedPost!.title).to.equal("set in subscriber when updated");
+        await qr.release();
     })));
 });

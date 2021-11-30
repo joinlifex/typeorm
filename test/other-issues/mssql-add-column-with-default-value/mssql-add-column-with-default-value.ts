@@ -13,7 +13,8 @@ describe("mssql -> add column to existing table", () => {
         }));
         await Promise.all(connections.map(async connection => {
             await connection.synchronize(true);
-            await connection.getRepository("Post").insert({ title: "test" });
+            const queryRunner = connection.createQueryRunner();
+            await connection.getRepository("Post").insert(queryRunner, { title: "test" });
             await connection.close();
         }));
     });
@@ -40,7 +41,8 @@ describe("mssql -> add column to existing table", () => {
 
         await Promise.all(connections.map(async connection => {
             await connection.synchronize().should.eventually.eq(undefined);
-            const post = await connection.getRepository<Post>("Post").findOne();
+            const queryRunner = connection.createQueryRunner();
+            const post = await connection.getRepository<Post>("Post").findOne(queryRunner);
             if (!post) {
                 throw "Post should exist";
             }
@@ -48,6 +50,7 @@ describe("mssql -> add column to existing table", () => {
             post.id.should.be.eq(1);
             post.title.should.be.eq("test");
             post.addedField.should.be.eq("default value");
+            queryRunner.release();
         }));
     });
 });

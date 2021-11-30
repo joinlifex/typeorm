@@ -14,14 +14,15 @@ describe("github issues > #867 result of `findAndCount` is wrong when apply `ski
     after(() => closeTestingConnections(connections));
 
     it("should work perfectly", () => Promise.all(connections.map(async connection => {
+        const queryRunner = connection.createQueryRunner();
         const userRepository = connection.getRepository(User);
         const users = new Array(5).fill(0).map((n, i) => {
             const user = new User();
             user.username = `User_${i}`;
             return user;
         });
-        await userRepository.save(users);
-        const [ foundUsers, totalCount ] = await userRepository.findAndCount({
+        await userRepository.save(queryRunner, users);
+        const [ foundUsers, totalCount ] = await userRepository.findAndCount(queryRunner, {
             skip: 1,
             take: 2,
             order: {
@@ -31,6 +32,8 @@ describe("github issues > #867 result of `findAndCount` is wrong when apply `ski
         expect(totalCount).to.equal(5);
         expect(foundUsers).to.have.lengthOf(2);
         expect(foundUsers[0].username).to.equal("User_1");
+        
+        queryRunner.release();
     })));
 
 });

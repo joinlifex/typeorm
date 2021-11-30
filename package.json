@@ -1,14 +1,20 @@
 {
-  "name": "typeorm",
+  "name": "@joinlifex/typeorm-controlled-connection",
   "private": true,
-  "version": "0.2.41",
+  "version": "0.3.00",
   "description": "Data-Mapper ORM for TypeScript, ES7, ES6, ES5. Supports MySQL, PostgreSQL, MariaDB, SQLite, MS SQL Server, Oracle, MongoDB databases.",
   "license": "MIT",
   "readmeFilename": "README.md",
-  "author": {
-    "name": "Umed Khudoiberdiev",
-    "email": "pleerock.me@gmail.com"
-  },
+  "authors": [
+    {
+      "name": "Umed Khudoiberdiev",
+      "email": "pleerock.me@gmail.com"
+    },
+    {
+      "name": "Nathan Loisel",
+      "email": "nathan@joinlifex.com"
+    }
+  ],
   "main": "./index.js",
   "browser": {
     "./browser/driver/aurora-data-api/AuroraDataApiDriver.js": "./browser/platform/BrowserDisabledDriversDummy.js",
@@ -58,7 +64,7 @@
   ],
   "devDependencies": {
     "@types/app-root-path": "^1.2.4",
-    "@types/chai": "^4.2.15",
+    "@types/chai": "^4.2.22",
     "@types/chai-as-promised": "^7.1.3",
     "@types/debug": "^4.1.5",
     "@types/dotenv": "^8.2.0",
@@ -101,6 +107,7 @@
     "mysql2": "^2.2.5",
     "oracledb": "^5.1.0",
     "pg": "^8.5.1",
+    "pg-native": "^3.0.0",
     "pg-query-stream": "^4.0.0",
     "redis": "^3.1.1",
     "remap-istanbul": "^0.13.0",

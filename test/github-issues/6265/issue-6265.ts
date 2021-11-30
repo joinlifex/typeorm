@@ -25,24 +25,25 @@ describe("github issues > #6265 `fix: resolve issue with find with relations ret
     it("should soft delete one record in relation table", () =>
         Promise.all(
             connections.map(async (connection) => {
+                const qr = connection.createQueryRunner();
                 const role = new Role();
                 role.title = "Manager";
-                await connection.manager.save(role);
+                await connection.manager.save(qr, role);
 
                 const firstUser = new User();
                 firstUser.name = "Alex Messer";
                 firstUser.role = role;
-                await connection.manager.save(firstUser);
+                await connection.manager.save(qr, firstUser);
 
                 const secondUser = new User();
                 secondUser.name = "Timber Saw";
                 secondUser.role = role;
-                await connection.manager.save(secondUser);
+                await connection.manager.save(qr, secondUser);
 
                 const roleWithAllUser = await connection.manager
                     .createQueryBuilder(Role, "role")
                     .leftJoinAndSelect("role.users", "users")
-                    .getMany();
+                    .getMany(qr);
                 expect(roleWithAllUser[0].users.length).eq(2);
                 expect(
                     roleWithAllUser.should.be.eql([
@@ -62,12 +63,12 @@ describe("github issues > #6265 `fix: resolve issue with find with relations ret
                     .createQueryBuilder(User, "user")
                     .softDelete()
                     .where({ name: "Timber Saw" })
-                    .execute();
+                    .execute(qr);
 
                 const roleWithUserIsNotSoftDelete = await connection.manager
                     .createQueryBuilder(Role, "role")
                     .leftJoinAndSelect("role.users", "users")
-                    .getMany();
+                    .getMany(qr);
 
                 expect(roleWithUserIsNotSoftDelete[0].users.length).eq(1);
 
@@ -87,11 +88,12 @@ describe("github issues > #6265 `fix: resolve issue with find with relations ret
                     .createQueryBuilder(Role, "role")
                     .withDeleted()
                     .leftJoinAndSelect("role.users", "users")
-                    .getMany();
+                    .getMany(qr);
 
                 expect(roleWithUserSoftDelete[0].users.length).eq(2);
                 expect(roleWithUserSoftDelete[0].users[1].deleteAt).to.be.not
                     .null;
+                await qr.release();
             })
         ));
 });

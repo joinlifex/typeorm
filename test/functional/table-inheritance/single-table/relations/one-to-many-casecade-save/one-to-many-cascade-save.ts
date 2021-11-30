@@ -24,19 +24,21 @@ describe("table-inheritance > single-table > relations > one-to-many-cascade-sav
         // -------------------------------------------------------------------------
         // Create
         // -------------------------------------------------------------------------
+        const qr = connection.createQueryRunner();
 
         const researcher = new Researcher("Economics");
-        await connection.getRepository(Researcher).save(researcher);
+        await connection.getRepository(Researcher).save(qr, researcher);
 
         const faculty1 = new Faculty();
         faculty1.name = "Economics";
         faculty1.staff = [ new Professor("Economics 101"), researcher ];
-        await connection.getRepository(Faculty).save(faculty1);
+        await connection.getRepository(Faculty).save(qr, faculty1);
 
-        const loadedFaculty = await connection.getRepository(Faculty).findOne() as Faculty;
+        const loadedFaculty = await connection.getRepository(Faculty).findOne(qr) as Faculty;
 
         expect(loadedFaculty.staff.find(staff => staff.type === "PROFESSOR")).to.not.be.undefined;
         expect(loadedFaculty.staff.find(staff => staff.type === "RESEARCHER")).to.not.be.undefined;
+        await qr.release();
     })));
 
 });

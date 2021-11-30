@@ -17,14 +17,16 @@ describe("github issues > #3874 Using an (empty string) enum as the type of a pr
     after(() => closeTestingConnections(connections));
 
     it("should reload entity", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         // Create initial settings row
         const newSettings = new Settings();
         newSettings.value = "string";
-        await connection.manager.save(newSettings);
+        await connection.manager.save(qr, newSettings);
         // Attempt to read settings back
-        const foundSettings = await connection.manager.findOne(Settings);
+        const foundSettings = await connection.manager.findOne(qr, Settings);
         expect(foundSettings).to.be.an.instanceOf(Settings);
         expect(foundSettings != null ? foundSettings.value : null).to.equal("string");
+        await qr.release();
     })));
 
 });

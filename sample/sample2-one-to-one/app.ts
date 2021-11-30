@@ -21,6 +21,7 @@ const options: ConnectionOptions = {
 };
 
 createConnection(options).then(connection => {
+    const qr = connection.createQueryRunner();
 
     let details = new PostDetails();
     details.authorName = "Umed";
@@ -35,14 +36,14 @@ createConnection(options).then(connection => {
     let postRepository = connection.getRepository(Post);
 
     postRepository
-        .save(post)
+        .save(qr, post)
         .then(post => {
             console.log("Post has been saved. Lets try to find this post using query builder: ");
             return postRepository
                 .createQueryBuilder("post")
                 .where("post.title=:keyword")
                 .setParameter("keyword", "hello")
-                .getMany();
+                .getMany(qr);
         })
         .then(post => {
             console.log("Loaded post: ", post);

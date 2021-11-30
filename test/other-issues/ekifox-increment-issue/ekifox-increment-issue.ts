@@ -15,13 +15,13 @@ describe("other issues > ekifox reported issue with increment", () => {
     after(() => closeTestingConnections(connections));
 
     it("getters and setters should work correctly", () => Promise.all(connections.map(async connection => {
-
+        const queryRunner = connection.createQueryRunner();
         const user = new User();
         user.id = 1;
         user.nickName = "pleerock";
-        await connection.manager.save(user);
+        await connection.manager.save(queryRunner, user);
 
-        await connection.manager.update(User, { id: 1 }, {
+        await connection.manager.update(queryRunner, User, { id: 1 }, {
             friendsInvitesCount: () => "friends_invites_count + 1"
         });
 
@@ -29,12 +29,13 @@ describe("other issues > ekifox reported issue with increment", () => {
             .manager
             .createQueryBuilder(User, "user")
             .where("user.id = :id", { id: 1 })
-            .getOne();
+            .getOne(queryRunner);
 
         expect(loadedUser).not.to.be.undefined;
         loadedUser!.id.should.be.equal(1);
         loadedUser!.friendsInvitesCount.should.be.equal(1);
 
+        queryRunner.release();
     })));
 
 });

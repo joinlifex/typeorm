@@ -32,18 +32,20 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "single_closure");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry2 = new Entity();
-                await repo.save(entry2);
+                await repo.save(qr, entry2);
 
                 entry2.name = "entry2";
-                await repo.save(entry2);
+                await repo.save(qr, entry2);
 
-                const descendants = await repo.findDescendants(entry2);
+                const descendants = await repo.findDescendants(qr, entry2);
                 descendants.length.should.be.eql(1);
+                await qr.release();
             })
         ));
 
@@ -53,19 +55,21 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "single_closure");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 entry11.name = "entry11";
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry1);
+                const descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(2);
+                await qr.release();
             })
         ));
 
@@ -75,19 +79,21 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "single_closure");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 entry11.parent = null;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry1);
+                const descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(1);
+                await qr.release();
             })
         ));
 
@@ -97,22 +103,23 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "single_closure");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry2 = new Entity();
-                await repo.save(entry2);
+                await repo.save(qr, entry2);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 // Assing entry11 from entry1 to entry2
                 entry11.parent = entry2;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry2);
+                const descendants = await repo.findDescendants(qr, entry2);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -123,31 +130,32 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "single_closure");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry121 = new Entity();
                 entry121.parent = entry12;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 const entry1211 = new Entity();
                 entry1211.parent = entry121;
-                await repo.save(entry1211);
+                await repo.save(qr, entry1211);
 
                 // Assing entry121 from entry12 to entry11
                 entry121.parent = entry11;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
             })
         ));
@@ -158,31 +166,32 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "single_closure");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry121 = new Entity();
                 entry121.parent = entry12;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 const entry1211 = new Entity();
                 entry1211.parent = entry121;
-                await repo.save(entry1211);
+                await repo.save(qr, entry1211);
 
                 // Assing entry121 from entry12 to entry11
                 entry11.children = [entry121];
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
             })
         ));
@@ -193,40 +202,41 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "single_closure");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry111 = new Entity();
                 entry111.parent = entry11;
-                await repo.save(entry111);
+                await repo.save(qr, entry111);
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry121 = new Entity();
                 entry121.parent = entry12;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 const entry1211 = new Entity();
                 entry1211.parent = entry121;
-                await repo.save(entry1211);
+                await repo.save(qr, entry1211);
 
                 // Assing entry121 from entry12 to entry11
                 // And entry111 from entry11 to entry12
                 entry11.children = [entry121];
                 entry12.children = [entry111];
-                await repo.save([entry11, entry12]);
+                await repo.save(qr, [entry11, entry12]);
 
-                let descendants = await repo.findDescendants(entry11);
+                let descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
 
-                descendants = await repo.findDescendants(entry12);
+                descendants = await repo.findDescendants(qr, entry12);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -236,31 +246,32 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "single_closure");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry111 = new Entity();
                 entry111.parent = entry11;
-                await repo.save(entry111);
+                await repo.save(qr, entry111);
 
-                let descendants = await repo.findDescendants(entry1);
+                let descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(3);
 
                 entry11.parent = null;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                descendants = await repo.findDescendants(entry1);
+                descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(1);
 
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                descendants = await repo.findDescendants(entry1);
+                descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(3);
             })
         ));
@@ -271,21 +282,22 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "single_closure");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry2 = new Entity();
-                await repo.save(entry2);
+                await repo.save(qr, entry2);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 // Remove entry11 from entry1
-                await repo.remove(entry11);
+                await repo.remove(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry1);
+                const descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -301,30 +313,31 @@ describe("github issues > #7155", () => {
 
                 const Entity = getEntity(connection, "single_closure");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry111 = new Entity();
                 entry111.parent = entry11;
-                await repo.save(entry111);
+                await repo.save(qr, entry111);
 
                 const entry1111 = new Entity();
                 entry1111.parent = entry111;
-                await repo.save(entry1111);
+                await repo.save(qr, entry1111);
 
                 // Remove entry111 from entry11
-                await repo.remove(entry111);
+                await repo.remove(qr, entry111);
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -340,37 +353,38 @@ describe("github issues > #7155", () => {
 
                 const Entity = getEntity(connection, "single_closure");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry111 = new Entity();
                 entry111.parent = entry11;
-                await repo.save(entry111);
+                await repo.save(qr, entry111);
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry121 = new Entity();
                 entry121.parent = entry12;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 const entry1211 = new Entity();
                 entry1211.parent = entry121;
-                await repo.save(entry1211);
+                await repo.save(qr, entry1211);
 
                 // Remove entry11 and entry1211
-                await repo.remove([entry11, entry1211]);
+                await repo.remove(qr, [entry11, entry1211]);
 
-                let descendants = await repo.findDescendants(entry1);
+                let descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(3);
 
-                descendants = await repo.findDescendants(entry12);
+                descendants = await repo.findDescendants(qr, entry12);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -393,23 +407,24 @@ describe("github issues > #7155", () => {
                 const repo = connection.getTreeRepository(Entity);
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: SingleIdNested;
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ id: nestedSet.id });
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ id: nestedSet.id });
 
                 entry11.name = "entry11";
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                const descendants = await repo.findDescendants(entry1);
+                const descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -420,13 +435,14 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "single_nested");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 try {
                     const entry2 = new Entity();
-                    await repo.save(entry2);
+                    await repo.save(qr, entry2);
                 } catch (error) {
                     assert.instanceOf(error, NestedSetMultipleRootError);
                     return;
@@ -441,17 +457,18 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "single_nested");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 try {
                     entry11.parent = null;
-                    await repo.save(entry11);
+                    await repo.save(qr, entry11);
                 } catch (error) {
                     assert.instanceOf(error, NestedSetMultipleRootError);
                     return;
@@ -474,30 +491,31 @@ describe("github issues > #7155", () => {
                 const repo = connection.getTreeRepository(Entity);
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: SingleIdNested;
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ id: nestedSet.id });
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ id: nestedSet.id });
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                nestedSet = await repo.save(entry12);
+                nestedSet = await repo.save(qr, entry12);
                 ids.push({ id: nestedSet.id });
 
                 // Assing entry11 from entry1 to entry12
                 entry11.parent = entry12;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                const descendants = await repo.findDescendants(entry12);
+                const descendants = await repo.findDescendants(qr, entry12);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -518,40 +536,41 @@ describe("github issues > #7155", () => {
                 const repo = connection.getTreeRepository(Entity);
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: SingleIdNested;
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ id: nestedSet.id });
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ id: nestedSet.id });
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                nestedSet = await repo.save(entry12);
+                nestedSet = await repo.save(qr, entry12);
                 ids.push({ id: nestedSet.id });
 
                 const entry121 = new Entity();
                 entry121.parent = entry12;
-                nestedSet = await repo.save(entry121);
+                nestedSet = await repo.save(qr, entry121);
                 ids.push({ id: nestedSet.id });
 
                 const entry1211 = new Entity();
                 entry1211.parent = entry121;
-                nestedSet = await repo.save(entry1211);
+                nestedSet = await repo.save(qr, entry1211);
                 ids.push({ id: nestedSet.id });
 
                 // Assing entry121 from entry12 to entry11
                 entry121.parent = entry11;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
             })
         ));
@@ -573,39 +592,40 @@ describe("github issues > #7155", () => {
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: SingleIdNested;
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ id: nestedSet.id });
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ id: nestedSet.id });
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                nestedSet = await repo.save(entry12);
+                nestedSet = await repo.save(qr, entry12);
                 ids.push({ id: nestedSet.id });
 
                 const entry121 = new Entity();
                 entry121.parent = entry12;
-                nestedSet = await repo.save(entry121);
+                nestedSet = await repo.save(qr, entry121);
                 ids.push({ id: nestedSet.id });
 
                 const entry1211 = new Entity();
                 entry1211.parent = entry121;
-                nestedSet = await repo.save(entry1211);
+                nestedSet = await repo.save(qr, entry1211);
                 ids.push({ id: nestedSet.id });
 
                 // Assing entry121 from entry12 to entry11
                 entry11.children = [entry121];
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
             })
         ));
@@ -628,49 +648,50 @@ describe("github issues > #7155", () => {
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: SingleIdNested;
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ id: nestedSet.id });
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ id: nestedSet.id });
 
                 const entry111 = new Entity();
                 entry111.parent = entry11;
-                nestedSet = await repo.save(entry111);
+                nestedSet = await repo.save(qr, entry111);
                 ids.push({ id: nestedSet.id });
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                nestedSet = await repo.save(entry12);
+                nestedSet = await repo.save(qr, entry12);
                 ids.push({ id: nestedSet.id });
 
                 const entry121 = new Entity();
                 entry121.parent = entry12;
-                nestedSet = await repo.save(entry121);
+                nestedSet = await repo.save(qr, entry121);
                 ids.push({ id: nestedSet.id });
 
                 const entry1211 = new Entity();
                 entry1211.parent = entry121;
-                nestedSet = await repo.save(entry1211);
+                nestedSet = await repo.save(qr, entry1211);
                 ids.push({ id: nestedSet.id });
 
                 // Assing entry121 from entry12 to entry11
                 // And entry111 from entry11 to entry12
                 entry11.children = [entry121];
                 entry12.children = [entry111];
-                await repo.save([entry11, entry12]);
+                await repo.save(qr, [entry11, entry12]);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                let descendants = await repo.findDescendants(entry11);
+                let descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
 
-                descendants = await repo.findDescendants(entry12);
+                descendants = await repo.findDescendants(qr, entry12);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -688,23 +709,24 @@ describe("github issues > #7155", () => {
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: SingleIdNested;
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ id: nestedSet.id });
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ id: nestedSet.id });
 
                 // Remove entry11 from entry1
-                await repo.remove(entry11);
+                await repo.remove(qr, entry11);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                const descendants = await repo.findDescendants(entry1);
+                const descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -729,38 +751,39 @@ describe("github issues > #7155", () => {
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: SingleIdNested;
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ id: nestedSet.id });
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ id: nestedSet.id });
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                nestedSet = await repo.save(entry12);
+                nestedSet = await repo.save(qr, entry12);
                 ids.push({ id: nestedSet.id });
 
                 const entry111 = new Entity();
                 entry111.parent = entry11;
-                nestedSet = await repo.save(entry111);
+                nestedSet = await repo.save(qr, entry111);
                 ids.push({ id: nestedSet.id });
 
                 const entry1111 = new Entity();
                 entry1111.parent = entry111;
-                nestedSet = await repo.save(entry1111);
+                nestedSet = await repo.save(qr, entry1111);
                 ids.push({ id: nestedSet.id });
 
                 // Remove entry111 from entry11
-                await repo.remove(entry111);
+                await repo.remove(qr, entry111);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -785,46 +808,47 @@ describe("github issues > #7155", () => {
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: SingleIdNested;
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ id: nestedSet.id });
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ id: nestedSet.id });
 
                 const entry111 = new Entity();
                 entry111.parent = entry11;
-                nestedSet = await repo.save(entry111);
+                nestedSet = await repo.save(qr, entry111);
                 ids.push({ id: nestedSet.id });
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                nestedSet = await repo.save(entry12);
+                nestedSet = await repo.save(qr, entry12);
                 ids.push({ id: nestedSet.id });
 
                 const entry121 = new Entity();
                 entry121.parent = entry12;
-                nestedSet = await repo.save(entry121);
+                nestedSet = await repo.save(qr, entry121);
                 ids.push({ id: nestedSet.id });
 
                 const entry1211 = new Entity();
                 entry1211.parent = entry121;
-                nestedSet = await repo.save(entry1211);
+                nestedSet = await repo.save(qr, entry1211);
                 ids.push({ id: nestedSet.id });
 
                 // Remove entry11 and entry1211
-                await repo.remove([entry11, entry1211]);
+                await repo.remove(qr, [entry11, entry1211]);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                let descendants = await repo.findDescendants(entry1);
+                let descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(3);
 
-                descendants = await repo.findDescendants(entry12);
+                descendants = await repo.findDescendants(qr, entry12);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -841,16 +865,17 @@ describe("github issues > #7155", () => {
                 const Entity = getEntity(connection, "single_materialized");
                 const repo = connection.getTreeRepository(Entity);
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry2 = new Entity();
-                await repo.save(entry2);
+                await repo.save(qr, entry2);
 
                 entry2.name = "entry2";
-                await repo.save(entry2);
+                await repo.save(qr, entry2);
 
-                const descendants = await repo.findDescendants(entry2);
+                const descendants = await repo.findDescendants(qr, entry2);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -862,17 +887,18 @@ describe("github issues > #7155", () => {
                 const Entity = getEntity(connection, "single_materialized");
                 const repo = connection.getTreeRepository(Entity);
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 entry11.name = "entry11";
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry1);
+                const descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -884,17 +910,18 @@ describe("github issues > #7155", () => {
                 const Entity = getEntity(connection, "single_materialized");
                 const repo = connection.getTreeRepository(Entity);
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 entry11.parent = null;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry1);
+                const descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -906,21 +933,22 @@ describe("github issues > #7155", () => {
                 const Entity = getEntity(connection, "single_materialized");
                 const repo = connection.getTreeRepository(Entity);
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry2 = new Entity();
-                await repo.save(entry2);
+                await repo.save(qr, entry2);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 // Assing entry11 from entry1 to entry2
                 entry11.parent = entry2;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry2);
+                const descendants = await repo.findDescendants(qr, entry2);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -932,30 +960,31 @@ describe("github issues > #7155", () => {
                 const Entity = getEntity(connection, "single_materialized");
                 const repo = connection.getTreeRepository(Entity);
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry121 = new Entity();
                 entry121.parent = entry12;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 const entry1211 = new Entity();
                 entry1211.parent = entry121;
-                await repo.save(entry1211);
+                await repo.save(qr, entry1211);
 
                 // Assing entry121 from entry12 to entry11
                 entry121.parent = entry11;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
             })
         ));
@@ -967,30 +996,31 @@ describe("github issues > #7155", () => {
                 const Entity = getEntity(connection, "single_materialized");
                 const repo = connection.getTreeRepository(Entity);
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry121 = new Entity();
                 entry121.parent = entry12;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 const entry1211 = new Entity();
                 entry1211.parent = entry121;
-                await repo.save(entry1211);
+                await repo.save(qr, entry1211);
 
                 // Assing entry121 from entry12 to entry11
                 entry11.children = [entry121];
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
             })
         ));
@@ -1002,39 +1032,40 @@ describe("github issues > #7155", () => {
                 const Entity = getEntity(connection, "single_materialized");
                 const repo = connection.getTreeRepository(Entity);
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry111 = new Entity();
                 entry111.parent = entry11;
-                await repo.save(entry111);
+                await repo.save(qr, entry111);
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry121 = new Entity();
                 entry121.parent = entry12;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 const entry1211 = new Entity();
                 entry1211.parent = entry121;
-                await repo.save(entry1211);
+                await repo.save(qr, entry1211);
 
                 // Assing entry121 from entry12 to entry11
                 // And entry111 from entry11 to entry12
                 entry11.children = [entry121];
                 entry12.children = [entry111];
-                await repo.save([entry11, entry12]);
+                await repo.save(qr, [entry11, entry12]);
 
-                let descendants = await repo.findDescendants(entry11);
+                let descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
 
-                descendants = await repo.findDescendants(entry12);
+                descendants = await repo.findDescendants(qr, entry12);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -1046,20 +1077,21 @@ describe("github issues > #7155", () => {
                 const Entity = getEntity(connection, "single_materialized");
                 const repo = connection.getTreeRepository(Entity);
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry2 = new Entity();
-                await repo.save(entry2);
+                await repo.save(qr, entry2);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 // Remove entry11 from entry1
-                await repo.remove(entry11);
+                await repo.remove(qr, qr, entry11);
 
-                const descendants = await repo.findDescendants(entry1);
+                const descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -1075,30 +1107,31 @@ describe("github issues > #7155", () => {
 
                 const Entity = getEntity(connection, "single_materialized");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry111 = new Entity();
                 entry111.parent = entry11;
-                await repo.save(entry111);
+                await repo.save(qr, entry111);
 
                 const entry1111 = new Entity();
                 entry1111.parent = entry111;
-                await repo.save(entry1111);
+                await repo.save(qr, entry1111);
 
                 // Remove entry111 from entry11
-                await repo.remove(entry111);
+                await repo.remove(qr, entry111);
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -1114,37 +1147,38 @@ describe("github issues > #7155", () => {
 
                 const Entity = getEntity(connection, "single_materialized");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry111 = new Entity();
                 entry111.parent = entry11;
-                await repo.save(entry111);
+                await repo.save(qr, entry111);
 
                 const entry12 = new Entity();
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry121 = new Entity();
                 entry121.parent = entry12;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 const entry1211 = new Entity();
                 entry1211.parent = entry121;
-                await repo.save(entry1211);
+                await repo.save(qr, entry1211);
 
                 // Remove entry11 and entry1211
-                await repo.remove([entry11, entry1211]);
+                await repo.remove(qr, [entry11, entry1211]);
 
-                let descendants = await repo.findDescendants(entry1);
+                let descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(3);
 
-                descendants = await repo.findDescendants(entry12);
+                descendants = await repo.findDescendants(qr, entry12);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -1169,28 +1203,29 @@ describe("github issues > #7155", () => {
                 const repo = connection.getTreeRepository(Entity);
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: MultiIdNested;
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry11 = new Entity();
                 entry11.column = "A";
                 entry11.row = 2;
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 entry11.name = "entry11";
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                const descendants = await repo.findDescendants(entry1);
+                const descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -1201,17 +1236,18 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "multi_nested");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 try {
                     const entry2 = new Entity();
                     entry2.column = "B";
                     entry2.row = 1;
-                    await repo.save(entry2);
+                    await repo.save(qr, entry2);
                 } catch (error) {
                     assert.instanceOf(error, NestedSetMultipleRootError);
                     return;
@@ -1227,20 +1263,21 @@ describe("github issues > #7155", () => {
                 const Entity = getEntity(connection, "multi_nested");
                 const repo = connection.getTreeRepository(Entity);
 
+                const qr = connection.createQueryRunner();
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.column = "A";
                 entry11.row = 2;
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 try {
                     entry11.parent = null;
-                    await repo.save(entry11);
+                    await repo.save(qr, entry11);
                 } catch (error) {
                     assert.instanceOf(error, NestedSetMultipleRootError);
                     return;
@@ -1263,36 +1300,37 @@ describe("github issues > #7155", () => {
                 const repo = connection.getTreeRepository(Entity);
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: MultiIdNested;
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry11 = new Entity();
                 entry11.column = "A";
                 entry11.row = 2;
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry12 = new Entity();
                 entry12.column = "A";
                 entry12.row = 3;
                 entry12.parent = entry1;
-                nestedSet = await repo.save(entry12);
+                nestedSet = await repo.save(qr, entry12);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 // Assing entry11 from entry1 to entry12
                 entry11.parent = entry12;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                const descendants = await repo.findDescendants(entry12);
+                const descendants = await repo.findDescendants(qr, entry12);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -1313,50 +1351,51 @@ describe("github issues > #7155", () => {
                 const repo = connection.getTreeRepository(Entity);
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: MultiIdNested;
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry11 = new Entity();
                 entry11.column = "A";
                 entry11.row = 2;
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry12 = new Entity();
                 entry12.column = "A";
                 entry12.row = 3;
                 entry12.parent = entry1;
-                nestedSet = await repo.save(entry12);
+                nestedSet = await repo.save(qr, entry12);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry121 = new Entity();
                 entry121.column = "B";
                 entry121.row = 3;
                 entry121.parent = entry12;
-                nestedSet = await repo.save(entry121);
+                nestedSet = await repo.save(qr, entry121);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry1211 = new Entity();
                 entry1211.column = "C";
                 entry1211.row = 3;
                 entry1211.parent = entry121;
-                nestedSet = await repo.save(entry1211);
+                nestedSet = await repo.save(qr, entry1211);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 // Assing entry121 from entry12 to entry11
                 entry121.parent = entry11;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
             })
         ));
@@ -1377,50 +1416,51 @@ describe("github issues > #7155", () => {
                 const repo = connection.getTreeRepository(Entity);
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: MultiIdNested;
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry11 = new Entity();
                 entry11.column = "A";
                 entry11.row = 2;
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry12 = new Entity();
                 entry12.column = "A";
                 entry12.row = 3;
                 entry12.parent = entry1;
-                nestedSet = await repo.save(entry12);
+                nestedSet = await repo.save(qr, entry12);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry121 = new Entity();
                 entry121.column = "B";
                 entry121.row = 3;
                 entry121.parent = entry12;
-                nestedSet = await repo.save(entry121);
+                nestedSet = await repo.save(qr, entry121);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry1211 = new Entity();
                 entry1211.column = "C";
                 entry1211.row = 3;
                 entry1211.parent = entry121;
-                nestedSet = await repo.save(entry1211);
+                nestedSet = await repo.save(qr, entry1211);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 // Assing entry121 from entry12 to entry11
                 entry11.children = [entry121];
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
             })
         ));
@@ -1442,62 +1482,63 @@ describe("github issues > #7155", () => {
                 const repo = connection.getTreeRepository(Entity);
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: MultiIdNested;
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry11 = new Entity();
                 entry11.parent = entry1;
                 entry11.column = "A";
                 entry11.row = 2;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry111 = new Entity();
                 entry111.column = "B";
                 entry111.row = 2;
                 entry111.parent = entry11;
-                nestedSet = await repo.save(entry111);
+                nestedSet = await repo.save(qr, entry111);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry12 = new Entity();
                 entry12.column = "A";
                 entry12.row = 3;
                 entry12.parent = entry1;
-                nestedSet = await repo.save(entry12);
+                nestedSet = await repo.save(qr, entry12);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry121 = new Entity();
                 entry121.column = "B";
                 entry121.row = 3;
                 entry121.parent = entry12;
-                nestedSet = await repo.save(entry121);
+                nestedSet = await repo.save(qr, entry121);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry1211 = new Entity();
                 entry1211.column = "C";
                 entry1211.row = 3;
                 entry1211.parent = entry121;
-                nestedSet = await repo.save(entry1211);
+                nestedSet = await repo.save(qr, entry1211);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 // Assing entry121 from entry12 to entry11
                 // And entry111 from entry11 to entry12
                 entry11.children = [entry121];
                 entry12.children = [entry111];
-                await repo.save([entry11, entry12]);
+                await repo.save(qr, [entry11, entry12]);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                let descendants = await repo.findDescendants(entry11);
+                let descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
 
-                descendants = await repo.findDescendants(entry12);
+                descendants = await repo.findDescendants(qr, entry12);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -1514,28 +1555,29 @@ describe("github issues > #7155", () => {
                 const repo = connection.getTreeRepository(Entity);
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: MultiIdNested;
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry11 = new Entity();
                 entry11.column = "A";
                 entry11.row = 2;
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 // Remove entry11 from entry1
-                await repo.remove(entry11);
+                await repo.remove(qr, entry11);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                const descendants = await repo.findDescendants(entry1);
+                const descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -1559,49 +1601,50 @@ describe("github issues > #7155", () => {
                 const repo = connection.getTreeRepository(Entity);
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: MultiIdNested;
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry11 = new Entity();
                 entry11.column = "A";
                 entry11.row = 2;
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry12 = new Entity();
                 entry12.column = "A";
                 entry12.row = 3;
                 entry12.parent = entry1;
-                nestedSet = await repo.save(entry12);
+                nestedSet = await repo.save(qr, entry12);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry111 = new Entity();
                 entry111.column = "B";
                 entry111.row = 2;
                 entry111.parent = entry11;
-                nestedSet = await repo.save(entry111);
+                nestedSet = await repo.save(qr, entry111);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry1111 = new Entity();
                 entry1111.column = "C";
                 entry1111.row = 2;
                 entry1111.parent = entry111;
-                nestedSet = await repo.save(entry1111);
+                nestedSet = await repo.save(qr, entry1111);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 // Remove entry111 from entry11
-                await repo.remove(entry111);
+                await repo.remove(qr, entry111);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -1625,59 +1668,60 @@ describe("github issues > #7155", () => {
                 const repo = connection.getTreeRepository(Entity);
                 const ids: ObjectLiteral[] = [];
                 let nestedSet: MultiIdNested;
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                nestedSet = await repo.save(entry1);
+                nestedSet = await repo.save(qr, entry1);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry11 = new Entity();
                 entry11.column = "A";
                 entry11.row = 2;
                 entry11.parent = entry1;
-                nestedSet = await repo.save(entry11);
+                nestedSet = await repo.save(qr, entry11);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry111 = new Entity();
                 entry111.column = "B";
                 entry111.row = 2;
                 entry111.parent = entry11;
-                nestedSet = await repo.save(entry111);
+                nestedSet = await repo.save(qr, entry111);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry12 = new Entity();
                 entry12.column = "A";
                 entry12.row = 3;
                 entry12.parent = entry1;
-                nestedSet = await repo.save(entry12);
+                nestedSet = await repo.save(qr, entry12);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry121 = new Entity();
                 entry121.column = "B";
                 entry121.row = 3;
                 entry121.parent = entry12;
-                nestedSet = await repo.save(entry121);
+                nestedSet = await repo.save(qr, entry121);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 const entry1211 = new Entity();
                 entry1211.column = "C";
                 entry1211.row = 3;
                 entry1211.parent = entry121;
-                nestedSet = await repo.save(entry1211);
+                nestedSet = await repo.save(qr, entry1211);
                 ids.push({ column: nestedSet.column, row: nestedSet.row });
 
                 // Remove entry11 and entry1211
-                await repo.remove([entry11, entry1211]);
+                await repo.remove(qr, [entry11, entry1211]);
 
                 // Assertions
                 const results = await getNestedSetIds(repo, ids);
                 assert.isTrue(isResultExpected(results, expectedResults));
 
-                let descendants = await repo.findDescendants(entry1);
+                let descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(3);
 
-                descendants = await repo.findDescendants(entry12);
+                descendants = await repo.findDescendants(qr, entry12);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -1693,21 +1737,22 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "multi_materialized");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry2 = new Entity();
                 entry2.column = "B";
                 entry2.row = 1;
-                await repo.save(entry2);
+                await repo.save(qr, entry2);
 
                 entry2.name = "entry2";
-                await repo.save(entry2);
+                await repo.save(qr, entry2);
 
-                const descendants = await repo.findDescendants(entry2);
+                const descendants = await repo.findDescendants(qr, entry2);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -1718,22 +1763,23 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "multi_materialized");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.column = "A";
                 entry11.row = 2;
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 entry11.name = "entry11";
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry1);
+                const descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -1744,22 +1790,23 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "multi_materialized");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.column = "A";
                 entry11.row = 2;
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 entry11.parent = null;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry1);
+                const descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -1770,28 +1817,29 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "multi_materialized");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry2 = new Entity();
                 entry2.column = "A";
                 entry2.row = 2;
-                await repo.save(entry2);
+                await repo.save(qr, entry2);
 
                 const entry11 = new Entity();
                 entry11.column = "B";
                 entry11.row = 1;
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 // Assing entry11 from entry1 to entry2
                 entry11.parent = entry2;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry2);
+                const descendants = await repo.findDescendants(qr, entry2);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -1802,41 +1850,42 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "multi_materialized");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.column = "B";
                 entry11.row = 1;
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry12 = new Entity();
                 entry12.column = "B";
                 entry12.row = 2;
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry121 = new Entity();
                 entry121.column = "C";
                 entry121.row = 2;
                 entry121.parent = entry12;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 const entry1211 = new Entity();
                 entry1211.column = "D";
                 entry1211.row = 2;
                 entry1211.parent = entry121;
-                await repo.save(entry1211);
+                await repo.save(qr, entry1211);
 
                 // Assing entry121 from entry12 to entry11
                 entry121.parent = entry11;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
             })
         ));
@@ -1847,41 +1896,42 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "multi_materialized");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.column = "B";
                 entry11.row = 1;
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry12 = new Entity();
                 entry12.column = "B";
                 entry12.row = 2;
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry121 = new Entity();
                 entry121.column = "C";
                 entry121.row = 2;
                 entry121.parent = entry12;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 const entry1211 = new Entity();
                 entry1211.column = "D";
                 entry1211.row = 2;
                 entry1211.parent = entry121;
-                await repo.save(entry1211);
+                await repo.save(qr, entry1211);
 
                 // Assing entry121 from entry12 to entry11
                 entry11.children = [entry121];
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
             })
         ));
@@ -1892,52 +1942,53 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "multi_materialized");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.column = "B";
                 entry11.row = 1;
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry111 = new Entity();
                 entry111.column = "C";
                 entry111.row = 1;
                 entry111.parent = entry11;
-                await repo.save(entry111);
+                await repo.save(qr, entry111);
 
                 const entry12 = new Entity();
                 entry12.column = "B";
                 entry12.row = 2;
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry121 = new Entity();
                 entry121.column = "C";
                 entry121.row = 2;
                 entry121.parent = entry12;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 const entry1211 = new Entity();
                 entry1211.column = "D";
                 entry1211.row = 2;
                 entry1211.parent = entry121;
-                await repo.save(entry1211);
+                await repo.save(qr, entry1211);
 
                 // Assing entry121 from entry12 to entry11
                 // And entry111 from entry11 to entry12
                 entry11.children = [entry121];
                 entry12.children = [entry111];
-                await repo.save([entry11, entry12]);
+                await repo.save(qr, [entry11, entry12]);
 
-                let descendants = await repo.findDescendants(entry11);
+                let descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(3);
 
-                descendants = await repo.findDescendants(entry12);
+                descendants = await repo.findDescendants(qr, entry12);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -1948,27 +1999,28 @@ describe("github issues > #7155", () => {
             connections.map(async (connection) => {
                 const Entity = getEntity(connection, "multi_materialized");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry2 = new Entity();
                 entry2.column = "B";
                 entry2.row = 1;
-                await repo.save(entry2);
+                await repo.save(qr, entry2);
 
                 const entry11 = new Entity();
                 entry11.column = "A";
                 entry11.row = 2;
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 // Remove entry11 from entry1
-                await repo.remove(entry11);
+                await repo.remove(qr, entry11);
 
-                const descendants = await repo.findDescendants(entry1);
+                const descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -1984,40 +2036,41 @@ describe("github issues > #7155", () => {
 
                 const Entity = getEntity(connection, "multi_materialized");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.column = "A";
                 entry11.row = 2;
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry12 = new Entity();
                 entry12.column = "B";
                 entry12.row = 2;
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry111 = new Entity();
                 entry111.column = "C";
                 entry111.row = 1;
                 entry111.parent = entry11;
-                await repo.save(entry111);
+                await repo.save(qr, entry111);
 
                 const entry1111 = new Entity();
                 entry1111.column = "D";
                 entry1111.row = 1;
                 entry1111.parent = entry111;
-                await repo.save(entry1111);
+                await repo.save(qr, entry1111);
 
                 // Remove entry111 from entry11
-                await repo.remove(entry111);
+                await repo.remove(qr, entry111);
 
-                const descendants = await repo.findDescendants(entry11);
+                const descendants = await repo.findDescendants(qr, entry11);
                 descendants.length.should.be.eql(1);
             })
         ));
@@ -2033,49 +2086,50 @@ describe("github issues > #7155", () => {
 
                 const Entity = getEntity(connection, "multi_materialized");
                 const repo = connection.getTreeRepository(Entity);
+                const qr = connection.createQueryRunner();
 
                 const entry1 = new Entity();
                 entry1.column = "A";
                 entry1.row = 1;
-                await repo.save(entry1);
+                await repo.save(qr, entry1);
 
                 const entry11 = new Entity();
                 entry11.column = "B";
                 entry11.row = 1;
                 entry11.parent = entry1;
-                await repo.save(entry11);
+                await repo.save(qr, entry11);
 
                 const entry111 = new Entity();
                 entry111.column = "C";
                 entry111.row = 1;
                 entry111.parent = entry11;
-                await repo.save(entry111);
+                await repo.save(qr, entry111);
 
                 const entry12 = new Entity();
                 entry12.column = "B";
                 entry12.row = 2;
                 entry12.parent = entry1;
-                await repo.save(entry12);
+                await repo.save(qr, entry12);
 
                 const entry121 = new Entity();
                 entry121.column = "C";
                 entry121.row = 2;
                 entry121.parent = entry12;
-                await repo.save(entry121);
+                await repo.save(qr, entry121);
 
                 const entry1211 = new Entity();
                 entry1211.column = "D";
                 entry1211.row = 2;
                 entry1211.parent = entry121;
-                await repo.save(entry1211);
+                await repo.save(qr, entry1211);
 
                 // Remove entry11 and entry1211
-                await repo.remove([entry11, entry1211]);
+                await repo.remove(qr, [entry11, entry1211]);
 
-                let descendants = await repo.findDescendants(entry1);
+                let descendants = await repo.findDescendants(qr, entry1);
                 descendants.length.should.be.eql(3);
 
-                descendants = await repo.findDescendants(entry12);
+                descendants = await repo.findDescendants(qr, entry12);
                 descendants.length.should.be.eql(2);
             })
         ));
@@ -2121,15 +2175,16 @@ describe("github issues > #7155 > tree relations", () => {
             connections.map(async (connection) => {
                 const repo = connection.getTreeRepository(RelationClosure);
                 const relationRepo = connection.getRepository(Relation);
+                const qr = connection.createQueryRunner();
 
                 const relation = new Relation();
-                await relationRepo.save(relation);
+                await relationRepo.save(qr, relation);
 
                 const relationEntity = new RelationClosure();
                 relationEntity.relation = relation;
                 relationEntity.otherRelation = new OtherRelation();
 
-                const result = await repo.save(relationEntity);
+                const result = await repo.save(qr, relationEntity);
                 result.should.exist;
             })
         ));
@@ -2139,15 +2194,16 @@ describe("github issues > #7155 > tree relations", () => {
             connections.map(async (connection) => {
                 const repo = connection.getTreeRepository(RelationNested);
                 const relationRepo = connection.getRepository(Relation);
+                const qr = connection.createQueryRunner();
 
                 const relation = new Relation();
-                await relationRepo.save(relation);
+                await relationRepo.save(qr, relation);
 
                 const relationEntity = new RelationNested();
                 relationEntity.relation = relation;
                 relationEntity.otherRelation = new OtherRelation();
 
-                const result = await repo.save(relationEntity);
+                const result = await repo.save(qr, relationEntity);
                 result.should.exist;
             })
         ));
@@ -2157,15 +2213,16 @@ describe("github issues > #7155 > tree relations", () => {
             connections.map(async (connection) => {
                 const repo = connection.getTreeRepository(RelationMaterialized);
                 const relationRepo = connection.getRepository(Relation);
+                const qr = connection.createQueryRunner();
 
                 const relation = new Relation();
-                await relationRepo.save(relation);
+                await relationRepo.save(qr, relation);
 
                 const relationEntity = new RelationMaterialized();
                 relationEntity.relation = relation;
                 relationEntity.otherRelation = new OtherRelation();
 
-                const result = await repo.save(relationEntity);
+                const result = await repo.save(qr, relationEntity);
                 result.should.exist;
             })
         ));
@@ -2182,7 +2239,7 @@ function getNestedSetIds(repo: TreeRepository<any>, ids: ObjectLiteral[]): Promi
         left: `${repo.metadata.targetName}.${repo.metadata.nestedSetLeftColumn!.propertyPath}`,
         right: `${repo.metadata.targetName}.${repo.metadata.nestedSetRightColumn!.propertyPath}`
     };
-
+    const queryRunner = repo.manager.connection.createQueryRunner();
     const queryBuilder = repo.createQueryBuilder();
 
     if (ids.length > 0) {
@@ -2206,7 +2263,7 @@ function getNestedSetIds(repo: TreeRepository<any>, ids: ObjectLiteral[]): Promi
 
         return queryBuilder
             .whereInIds(ids)
-            .getRawMany()
+            .getRawMany(queryRunner)
             .then(results => {
                 const data = [];
 

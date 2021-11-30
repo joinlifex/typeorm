@@ -21,9 +21,9 @@ describe("sqljs driver > load", () => {
     it("should load from a file", () => Promise.all(connections.map(async connection => {
         const manager = getSqljsManager("sqljs");
         await manager.loadDatabase("test/functional/sqljs/sqlite/test.sqlite");
-
+        const qr = connection.createQueryRunner();
         const repository = connection.getRepository(Post);
-        const post = await repository.findOne({title: "A post"});
+        const post = await repository.findOne(qr, {title: "A post"});
 
         expect(post).not.to.be.undefined;
         if (post) {
@@ -34,6 +34,7 @@ describe("sqljs driver > load", () => {
         expect(exportedDatabase).not.to.be.undefined;
         const originalFileContent = fs.readFileSync("test/functional/sqljs/sqlite/test.sqlite");
         expect(exportedDatabase.length).to.equal(originalFileContent.length);
+        await qr.release();
     })));
 
     it("should throw an error if the file doesn't exist", () => Promise.all(connections.map(async connection => {

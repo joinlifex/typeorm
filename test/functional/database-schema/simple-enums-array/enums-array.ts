@@ -17,13 +17,14 @@ describe("database schema > simple enum arrays", () => {
 
     it("should correctly create default values", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const enumEntityRepository = connection.getRepository(EnumArrayEntity);
 
         const enumEntity = new EnumArrayEntity();
         enumEntity.id = 1;
-        await enumEntityRepository.save(enumEntity);
+        await enumEntityRepository.save(qr, enumEntity);
 
-        const loadedEnumEntity = await enumEntityRepository.findOne(1);
+        const loadedEnumEntity = await enumEntityRepository.findOne(qr, 1);
 
         loadedEnumEntity!.numericEnums.should.be.eql([NumericEnum.GHOST, NumericEnum.ADMIN]);
         loadedEnumEntity!.stringEnums.should.be.eql([]);
@@ -32,10 +33,12 @@ describe("database schema > simple enum arrays", () => {
         loadedEnumEntity!.arrayDefinedStringEnums.should.be.eql(["admin"]);
         loadedEnumEntity!.arrayDefinedNumericEnums.should.be.eql([11, 13]);
 
+        await qr.release();
     })));
 
     it("should correctly save and retrieve", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const enumEntityRepository = connection.getRepository(EnumArrayEntity);
 
         const enumEntity = new EnumArrayEntity();
@@ -46,9 +49,9 @@ describe("database schema > simple enum arrays", () => {
         enumEntity.heterogeneousEnums = [HeterogeneousEnum.NO];
         enumEntity.arrayDefinedStringEnums = ["editor"];
         enumEntity.arrayDefinedNumericEnums = [12, 13];
-        await enumEntityRepository.save(enumEntity);
+        await enumEntityRepository.save(qr, enumEntity);
 
-        const loadedEnumEntity = await enumEntityRepository.findOne(1);
+        const loadedEnumEntity = await enumEntityRepository.findOne(qr, 1);
 
         loadedEnumEntity!.numericEnums.should.be.eql([NumericEnum.GHOST, NumericEnum.EDITOR]);
         loadedEnumEntity!.stringEnums.should.be.eql([StringEnum.MODERATOR]);
@@ -57,6 +60,7 @@ describe("database schema > simple enum arrays", () => {
         loadedEnumEntity!.arrayDefinedStringEnums.should.be.eql(["editor"]);
         loadedEnumEntity!.arrayDefinedNumericEnums.should.be.eql([12, 13]);
 
+        await qr.release();
     })));
 
 });

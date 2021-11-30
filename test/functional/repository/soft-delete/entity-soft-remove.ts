@@ -17,25 +17,26 @@ describe("entity > soft-remove", () => {
 
     it("should perform soft removal and recovery correctly", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
-
+        const qr = connection.createQueryRunner();
+        
         // save a new posts
-        const newPost1 = postRepository.create({
+        const newPost1 = postRepository.create(qr, {
             id: 1,
             name: "post#1"
         });
-        const newPost2 = postRepository.create({
+        const newPost2 = postRepository.create(qr, {
             id: 2,
             name: "post#2"
         });
 
-        await postRepository.save(newPost1);
-        await postRepository.save(newPost2);
+        await postRepository.save(qr, newPost1);
+        await postRepository.save(qr, newPost2);
 
         // soft-remove one
-        await postRepository.softRemove(newPost1);
+        await postRepository.softRemove(qr, newPost1);
 
         // load to check
-        const loadedPosts = await postRepository.find({ withDeleted: true });
+        const loadedPosts = await postRepository.find(qr, { withDeleted: true });
 
         // assert
         loadedPosts.length.should.be.equal(2);
@@ -50,10 +51,10 @@ describe("entity > soft-remove", () => {
         expect(loadedPost2!.name).to.equals("post#2");
 
         // recover one
-        await postRepository.recover(loadedPost1!);
+        await postRepository.recover(qr, loadedPost1!);
 
         // load to check
-        const recoveredPosts = await postRepository.find({ withDeleted: true });
+        const recoveredPosts = await postRepository.find(qr, { withDeleted: true });
 
         // assert
         recoveredPosts.length.should.be.equal(2);
@@ -66,23 +67,26 @@ describe("entity > soft-remove", () => {
         expect(recoveredPost2).to.exist;
         expect(recoveredPost2!.deletedAt).to.equals(null);
         expect(recoveredPost2!.name).to.equals("post#2");
+        await qr.release();
     })));
 
     it("should throw error when delete date column is missing", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(PostWithoutDeleteDateColumn);
+        const qr = connection.createQueryRunner();
+        
 
         // save a new posts
-        const newPost1 = postRepository.create({
+        const newPost1 = postRepository.create(qr, {
             id: 1,
             name: "post#1"
         });
 
-        await postRepository.save(newPost1);
+        await postRepository.save(qr, newPost1);
 
         let error1: Error | undefined;
         try {
             // soft-remove one
-            await postRepository.softRemove(newPost1);
+            await postRepository.softRemove(qr, newPost1);
         } catch (err) {
             error1 = err;
         }
@@ -91,11 +95,12 @@ describe("entity > soft-remove", () => {
         let error2: Error | undefined;
         try {
             // recover one
-            await postRepository.recover(newPost1);
+            await postRepository.recover(qr, newPost1);
         } catch (err) {
             error2 = err;
         }
         expect(error2).to.be.an.instanceof(MissingDeleteDateColumnError);
 
+        await qr.release();
     })));
 });

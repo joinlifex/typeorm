@@ -17,15 +17,16 @@ describe("github issues > #4185 afterLoad() subscriber interface missing additio
     after(() => closeTestingConnections(connections));
 
     it("should invoke afterLoad() with LoadEvent", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const post1 = new Post();
         post1.id = 1;
         const post2 = new Post();
         post2.id = 2;
-        await connection.manager.save([post1, post2]);
+        await connection.manager.save(qr, [post1, post2]);
 
         const entities = await connection.manager
             .getRepository(Post)
-            .find();
+            .find(qr);
         assert.strictEqual(entities.length, 2);
         for (const entity of entities) {
             assert.isDefined(entity.simpleSubscriberSaw);
@@ -37,5 +38,6 @@ describe("github issues > #4185 afterLoad() subscriber interface missing additio
             assert.strictEqual(event!.entity, entity);
             assert.isDefined(event!.metadata);
         }
+        await qr.release();
     })));
 });

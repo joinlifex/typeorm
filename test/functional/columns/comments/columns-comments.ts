@@ -16,15 +16,16 @@ describe("columns > comments", () => {
     after(() => closeTestingConnections(connections));
 
     it("should persist comments of different types to the database", () => Promise.all(connections.map(async connection => {
-        const table = (await connection.createQueryRunner().getTable("test"))!;
-
-        expect(table.findColumnByName("a")!.comment).to.be.equal("Hello World")
-        expect(table.findColumnByName("b")!.comment).to.be.equal("Hello\nWorld")
-        expect(table.findColumnByName("c")!.comment).to.be.equal("Hello World! It's going to be a beautiful day.")
-        expect(table.findColumnByName("d")!.comment).to.be.equal("Hello World! #@!$`")
-        expect(table.findColumnByName("e")!.comment).to.be.equal("Hello World. \r\n\t\b\f\v")
-        expect(table.findColumnByName("f")!.comment).to.be.equal("Hello World.\\")
-        expect(table.findColumnByName("g")!.comment).to.be.equal(" ")
+        const qr = connection.createQueryRunner();
+        const table = (await qr.getTable("test"))!;
+        await qr.release();
+        expect(table.findColumnByName("a")!.comment).to.be.equal("Hello World");
+        expect(table.findColumnByName("b")!.comment).to.be.equal("Hello\nWorld");
+        expect(table.findColumnByName("c")!.comment).to.be.equal("Hello World! It's going to be a beautiful day.");
+        expect(table.findColumnByName("d")!.comment).to.be.equal("Hello World! #@!$`");
+        expect(table.findColumnByName("e")!.comment).to.be.equal("Hello World. \r\n\t\b\f\v");
+        expect(table.findColumnByName("f")!.comment).to.be.equal("Hello World.\\");
+        expect(table.findColumnByName("g")!.comment).to.be.equal(" ");
         expect(table.findColumnByName("h")!.comment).to.be.equal(undefined);
         expect(table.findColumnByName("i")!.comment).to.be.equal(undefined);
 

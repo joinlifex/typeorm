@@ -26,19 +26,20 @@ describe("github issues > #163 ManyToMany relation : Cannot read property 'joinC
         republicCommando.searchTerms = "star-wars,shooter";
         republicCommando.isReviewed = false;
 
-        await connection.manager.save(battlefront);
-        await connection.manager.save(republicCommando);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, battlefront);
+        await connection.manager.save(qr, republicCommando);
 
         const platform = new Platform();
         platform.name = "Windows";
         platform.slug = "windows";
         platform.games = [battlefront, republicCommando];
 
-        await connection.manager.save(platform);
+        await connection.manager.save(qr, platform);
 
         const loadedPlatform = await connection
             .getRepository(Platform)
-            .findOne({ where: { slug: "windows" } });
+            .findOne(qr, { where: { slug: "windows" } });
 
         let jediAcademy = new Game();
         jediAcademy.name = "SW Jedi Academy";
@@ -46,7 +47,7 @@ describe("github issues > #163 ManyToMany relation : Cannot read property 'joinC
         jediAcademy.platforms = [loadedPlatform!];
         jediAcademy.isReviewed = false;
 
-        await connection.manager.save(jediAcademy);
+        await connection.manager.save(qr, jediAcademy);
 
         const completePlatform = await connection
             .getRepository(Platform)
@@ -55,7 +56,7 @@ describe("github issues > #163 ManyToMany relation : Cannot read property 'joinC
             .where("platform.slug=:slug", { slug: "windows" })
             .orderBy("platform.id")
             .addOrderBy("game.id")
-            .getOne();
+            .getOne(qr);
 
         expect(completePlatform).not.to.be.undefined;
         completePlatform!.should.be.eql({
@@ -81,6 +82,7 @@ describe("github issues > #163 ManyToMany relation : Cannot read property 'joinC
         });
 
 
+        await qr.release();
         // what code shall I put there to completely reproduce your issue?
 
     })));

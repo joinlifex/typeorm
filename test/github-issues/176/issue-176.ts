@@ -17,16 +17,18 @@ describe("github issues > #176 @CreateDateColumn and @UpdateDateColumn does not 
 
     it("should return dates in utc", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const post1 = new Post();
         post1.title = "Hello Post #1";
         post1.date = new Date(1484069886663); // stores "2017-01-10 17:38:06.000" into the database
         // post1.localDate = new Date(1484069886663); // stores "2017-01-10 22:38:06.000" into the database
 
         // persist
-        await connection.manager.save(post1);
+        await connection.manager.save(qr, post1);
 
-        const loadedPosts1 = await connection.manager.findOne(Post, { where: { title: "Hello Post #1" } });
+        const loadedPosts1 = await connection.manager.findOne(qr, Post, { where: { title: "Hello Post #1" } });
         expect(loadedPosts1!).not.to.be.undefined;
+        await qr.release();
 
         // loadedPosts1!.date.toISOString().should.be.equal("2017-01-10T17:38:06.000Z");
         // loadedPosts1!.localDate.toISOString().should.be.equal("2017-01-10T17:38:06.000Z");

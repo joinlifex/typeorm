@@ -25,6 +25,7 @@ describe("other issues > using take with multiple primary keys", () => {
   it("should persist successfully and return persisted entity", () =>
     Promise.all(
       connections.map(async function(connection) {
+        let queryRunner = connection.createQueryRunner();
         // generate bulk array of users with roles
         for (let i = 1; i <= 100; i++) {
           const user = new User();
@@ -38,7 +39,7 @@ describe("other issues > using take with multiple primary keys", () => {
             role.name = "role #" + i;
             user.roles.push(role);
           }
-          await connection.manager.save(user);
+          await connection.manager.save(queryRunner, user);
         }
 
         expect(true).to.be.true;
@@ -50,7 +51,7 @@ describe("other issues > using take with multiple primary keys", () => {
           .innerJoinAndSelect("user.roles", "roles")
           .take(10)
           .orderBy("user.id", "DESC")
-          .getMany();
+          .getMany(queryRunner);
 
         expect(loadedUsers1).not.to.be.undefined;
         loadedUsers1.length.should.be.equal(10);
@@ -71,7 +72,7 @@ describe("other issues > using take with multiple primary keys", () => {
           .where("user.handedness = :handedness", { handedness: "left" })
           .take(5)
           .orderBy("user.id", "DESC")
-          .getMany();
+          .getMany(queryRunner);
 
         expect(lefties).not.to.be.undefined;
         lefties.length.should.be.equal(5);
@@ -81,6 +82,9 @@ describe("other issues > using take with multiple primary keys", () => {
         lefties[3].id.should.be.equal(70);
         lefties[4].id.should.be.equal(60);
         lefties[0].roles.length.should.be.equal(5);
+        
+        queryRunner.release();
       })
+      
     ));
 });

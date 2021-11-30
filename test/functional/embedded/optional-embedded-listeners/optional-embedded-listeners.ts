@@ -17,30 +17,31 @@ describe("other issues > entity listeners must work in optional embeddeds as wel
     after(() => closeTestingConnections(connections));
 
     it("getters and setters should work correctly", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const post1 = new Post();
         post1.title = "First title";
         post1.text = "About this post";
-        await connection.manager.save(post1);
+        await connection.manager.save(qr, post1);
 
         const post2 = new Post();
         post2.title = "Second title";
         post2.text = "About this post";
         post2.information = new PostInformation();
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post2);
 
         const post3 = new Post();
         post3.title = "Third title";
         post3.text = "About this post";
         post3.information = new PostInformation();
         post3.information.counters = new PostCounter();
-        await connection.manager.save(post3);
+        await connection.manager.save(qr, post3);
 
         const loadedPosts = await connection
             .manager
             .createQueryBuilder(Post, "post")
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         expect(loadedPosts[0]).not.to.be.undefined;
         expect(loadedPosts[0]!.title).not.to.be.undefined;
@@ -56,6 +57,7 @@ describe("other issues > entity listeners must work in optional embeddeds as wel
         loadedPosts[2]!.title.should.be.equal("Third title");
         loadedPosts[2]!.information!.counters!.likes!.should.be.equal(0);
 
+        await qr.release();
     })));
 
 });

@@ -15,22 +15,24 @@ describe("github issues > #620 Feature Request: Flexibility in Foreign Key names
 
     it("should work as expected", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const dog = new Dog();
         dog.DogID = "Simba";
-        await connection.manager.save(dog);
+        await connection.manager.save(qr, dog);
 
         const cat = new Cat();
         cat.dog = dog;
 
-        await connection.manager.save(cat);
+        await connection.manager.save(qr, cat);
 
         const loadedCat = await connection.manager
             .createQueryBuilder(Cat, "cat")
             .leftJoinAndSelect("cat.dog", "dog")
-            .getOne();
+            .getOne(qr);
 
         loadedCat!.id.should.be.equal(1);
         loadedCat!.dog.DogID.should.be.equal("Simba");
+        await qr.release();
     })));
 
 });

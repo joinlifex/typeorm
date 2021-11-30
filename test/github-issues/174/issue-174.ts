@@ -16,25 +16,26 @@ describe("github issues > #174 Embeded types confusing with order by", () => {
 
     it("should order organisations correctly when properties are duplicate in its embeddable", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const organisation1 = new Organisation();
         organisation1.name = "MilkyWay Co";
         organisation1.contact = new Contact();
         organisation1.contact.name = "Albert Cow";
         organisation1.contact.email = "ceo@mlkyway.com";
-        await connection.manager.save(organisation1);
+        await connection.manager.save(qr, organisation1);
 
         const organisation2 = new Organisation();
         organisation2.name = "ChockoWay";
         organisation2.contact = new Contact();
         organisation2.contact.name = "Brendan Late";
         organisation2.contact.email = "ceo@chockoway.com";
-        await connection.manager.save(organisation2);
+        await connection.manager.save(qr, organisation2);
 
         const organisations = await connection
             .getRepository(Organisation)
             .createQueryBuilder("organisation")
             .orderBy("organisation.name")
-            .getMany();
+            .getMany(qr);
 
         expect(organisations).not.to.be.undefined;
         organisations!.should.be.eql([{
@@ -52,6 +53,7 @@ describe("github issues > #174 Embeded types confusing with order by", () => {
                 email: "ceo@mlkyway.com"
             }
         }]);
+        await qr.release();
     })));
 
 });

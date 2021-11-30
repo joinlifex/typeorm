@@ -13,7 +13,7 @@ export class RelationIdLoader {
     // -------------------------------------------------------------------------
 
     constructor(protected connection: Connection,
-                protected queryRunner: QueryRunner|undefined,
+                protected queryRunner: QueryRunner,
                 protected relationIdAttributes: RelationIdAttribute[]) {
     }
 
@@ -21,7 +21,7 @@ export class RelationIdLoader {
     // Public Methods
     // -------------------------------------------------------------------------
 
-    async load(rawEntities: any[]): Promise<RelationIdLoadResult[]> {
+    async load(queryRunner: QueryRunner, rawEntities: any[]): Promise<RelationIdLoadResult[]> {
 
         const promises = this.relationIdAttributes.map(async relationIdAttr => {
 
@@ -112,7 +112,7 @@ export class RelationIdLoader {
 
                 // generate query:
                 // SELECT category.id, category.postId FROM category category ON category.postId = :postId
-                const qb = this.connection.createQueryBuilder(this.queryRunner);
+                const qb = this.connection.createQueryBuilder();
 
                 joinColumns.forEach(joinColumn => {
                     qb.addSelect(tableAlias + "." + joinColumn.propertyPath, joinColumn.databaseName);
@@ -130,7 +130,7 @@ export class RelationIdLoader {
                 if (relationIdAttr.queryBuilderFactory)
                     relationIdAttr.queryBuilderFactory(qb);
 
-                const results = await qb.getRawMany();
+                const results = await qb.getRawMany(queryRunner);
                 results.forEach(result => {
                     joinColumns.forEach(column => {
                         result[column.databaseName] = this.connection.driver.prepareHydratedValue(result[column.databaseName], column.referencedColumn!);
@@ -207,7 +207,7 @@ export class RelationIdLoader {
                     return "(" + condition + " AND " + inverseJoinColumnCondition + ")";
                 }).join(" OR ");
 
-                const qb = this.connection.createQueryBuilder(this.queryRunner);
+                const qb = this.connection.createQueryBuilder();
 
                 inverseJoinColumns.forEach(joinColumn => {
                     qb.addSelect(junctionAlias + "." + joinColumn.propertyPath, joinColumn.databaseName)
@@ -227,7 +227,7 @@ export class RelationIdLoader {
                 if (relationIdAttr.queryBuilderFactory)
                     relationIdAttr.queryBuilderFactory(qb);
 
-                const results = await qb.getRawMany();
+                const results = await qb.getRawMany(queryRunner);
                 results.forEach(result => {
                     [...joinColumns, ...inverseJoinColumns].forEach(column => {
                         result[column.databaseName] = this.connection.driver.prepareHydratedValue(result[column.databaseName], column.referencedColumn!);

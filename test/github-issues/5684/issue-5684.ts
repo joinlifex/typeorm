@@ -17,22 +17,23 @@ describe("github issues > #5684 eager relation skips children relations", () => 
     after(() => closeTestingConnections(connections));
 
     it("should select children of an eager relation", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const company = new Company();
         company.name = "company";
-        await connection.getRepository(Company).save(company);
+        await connection.getRepository(Company).save(qr, company);
 
         const userAdmin = new User();
         userAdmin.name = "admin";
         userAdmin.company = company;
-        await connection.getRepository(User).save(userAdmin);
+        await connection.getRepository(User).save(qr, userAdmin);
 
         const userNormal = new User();
         userNormal.name = "normal";
         userNormal.company = company;
-        await connection.getRepository(User).save(userNormal);
+        await connection.getRepository(User).save(qr, userNormal);
 
         company.admin = userAdmin;
-        await connection.getRepository(Company).save(company);
+        await connection.getRepository(Company).save(qr, company);
 
         const assert = (user?: User): void => {
             expect(user && user.company && user.company.admin)
@@ -55,31 +56,32 @@ describe("github issues > #5684 eager relation skips children relations", () => 
             "company.staff.company.admin", // <-- can't be loaded without the fix.
         ];
 
-        const user1 = await connection.getRepository(User).findOne(userAdmin.id, {
+        const user1 = await connection.getRepository(User).findOne(qr, userAdmin.id, {
             relations: [...relations],
         });
         assert(user1);
-        const user2 = await connection.getRepository(User).findOneOrFail(userAdmin.id, {
+        const user2 = await connection.getRepository(User).findOneOrFail(qr, userAdmin.id, {
             relations: [...relations],
         });
         assert(user2);
-        const users3 = await connection.getRepository(User).find({
+        const users3 = await connection.getRepository(User).find(qr, {
             where: {
                 id: userAdmin.id,
             },
             relations: [...relations],
         });
         assert(users3.pop());
-        const [users4] = await connection.getRepository(User).findAndCount({
+        const [users4] = await connection.getRepository(User).findAndCount(qr, {
             where: {
                 id: userAdmin.id,
             },
             relations: [...relations],
         });
         assert(users4.pop());
-        const users5 = await connection.getRepository(User).findByIds([userAdmin.id], {
+        const users5 = await connection.getRepository(User).findByIds(qr, [userAdmin.id], {
             relations: [...relations],
         });
         assert(users5.pop());
+        await qr.release();
     })));
 });

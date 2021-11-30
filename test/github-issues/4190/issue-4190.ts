@@ -21,17 +21,18 @@ describe("github issues > #4190 Relation decorators: allow to pass string instea
 
     it("should work with one-to-one relations", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const profile = new Profile();
         profile.gender = "male";
         profile.photo = "me.jpg";
-        await connection.manager.save(profile);
+        await connection.manager.save(qr, profile);
 
         const user = new User();
         user.name = "Joe Smith";
         user.profile = profile;
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
-        const users = await connection.manager.find(User, { relations: ["profile"] });
+        const users = await connection.manager.find(qr, User, { relations: ["profile"] });
 
         users.should.eql([{
             id: 1,
@@ -43,25 +44,27 @@ describe("github issues > #4190 Relation decorators: allow to pass string instea
             }
         }]);
 
+        await qr.release();
     })));
 
     it("should work with many-to-one/one-to-many relations", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const photo1 = new Photo();
         photo1.url = "me.jpg";
-        await connection.manager.save(photo1);
+        await connection.manager.save(qr, photo1);
 
         const photo2 = new Photo();
         photo2.url = "me-and-bears.jpg";
-        await connection.manager.save(photo2);
+        await connection.manager.save(qr, photo2);
 
         const user = new User();
         user.name = "John";
         user.photos = [photo1, photo2];
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
-        const users = await connection.manager.find(User, { relations: ["photos"] });
-        const photos = await connection.manager.find(Photo, { relations: ["user"] });
+        const users = await connection.manager.find(qr, User, { relations: ["photos"] });
+        const photos = await connection.manager.find(qr, Photo, { relations: ["user"] });
 
         // Check one-to-many
         users[0].photos.should.have.deep.members([
@@ -95,24 +98,26 @@ describe("github issues > #4190 Relation decorators: allow to pass string instea
             }
         ]);
 
+        await qr.release();
     })));
 
     it("should work with many-to-many relations", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const category1 = new Category();
         category1.name = "animals";
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "zoo";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const question = new Question();
         question.name = "About animals";
         question.categories = [category1, category2];
-        await connection.manager.save(question);
+        await connection.manager.save(qr, question);
 
-        const questions = await connection.manager.find(Question, { relations: ["categories"] });
+        const questions = await connection.manager.find(qr, Question, { relations: ["categories"] });
 
         questions[0].categories.should.have.deep.members([
             {
@@ -125,6 +130,7 @@ describe("github issues > #4190 Relation decorators: allow to pass string instea
             }
         ]);
 
+        await qr.release();
     })));
 
 });

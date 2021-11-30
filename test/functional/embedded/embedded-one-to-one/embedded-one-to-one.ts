@@ -19,21 +19,22 @@ describe("embedded > embedded-one-to-one", () => {
     describe("owner side", () => {
 
         it("should insert, load, update and remove entities with embeddeds when embedded entity having OneToOne relation", () => Promise.all(connections.map(async connection => {
-
+            const qr = connection.createQueryRunner();
+        
             const user1 = new User();
             user1.id = 1;
             user1.name = "Alice";
-            await connection.getRepository(User).save(user1);
+            await connection.getRepository(User).save(qr, user1);
 
             const user2 = new User();
             user2.id = 2;
             user2.name = "Bob";
-            await connection.getRepository(User).save(user2);
+            await connection.getRepository(User).save(qr, user2);
 
             const user3 = new User();
             user3.id = 3;
             user3.name = "Clara";
-            await connection.getRepository(User).save(user3);
+            await connection.getRepository(User).save(qr, user3);
 
             const postRepository = connection.getRepository(Post);
 
@@ -49,7 +50,7 @@ describe("embedded > embedded-one-to-one", () => {
             post1.counters.subcounters = new Subcounters();
             post1.counters.subcounters.version = 1;
             post1.counters.subcounters.watches = 5;
-            await postRepository.save(post1);
+            await postRepository.save(qr, post1);
 
             const post2 = new Post();
             post2.id = 2;
@@ -63,13 +64,13 @@ describe("embedded > embedded-one-to-one", () => {
             post2.counters.subcounters = new Subcounters();
             post2.counters.subcounters.version = 1;
             post2.counters.subcounters.watches = 10;
-            await postRepository.save(post2);
+            await postRepository.save(qr, post2);
 
             const loadedPosts = await connection.manager
                 .createQueryBuilder(Post, "post")
                 .leftJoinAndSelect("post.counters.likedUser", "likedUser")
                 .orderBy("post.id")
-                .getMany();
+                .getMany(qr);
 
             expect(loadedPosts[0].should.be.eql(
                 {
@@ -110,7 +111,7 @@ describe("embedded > embedded-one-to-one", () => {
                 .createQueryBuilder(Post, "post")
                 .leftJoinAndSelect("post.counters.likedUser", "likedUser")
                 .where("post.id = :id", { id: 1 })
-                .getOne();
+                .getOne(qr);
 
             expect(loadedPost!.should.be.eql(
                 {
@@ -133,13 +134,13 @@ describe("embedded > embedded-one-to-one", () => {
             loadedPost!.counters.favorites += 1;
             loadedPost!.counters.subcounters.watches += 1;
             loadedPost!.counters.likedUser = user3;
-            await postRepository.save(loadedPost!);
+            await postRepository.save(qr, loadedPost!);
 
             const loadedPost2 = await connection.manager
                 .createQueryBuilder(Post, "post")
                 .leftJoinAndSelect("post.counters.likedUser", "likedUser")
                 .where("post.id = :id", { id: 1 })
-                .getOne();
+                .getOne(qr);
 
             expect(loadedPost2!.should.be.eql(
                 {
@@ -159,11 +160,13 @@ describe("embedded > embedded-one-to-one", () => {
                 }
             ));
 
-            await postRepository.remove(loadedPost2!);
+            await postRepository.remove(qr, loadedPost2!);
 
-            const loadedPosts2 = (await postRepository.find())!;
+            const loadedPosts2 = (await postRepository.find(qr))!;
             expect(loadedPosts2.length).to.be.equal(1);
             expect(loadedPosts2[0].title).to.be.equal("About airplanes");
+        
+            await qr.release();
         })));
     });
 
@@ -171,7 +174,8 @@ describe("embedded > embedded-one-to-one", () => {
     describe.skip("inverse side", () => {
 
         it("should insert, load, update and remove entities with embeddeds when embedded entity having OneToOne relation", () => Promise.all(connections.map(async connection => {
-
+            const qr = connection.createQueryRunner();
+        
             const post1 = new Post();
             post1.id = 1;
             post1.title = "About cars";
@@ -183,7 +187,7 @@ describe("embedded > embedded-one-to-one", () => {
             post1.counters.subcounters = new Subcounters();
             post1.counters.subcounters.version = 1;
             post1.counters.subcounters.watches = 5;
-            await connection.getRepository(Post).save(post1);
+            await connection.getRepository(Post).save(qr, post1);
 
             const post2 = new Post();
             post2.id = 2;
@@ -196,7 +200,7 @@ describe("embedded > embedded-one-to-one", () => {
             post2.counters.subcounters = new Subcounters();
             post2.counters.subcounters.version = 1;
             post2.counters.subcounters.watches = 10;
-            await connection.getRepository(Post).save(post2);
+            await connection.getRepository(Post).save(qr, post2);
 
             const post3 = new Post();
             post3.id = 3;
@@ -209,25 +213,25 @@ describe("embedded > embedded-one-to-one", () => {
             post3.counters.subcounters = new Subcounters();
             post3.counters.subcounters.version = 1;
             post3.counters.subcounters.watches = 12;
-            await connection.getRepository(Post).save(post3);
+            await connection.getRepository(Post).save(qr, post3);
 
             const user1 = new User();
             user1.id = 1;
             user1.name = "Alice";
             user1.likedPost = post1;
-            await connection.getRepository(User).save(user1);
+            await connection.getRepository(User).save(qr, user1);
 
             const user2 = new User();
             user2.id = 2;
             user2.name = "Bob";
             user2.likedPost = post2;
-            await connection.getRepository(User).save(user2);
+            await connection.getRepository(User).save(qr, user2);
 
             let loadedUsers = await connection.manager
                 .createQueryBuilder(User, "user")
                 .leftJoinAndSelect("user.likedPost", "likedPost")
                 .orderBy("user.id")
-                .getMany();
+                .getMany(qr);
 
             expect(loadedUsers[0].should.be.eql(
                 {
@@ -274,7 +278,7 @@ describe("embedded > embedded-one-to-one", () => {
                 .createQueryBuilder(User, "user")
                 .leftJoinAndSelect("user.likedPost", "likedPost")
                 .where("user.id = :id", { id: 1 })
-                .getOne();
+                .getOne(qr);
 
             expect(loadedUser!.should.be.eql(
                 {
@@ -299,13 +303,13 @@ describe("embedded > embedded-one-to-one", () => {
 
             loadedUser!.name = "Anna";
             loadedUser!.likedPost = post3;
-            await connection.getRepository(User).save(loadedUser!);
+            await connection.getRepository(User).save(qr, loadedUser!);
 
             loadedUser = await connection.manager
                 .createQueryBuilder(User, "user")
                 .leftJoinAndSelect("user.likedPost", "likedPost")
                 .where("user.id = :id", { id: 1 })
-                .getOne();
+                .getOne(qr);
 
 
             expect(loadedUser!.should.be.eql(
@@ -329,11 +333,13 @@ describe("embedded > embedded-one-to-one", () => {
                 }
             ));
 
-            await connection.getRepository(User).remove(loadedUser!);
+            await connection.getRepository(User).remove(qr, loadedUser!);
 
-            loadedUsers = (await connection.getRepository(User).find())!;
+            loadedUsers = (await connection.getRepository(User).find(qr))!;
             expect(loadedUsers.length).to.be.equal(1);
             expect(loadedUsers[0].name).to.be.equal("Bob");
+        
+            await qr.release();
         })));
     });
 });

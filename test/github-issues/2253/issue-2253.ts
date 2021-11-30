@@ -20,9 +20,11 @@ describe("github issues > #2253 - inserting multiple child entities fails", () =
     user1.id = 1;
     const user2 = new SubUser();
     user2.id = 2;
-    await connection.manager.save([user1, user2]);
+    const qr = connection.createQueryRunner();
+    await connection.manager.save(qr, [user1, user2]);
     const users = connection.getRepository(SubUser);
-    expect(await users.count()).to.eql(2);
+    expect(await users.count(qr)).to.eql(2);
+    await qr.release();
   })));
 });
 

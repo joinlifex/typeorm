@@ -20,8 +20,9 @@ describe("relations > multiple-primary-keys > one-to-many", () => {
 
 	after(() => closeTestingConnections(connections));
 
-	function insertSimpleTestData(connection: Connection) {
+	async function insertSimpleTestData(connection: Connection) {
 		const userRepo = connection.getRepository(User);
+		const qr = connection.createQueryRunner();
 		// const settingRepo = connection.getRepository(Setting);
 
 		const user = new User(1, "FooGuy");
@@ -29,40 +30,47 @@ describe("relations > multiple-primary-keys > one-to-many", () => {
 		const settingB = new Setting(1, "B", "bar");
 		user.settings = [settingA,settingB];
 
-		return userRepo.save(user);
+		const res = await userRepo.save(qr, user);
+		await qr.release();
+		return res;
 	}
 
 
 
 	it("should correctly insert relation items", () => Promise.all(connections.map(async connection => {
 
+		const qr = connection.createQueryRunner();
 		const userEntity = await insertSimpleTestData(connection);
-		const persistedSettings = await connection.getRepository(Setting).find();
+		const persistedSettings = await connection.getRepository(Setting).find(qr);
 	
 		expect(persistedSettings!).not.to.be.undefined;
 		expect(persistedSettings.length).to.equal(2);
 		expect(persistedSettings[0].assetId).to.equal(userEntity.id);
 		expect(persistedSettings[1].assetId).to.equal(userEntity.id);
 	
+		await qr.release();
 	})));
 	
 	it("should correctly load relation items", () => Promise.all(connections.map(async connection => {
 	
+		const qr = connection.createQueryRunner();
 		await insertSimpleTestData(connection);
-		const user = await connection.getRepository(User).findOne({relations:["settings"]});
+		const user = await connection.getRepository(User).findOne(qr, {relations:["settings"]});
 	
 		expect(user!).not.to.be.undefined;
 		expect(user!.settings).to.be.an("array");
 		expect(user!.settings!.length).to.equal(2);
 	
+		await qr.release();
 	})));
 	
 	it("should correctly update relation items", () => Promise.all(connections.map(async connection => {
 	
+		const qr = connection.createQueryRunner();
 		await insertSimpleTestData(connection);
 		const userRepo = connection.getRepository(User);
 	
-		await userRepo.save([{
+		await userRepo.save(qr, [{
 			id:1,
 			settings:[
 				{id:1,name:"A",value:"foobar"},
@@ -70,7 +78,7 @@ describe("relations > multiple-primary-keys > one-to-many", () => {
 			]
 		}]);
 	
-		const user = await connection.getRepository(User).findOne({relations:["settings"]});
+		const user = await connection.getRepository(User).findOne(qr, {relations:["settings"]});
 	
 		// check the saved items have correctly updated value
 		expect(user!).not.to.be.undefined;
@@ -82,23 +90,25 @@ describe("relations > multiple-primary-keys > one-to-many", () => {
 		});
 	
 		// make sure only 2 entries are in db, initial ones should have been updated
-		const settings = await connection.getRepository(Setting).find();
+		const settings = await connection.getRepository(Setting).find(qr);
 		expect(settings).to.be.an("array");
 		expect(settings!.length).to.equal(2);
 	
+		await qr.release();
 	})));
 	
 	it("should correctly delete relation items", () => Promise.all(connections.map(async connection => {
 	
+		const qr = connection.createQueryRunner();
 		await insertSimpleTestData(connection);
 		const userRepo = connection.getRepository(User);
 	
-		await userRepo.save([{
+		await userRepo.save(qr, [{
 			id:1,
 			settings:[]
 		}]);
 	
-		const user = await connection.getRepository(User).findOne({relations:["settings"]});
+		const user = await connection.getRepository(User).findOne(qr, {relations:["settings"]});
 	
 		// check that no relational items are found
 		expect(user!).not.to.be.undefined;
@@ -106,10 +116,11 @@ describe("relations > multiple-primary-keys > one-to-many", () => {
 		expect(user!.settings!.length).to.equal(0);
 	
 		// check there are no orphane relational items
-		const settings = await connection.getRepository(Setting).find();
+		const settings = await connection.getRepository(Setting).find(qr);
 		expect(settings).to.be.an("array");
 		expect(settings!.length).to.equal(0);
 	
+		await qr.release();
 	})));
 		
 });

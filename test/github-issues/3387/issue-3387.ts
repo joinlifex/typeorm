@@ -2,7 +2,7 @@ import "reflect-metadata";
 import {closeTestingConnections, createTestingConnections, reloadTestingDatabases} from "../../utils/test-utils";
 import {Connection} from "../../../src/connection/Connection";
 import {expect} from "chai";
-import { Table } from '../../../src';
+import { Table } from "../../../src";
 import { xfail } from "../../utils/xfail";
 
 describe("github issues > #3387 named columns", () => {
@@ -22,7 +22,7 @@ describe("github issues > #3387 named columns", () => {
         // Create the categories table.
         const qr = connection.createQueryRunner();
         await qr.createTable(new Table({
-            name: 'category',
+            name: "category",
             columns: [
                 {
                     name: "id",
@@ -38,12 +38,13 @@ describe("github issues > #3387 named columns", () => {
             ]
         }));
 
-        const insert = connection.manager.insert('category', [
-            { name: 'Easy' },
-            { name: 'Medium' },
-            { name: 'Hard' },
+        const insert = connection.manager.insert(qr, "category", [
+            { name: "Easy" },
+            { name: "Medium" },
+            { name: "Hard" },
         ]);
 
-        return expect(insert).to.fulfilled
+        await qr.release();
+        return expect(insert).to.fulfilled;
     })));
 });

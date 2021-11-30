@@ -13,17 +13,20 @@ describe("entity-listeners", () => {
     after(() => closeTestingConnections(connections));
 
     it("beforeUpdate", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.title = "post title";
         post.text = "post text";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
-        let loadedPost = await connection.getRepository(Post).findOne(post.id);
+        let loadedPost = await connection.getRepository(Post).findOne(qr, post.id);
         loadedPost!.title = "post title   ";
-        await connection.manager.save(loadedPost);
+        await connection.manager.save(qr, loadedPost);
 
-        loadedPost = await connection.getRepository(Post).findOne(post.id);
+        loadedPost = await connection.getRepository(Post).findOne(qr, post.id);
         loadedPost!.title.should.be.equal("post title");
+    
+        await qr.release();
     })));
 
 });

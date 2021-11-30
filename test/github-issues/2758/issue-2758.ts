@@ -19,48 +19,56 @@ describe.skip("github issues > #2758 Insert fails when related OneToOne entity's
 
     it("should insert person with nested new party", () => Promise.all(connections.map(async connection => {
 
-        const repository = connection.getRepository(Person)
-        await connection.manager.save(repository.create({
+        const qr = connection.createQueryRunner();
+        const repository = connection.getRepository(Person);
+        await connection.manager.save(qr, repository.create(qr, {
             party: { },
         }));
 
+        await qr.release();
     })));
 
     it("should insert user with nested new person", () => Promise.all(connections.map(async connection => {
 
-        const repository = connection.getRepository(User)
-        await connection.manager.save(repository.create({
+        const qr = connection.createQueryRunner();
+        const repository = connection.getRepository(User);
+        await connection.manager.save(qr, repository.create(qr, {
             person: { party: { } },
-        }))
+        }));
 
+        await qr.release();
     })));
 
     it("should insert a new user with existing person", () => Promise.all(connections.map(async connection => {
 
-        const personRepository = connection.getRepository(Person)
-        const person = await connection.manager.save(personRepository.create({
+        const qr = connection.createQueryRunner();
+        const personRepository = connection.getRepository(Person);
+        const person = await connection.manager.save(qr, personRepository.create(qr, {
             party: { }
         }));
 
-        const userRepository = connection.getRepository(User)
-        await connection.manager.save(userRepository.create({
+        const userRepository = connection.getRepository(User);
+        await connection.manager.save(qr, userRepository.create(qr, {
             person: person,
         }));
 
+        await qr.release();
     })));
 
     it("should insert user with existing personId", () => Promise.all(connections.map(async connection => {
 
-        const personRepository = connection.getRepository(Person)
-        const person = await connection.manager.save(personRepository.create({
+        const qr = connection.createQueryRunner();
+        const personRepository = connection.getRepository(Person);
+        const person = await connection.manager.save(qr, personRepository.create(qr, {
             party: { },
         }));
 
-        const userRepository = connection.getRepository(User)
-        await connection.manager.save(userRepository.create({
+        const userRepository = connection.getRepository(User);
+        await connection.manager.save(qr, userRepository.create(qr, {
             personId: person.id,
         }));
 
+        await qr.release();
     })));
 
 });

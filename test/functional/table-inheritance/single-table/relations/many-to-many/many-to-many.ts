@@ -27,50 +27,51 @@ describe("table-inheritance > single-table > relations > many-to-many", () => {
 
         it("should work correctly with ManyToMany relations", () => Promise.all(connections.map(async connection => {
 
+            const qr = connection.createQueryRunner();
             // -------------------------------------------------------------------------
             // Create
             // -------------------------------------------------------------------------
 
             const faculty1 = new Faculty();
             faculty1.name = "Economics";
-            await connection.getRepository(Faculty).save(faculty1);
+            await connection.getRepository(Faculty).save(qr, faculty1);
 
             const faculty2 = new Faculty();
             faculty2.name = "Programming";
-            await connection.getRepository(Faculty).save(faculty2);
+            await connection.getRepository(Faculty).save(qr, faculty2);
 
             const student = new Student();
             student.name = "Alice";
             student.faculties = [faculty1, faculty2];
-            await connection.getRepository(Student).save(student);
+            await connection.getRepository(Student).save(qr, student);
 
             const specialization1 = new Specialization();
             specialization1.name = "Geography";
-            await connection.getRepository(Specialization).save(specialization1);
+            await connection.getRepository(Specialization).save(qr, specialization1);
 
             const specialization2 = new Specialization();
             specialization2.name = "Economist";
-            await connection.getRepository(Specialization).save(specialization2);
+            await connection.getRepository(Specialization).save(qr, specialization2);
 
             const teacher = new Teacher();
             teacher.name = "Mr. Garrison";
             teacher.specializations = [specialization1, specialization2];
             teacher.salary = 2000;
-            await connection.getRepository(Teacher).save(teacher);
+            await connection.getRepository(Teacher).save(qr, teacher);
 
             const department1 = new Department();
             department1.name = "Bookkeeping";
-            await connection.getRepository(Department).save(department1);
+            await connection.getRepository(Department).save(qr, department1);
 
             const department2 = new Department();
             department2.name = "HR";
-            await connection.getRepository(Department).save(department2);
+            await connection.getRepository(Department).save(qr, department2);
 
             const accountant = new Accountant();
             accountant.name = "Mr. Burns";
             accountant.departments = [department1, department2];
             accountant.salary = 3000;
-            await connection.getRepository(Accountant).save(accountant);
+            await connection.getRepository(Accountant).save(qr, accountant);
 
             // -------------------------------------------------------------------------
             // Select
@@ -80,7 +81,7 @@ describe("table-inheritance > single-table > relations > many-to-many", () => {
                 .createQueryBuilder(Student, "student")
                 .leftJoinAndSelect("student.faculties", "faculty")
                 .where("student.name = :name", { name: "Alice" })
-                .getOne();
+                .getOne(qr);
 
             loadedStudent!.should.have.all.keys("id", "name", "faculties");
             loadedStudent!.id.should.equal(1);
@@ -93,7 +94,7 @@ describe("table-inheritance > single-table > relations > many-to-many", () => {
                 .createQueryBuilder(Teacher, "teacher")
                     .leftJoinAndSelect("teacher.specializations", "specialization")
                     .where("teacher.name = :name", { name: "Mr. Garrison" })
-                    .getOne();
+                    .getOne(qr);
 
             loadedTeacher!.should.have.all.keys("id", "name", "specializations", "salary");
             loadedTeacher!.id.should.equal(2);
@@ -107,7 +108,7 @@ describe("table-inheritance > single-table > relations > many-to-many", () => {
                 .createQueryBuilder(Accountant, "accountant")
                 .leftJoinAndSelect("accountant.departments", "department")
                 .where("accountant.name = :name", { name: "Mr. Burns" })
-                .getOne();
+                .getOne(qr);
 
             loadedAccountant!.should.have.all.keys("id", "name", "departments", "salary");
             loadedAccountant!.id.should.equal(3);
@@ -122,7 +123,7 @@ describe("table-inheritance > single-table > relations > many-to-many", () => {
                 .leftJoinAndSelect("employee.specializations", "specialization")
                 .leftJoinAndSelect("employee.departments", "department")
                 .orderBy("employee.id, specialization.id, department.id")
-                .getMany();
+                .getMany(qr);
 
             loadedEmployees[0].should.have.all.keys("id", "name", "salary", "specializations");
             loadedEmployees[0].should.be.instanceof(Teacher);
@@ -147,7 +148,7 @@ describe("table-inheritance > single-table > relations > many-to-many", () => {
                 .leftJoinAndSelect("person.specializations", "specialization")
                 .leftJoinAndSelect("person.departments", "department")
                 .orderBy("person.id, specialization.id, department.id")
-                .getMany();
+                .getMany(qr);
 
             loadedPersons[0].should.have.all.keys("id", "name", "faculties");
             loadedPersons[0].should.be.instanceof(Student);
@@ -173,6 +174,7 @@ describe("table-inheritance > single-table > relations > many-to-many", () => {
             (loadedPersons[2] as Accountant)!.departments.map(f => f.name).should.deep.include("HR");
             (loadedPersons[2] as Accountant).salary.should.equal(3000);
 
+            await qr.release();
         })));
 
     });
@@ -181,53 +183,55 @@ describe("table-inheritance > single-table > relations > many-to-many", () => {
 
         it("should work correctly with ManyToMany relations", () => Promise.all(connections.map(async connection => {
 
+            const qr = connection.createQueryRunner();
             // -------------------------------------------------------------------------
             // Create
             // -------------------------------------------------------------------------
 
             const student1 = new Student();
             student1.name = "Alice";
-            await connection.getRepository(Student).save(student1);
+            await connection.getRepository(Student).save(qr, student1);
 
             const student2 = new Student();
             student2.name = "Bob";
-            await connection.getRepository(Student).save(student2);
+            await connection.getRepository(Student).save(qr, student2);
 
             const faculty = new Faculty();
             faculty.name = "Economics";
             faculty.students = [student1, student2];
-            await connection.getRepository(Faculty).save(faculty);
+            await connection.getRepository(Faculty).save(qr, faculty);
 
             const teacher1 = new Teacher();
             teacher1.name = "Mr. Garrison";
             teacher1.salary = 2000;
-            await connection.getRepository(Teacher).save(teacher1);
+            await connection.getRepository(Teacher).save(qr, teacher1);
 
             const teacher2 = new Teacher();
             teacher2.name = "Mr. Adler";
             teacher2.salary = 1000;
-            await connection.getRepository(Teacher).save(teacher2);
+            await connection.getRepository(Teacher).save(qr, teacher2);
 
             const specialization = new Specialization();
             specialization.name = "Geography";
             specialization.teachers = [teacher1, teacher2];
-            await connection.getRepository(Specialization).save(specialization);
+            await connection.getRepository(Specialization).save(qr, specialization);
 
             const accountant1 = new Accountant();
             accountant1.name = "Mr. Burns";
             accountant1.salary = 3000;
-            await connection.getRepository(Accountant).save(accountant1);
+            await connection.getRepository(Accountant).save(qr, accountant1);
 
             const accountant2 = new Accountant();
             accountant2.name = "Mr. Trump";
             accountant2.salary = 4000;
-            await connection.getRepository(Accountant).save(accountant2);
+            await connection.getRepository(Accountant).save(qr, accountant2);
 
             const department = new Department();
             department.name = "Bookkeeping";
             department.accountants = [accountant1, accountant2];
-            await connection.getRepository(Department).save(department);
+            await connection.getRepository(Department).save(qr, department);
 
+            await qr.release();
         })));
 
     });

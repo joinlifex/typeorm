@@ -30,7 +30,7 @@ describe("query builder > comment", () => {
     })));
 
     it("should allow a comment with just whitespaces", () => Promise.all(connections.map(async connection => {
-        const sql = connection.manager.createQueryBuilder(Test, "test")
+            const sql = connection.manager.createQueryBuilder(Test, "test")
             .comment(" ")
             .getSql();
 
@@ -38,7 +38,7 @@ describe("query builder > comment", () => {
     })));
 
     it("should allow a multi-line comment", () => Promise.all(connections.map(async connection => {
-        const sql = connection.manager.createQueryBuilder(Test, "test")
+            const sql = connection.manager.createQueryBuilder(Test, "test")
             .comment("Hello World\nIt's a beautiful day!")
             .getSql();
 
@@ -46,7 +46,7 @@ describe("query builder > comment", () => {
     })));
 
     it("should include comment in select", () => Promise.all(connections.map(async connection => {
-        const sql = connection.manager.createQueryBuilder(Test, "test")
+            const sql = connection.manager.createQueryBuilder(Test, "test")
             .comment("Hello World")
             .getSql();
 
@@ -54,7 +54,7 @@ describe("query builder > comment", () => {
     })));
 
     it("should include comment in update", () => Promise.all(connections.map(async connection => {
-        const sql = connection.manager.createQueryBuilder(Test, "test")
+            const sql = connection.manager.createQueryBuilder(Test, "test")
             .update()
             .set({ id: 2 })
             .comment("Hello World")
@@ -64,7 +64,7 @@ describe("query builder > comment", () => {
     })));
 
     it("should include comment in insert", () => Promise.all(connections.map(async connection => {
-        const sql = connection.manager.createQueryBuilder(Test, "test")
+            const sql = connection.manager.createQueryBuilder(Test, "test")
             .insert()
             .values({ id: 1 })
             .comment("Hello World")
@@ -74,7 +74,7 @@ describe("query builder > comment", () => {
     })));
 
     it("should include comment in delete", () => Promise.all(connections.map(async connection => {
-        const sql = connection.manager.createQueryBuilder(Test, "test")
+            const sql = connection.manager.createQueryBuilder(Test, "test")
             .delete()
             .comment("Hello World")
             .getSql();

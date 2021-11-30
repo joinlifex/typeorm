@@ -24,4 +24,4 @@ describe("github issues > #2333 datetime column showing changed on every schema:
         sqlInMemory.upQueries.length.should.be.equal(0);
         sqlInMemory.downQueries.length.should.be.equal(0);
     })));
-})
+});

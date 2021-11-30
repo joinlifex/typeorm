@@ -1,10 +1,10 @@
 import {getConnection, getMetadataArgsStorage} from "../../globals";
 import {TransactionOptions} from "../options/TransactionOptions";
 import {IsolationLevel} from "../../driver/types/IsolationLevel";
-import { EntityManager } from "../../entity-manager/EntityManager";
 import { Repository } from "../../repository/Repository";
 import { MongoRepository } from "../../repository/MongoRepository";
 import { TreeRepository } from "../../repository/TreeRepository";
+import { QueryRunner } from "../..";
 
 /**
  * Wraps some method into the transaction.
@@ -44,7 +44,7 @@ export function Transaction(connectionOrOptions?: string | TransactionOptions): 
                 }
             }
 
-            const transactionCallback = (entityManager: EntityManager) => {
+            const transactionCallback = (qr: QueryRunner) => {
                 let argsWithInjectedTransactionManagerAndRepositories: any[];
 
                 // filter all @TransactionManager() and @TransactionRepository() decorator usages for this method
@@ -60,11 +60,11 @@ export function Transaction(connectionOrOptions?: string | TransactionOptions): 
                     argsWithInjectedTransactionManagerAndRepositories = [...args];
                     // replace method params with injection of transactionEntityManager
                     transactionEntityManagerMetadatas.forEach(metadata => {
-                        argsWithInjectedTransactionManagerAndRepositories.splice(metadata.index, 0, entityManager);
+                        argsWithInjectedTransactionManagerAndRepositories.splice(metadata.index, 0, qr.manager);
                     });
 
                 } else if (transactionRepositoryMetadatas.length === 0) { // otherwise if there's no transaction repositories in use, inject it as a first parameter
-                    argsWithInjectedTransactionManagerAndRepositories = [entityManager, ...args];
+                    argsWithInjectedTransactionManagerAndRepositories = [qr.manager, ...args];
 
                 } else {
                     argsWithInjectedTransactionManagerAndRepositories = [...args];
@@ -77,17 +77,17 @@ export function Transaction(connectionOrOptions?: string | TransactionOptions): 
                     // detect type of the repository and get instance from transaction entity manager
                     switch (metadata.repositoryType) {
                         case Repository:
-                            repositoryInstance = entityManager.getRepository(metadata.entityType!);
+                            repositoryInstance = qr.manager.getRepository(metadata.entityType!);
                             break;
                         case MongoRepository:
-                            repositoryInstance = entityManager.getMongoRepository(metadata.entityType!);
+                            repositoryInstance = qr.manager.getMongoRepository(metadata.entityType!);
                             break;
                         case TreeRepository:
-                            repositoryInstance = entityManager.getTreeRepository(metadata.entityType!);
+                            repositoryInstance = qr.manager.getTreeRepository(metadata.entityType!);
                             break;
                         // if not the TypeORM's ones, there must be custom repository classes
                         default:
-                            repositoryInstance = entityManager.getCustomRepository(metadata.repositoryType);
+                            repositoryInstance = qr.manager.getCustomRepository(metadata.repositoryType);
                     }
 
                     // replace method param with injection of repository instance
@@ -96,10 +96,12 @@ export function Transaction(connectionOrOptions?: string | TransactionOptions): 
 
                 return originalMethod.apply(this, argsWithInjectedTransactionManagerAndRepositories);
             };
+            const connection = getConnection(connectionName);
+            const queryRunner = connection.createQueryRunner();
             if (isolationLevel) {
-                return getConnection(connectionName).manager.transaction(isolationLevel, transactionCallback);
+                return connection.manager.transaction(queryRunner, isolationLevel, transactionCallback);
             } else {
-                return getConnection(connectionName).manager.transaction(transactionCallback);
+                return connection.manager.transaction(queryRunner, transactionCallback);
             }
         };
     };

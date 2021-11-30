@@ -1,5 +1,4 @@
 import {Connection} from "../connection/Connection";
-import {QueryRunner} from "../query-runner/QueryRunner";
 import {EntityManager} from "./EntityManager";
 import {SqljsDriver} from "../driver/sqljs/SqljsDriver";
 
@@ -14,8 +13,8 @@ export class SqljsEntityManager extends EntityManager {
     // Constructor
     // -------------------------------------------------------------------------
 
-    constructor(connection: Connection, queryRunner?: QueryRunner) {
-        super(connection, queryRunner);
+    constructor(connection: Connection) {
+        super(connection);
         this.driver = connection.driver as SqljsDriver;
     }
     

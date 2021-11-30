@@ -112,7 +112,7 @@ export class MysqlQueryRunner extends BaseQueryRunner implements QueryRunner {
         if (this.isTransactionActive)
             throw new TransactionAlreadyStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionStart');
+        await this.broadcaster.broadcast("BeforeTransactionStart");
 
         this.isTransactionActive = true;
         if (isolationLevel) {
@@ -122,7 +122,7 @@ export class MysqlQueryRunner extends BaseQueryRunner implements QueryRunner {
             await this.query("START TRANSACTION");
         }
 
-        await this.broadcaster.broadcast('AfterTransactionStart');
+        await this.broadcaster.broadcast("AfterTransactionStart");
     }
 
     /**
@@ -133,12 +133,12 @@ export class MysqlQueryRunner extends BaseQueryRunner implements QueryRunner {
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionCommit');
+        await this.broadcaster.broadcast("BeforeTransactionCommit");
 
         await this.query("COMMIT");
         this.isTransactionActive = false;
 
-        await this.broadcaster.broadcast('AfterTransactionCommit');
+        await this.broadcaster.broadcast("AfterTransactionCommit");
     }
 
     /**
@@ -149,12 +149,12 @@ export class MysqlQueryRunner extends BaseQueryRunner implements QueryRunner {
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionRollback');
+        await this.broadcaster.broadcast("BeforeTransactionRollback");
 
         await this.query("ROLLBACK");
         this.isTransactionActive = false;
 
-        await this.broadcaster.broadcast('AfterTransactionRollback');
+        await this.broadcaster.broadcast("AfterTransactionRollback");
     }
 
     /**
@@ -193,7 +193,7 @@ export class MysqlQueryRunner extends BaseQueryRunner implements QueryRunner {
                         // Do nothing.
                     }
 
-                    if (raw?.hasOwnProperty('affectedRows')) {
+                    if (raw?.hasOwnProperty("affectedRows")) {
                         result.affected = raw.affectedRows;
                     }
 
@@ -1218,7 +1218,7 @@ export class MysqlQueryRunner extends BaseQueryRunner implements QueryRunner {
 
         const currentDatabase = await this.getCurrentDatabase();
         const viewsCondition = viewNames.map(tableName => {
-            let { database, tableName: name } = this.driver.parseTableName(tableName)
+            let { database, tableName: name } = this.driver.parseTableName(tableName);
 
             if (!database) {
                 database = currentDatabase;
@@ -1455,8 +1455,8 @@ export class MysqlQueryRunner extends BaseQueryRunner implements QueryRunner {
                         return dbIndex["TABLE_NAME"] === dbTable["TABLE_NAME"]
                             && dbIndex["TABLE_SCHEMA"] === dbTable["TABLE_SCHEMA"]
                             && dbIndex["COLUMN_NAME"] === dbColumn["COLUMN_NAME"]
-                            && parseInt(dbIndex["NON_UNIQUE"], 10) === 0
-                    })
+                            && parseInt(dbIndex["NON_UNIQUE"], 10) === 0;
+                    });
 
                     const tableMetadata = this.connection.entityMetadatas.find(metadata => this.getTablePath(table) === this.getTablePath(metadata));
                     const hasIgnoredIndex = columnUniqueIndices.length > 0
@@ -1469,7 +1469,7 @@ export class MysqlQueryRunner extends BaseQueryRunner implements QueryRunner {
 
                     const isConstraintComposite = columnUniqueIndices.every((uniqueIndex) => {
                         return dbIndices.some(dbIndex => dbIndex["INDEX_NAME"] === uniqueIndex["INDEX_NAME"] && dbIndex["COLUMN_NAME"] !== dbColumn["COLUMN_NAME"]);
-                    })
+                    });
 
                     const tableColumn = new TableColumn();
                     tableColumn.name = dbColumn["COLUMN_NAME"];

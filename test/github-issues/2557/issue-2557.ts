@@ -20,10 +20,12 @@ describe("github issues > #2557 object looses its prototype before transformer.t
         const dummy = new Dummy();
         dummy.id = 1;
         dummy.num = new WrappedNumber(3);
+        const qr = connection.createQueryRunner();
 
-        await connection.getRepository(Dummy).save(dummy);
+        await connection.getRepository(Dummy).save(qr, dummy);
 
         expect(transformer.lastValue).to.be.instanceOf(WrappedNumber);
+        await qr.release();
     })));
 
     // you can add additional tests if needed

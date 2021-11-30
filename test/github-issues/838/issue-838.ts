@@ -29,19 +29,24 @@ describe.skip("github issues > #838 Time zones for timestamp columns are incorre
         // await postgresConnection.query(`INSERT INTO "flight" ("id", "date") VALUES (1, '1989-08-16 14:00:00.000000 +03:00');`);
         // const results = await postgresConnection.query(`SELECT date FROM "flight" WHERE id = 1`);
         // console.log(results);
-        await postgresConnection.query(`INSERT INTO "flight" ("id", "date") VALUES (1, '${testDateString}');`);
-        const flight = await postgresConnection.manager.findOne(Flight, 1);
+        const queryRunner = postgresConnection.createQueryRunner();
+        await postgresConnection.query(queryRunner, `INSERT INTO "flight" ("id", "date") VALUES (1, '${testDateString}');`);
+        const flight = await postgresConnection.manager.findOne(queryRunner, Flight, 1);
         expect(flight!.date.toISOString()).to.equal(new Date(testDateString).toISOString());
+        
+        queryRunner.release();
     });
 
     it("should persist date & time to the PostgreSQL database correctly", async () => {
         const testDate = new Date(testDateString);
-        await postgresConnection.manager.save(new Flight(1, testDate));
+        const queryRunner = postgresConnection.createQueryRunner();
+        await postgresConnection.manager.save(queryRunner, new Flight(1, testDate));
 
-        const results = await postgresConnection.query(`SELECT "date" FROM "flight" WHERE id = 1`);
+        const results = await postgresConnection.query(queryRunner, `SELECT "date" FROM "flight" WHERE id = 1`);
 
         expect(results[0].date.toISOString()).to.equal(testDate.toISOString());
 
+        queryRunner.release();
     });
 
 });

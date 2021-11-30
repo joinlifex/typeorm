@@ -16,6 +16,7 @@ describe("other issues > using limit in conjunction with order by", () => {
 
     it("should persist successfully and return persisted entity", () => Promise.all(connections.map(async function(connection) {
 
+        const queryRunner = connection.createQueryRunner();
         // generate bulk array of posts with categories
         for (let i = 1; i <= 100; i++) {
 
@@ -28,7 +29,7 @@ describe("other issues > using limit in conjunction with order by", () => {
                 category.name = "category #" + i;
                 post.categories.push(category);
             }
-            await connection.manager.save(post);
+            await connection.manager.save(queryRunner, post);
         }
 
         // check if ordering by main object works correctly
@@ -38,7 +39,7 @@ describe("other issues > using limit in conjunction with order by", () => {
             .innerJoinAndSelect("post.categories", "categories")
             .take(10)
             .orderBy("post.id", "DESC")
-            .getMany();
+            .getMany(queryRunner);
 
         expect(loadedPosts1).not.to.be.undefined;
         loadedPosts1.length.should.be.equal(10);
@@ -53,6 +54,7 @@ describe("other issues > using limit in conjunction with order by", () => {
         loadedPosts1[8].id.should.be.equal(92);
         loadedPosts1[9].id.should.be.equal(91);
 
+        queryRunner.release();
     })));
 
 });

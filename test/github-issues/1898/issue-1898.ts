@@ -19,7 +19,9 @@ describe("github issues > #1898 Simple JSON breaking in @next", () => {
     it("should correctly persist", () => Promise.all(connections.map(async connection => {
         const post = new Post();
         post.type = "post";
-        await connection.getRepository(Post).save(post);
+        const qr = connection.createQueryRunner();
+        await connection.getRepository(Post).save(qr, post);
+        await qr.release();
     })));
 
 });

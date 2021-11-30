@@ -21,29 +21,31 @@ describe("github issues > #7760 Mongodb: When field is null in db, typeorm query
     it("should delete all documents related to search pattern", () => Promise.all(connections.map(async connection => {
         const testEntityRepository = connection.getRepository(TestEntity);
 
+        const qr = connection.createQueryRunner();
         // save few documents
         const firstEntity = new TestEntity();
         firstEntity.name = "First";
         firstEntity.testId = "1";
-        await testEntityRepository.save(firstEntity);
+        await testEntityRepository.save(qr, firstEntity);
 
         const secondEntity = new TestEntity();
         secondEntity.name = "Second";
         secondEntity.testId = null;
-        await testEntityRepository.save(secondEntity);
+        await testEntityRepository.save(qr, secondEntity);
 
         const thirdEntity = new TestEntity();
         thirdEntity.name = "Third";
         thirdEntity.testId = "3";
-        await testEntityRepository.save(thirdEntity);
+        await testEntityRepository.save(qr, thirdEntity);
 
         const fourthEntity = new TestEntity();
         fourthEntity.name = "Fourth";
         fourthEntity.testId = null;
-        await testEntityRepository.save(fourthEntity);
+        await testEntityRepository.save(qr, fourthEntity);
 
-        const loadedEntities = await testEntityRepository.find();
+        const loadedEntities = await testEntityRepository.find(qr);
 
+        await qr.release();
         expect(loadedEntities.length).to.be.eql(4);
 
         expect(loadedEntities[0]).to.be.instanceOf(TestEntity);

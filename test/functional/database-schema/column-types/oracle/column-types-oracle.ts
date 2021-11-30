@@ -20,6 +20,7 @@ describe("database schema > column types > oracle", () => {
 
     it("all types should work correctly - persist and hydrate", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const postRepository = connection.getRepository(Post);
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post");
@@ -28,7 +29,7 @@ describe("database schema > column types > oracle", () => {
         const post = new Post();
         post.id = 1;
         post.name = "Post";
-        post.number = 32767;
+        post["number"] = 32767;
         post.numeric = 32767;
         post.float = 10.53;
         post.dec = 100;
@@ -56,9 +57,9 @@ describe("database schema > column types > oracle", () => {
         post.clob = "This is clob";
         post.nclob = "This is nclob";
         post.simpleArray = ["A", "B", "C"];
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.number.should.be.equal(post.number);
@@ -117,6 +118,7 @@ describe("database schema > column types > oracle", () => {
         table!.findColumnByName("nclob")!.type.should.be.equal("nclob");
         table!.findColumnByName("simpleArray")!.type.should.be.equal("clob");
 
+        await qr.release();
     })));
 
     it("all types should work correctly - persist and hydrate when options are specified on columns", () => Promise.all(connections.map(async connection => {
@@ -125,10 +127,11 @@ describe("database schema > column types > oracle", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post_with_options");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new PostWithOptions();
         post.id = 1;
-        post.number = 50;
+        post["number"] = 50;
         post.numeric = 50;
         post.float = 5.25;
         post.dec = 60;
@@ -141,9 +144,9 @@ describe("database schema > column types > oracle", () => {
         post.timestamp = new Date();
         post.timestampWithTimeZone = new Date();
         post.timestampWithLocalTimeZone = new Date();
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.number.should.be.equal(post.number);
         loadedPost.numeric.should.be.equal(post.numeric);
@@ -191,6 +194,7 @@ describe("database schema > column types > oracle", () => {
         table!.findColumnByName("timestampWithLocalTimeZone")!.type.should.be.equal("timestamp with local time zone");
         table!.findColumnByName("timestampWithLocalTimeZone")!.precision!.should.be.equal(7);
 
+        await qr.release();
     })));
 
     it("all types should work correctly - persist and hydrate when types are not specified on columns", () => Promise.all(connections.map(async connection => {
@@ -199,16 +203,17 @@ describe("database schema > column types > oracle", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post_without_types");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new PostWithoutTypes();
         post.id = 1;
         post.name = "Post";
-        post.boolean = true;
+        post["boolean"] = true;
         post.blob = Buffer.from("This is blob");
         post.datetime = new Date();
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.boolean.should.be.equal(post.boolean);
@@ -221,6 +226,7 @@ describe("database schema > column types > oracle", () => {
         table!.findColumnByName("blob")!.type.should.be.equal("blob");
         table!.findColumnByName("datetime")!.type.should.be.equal("timestamp");
 
+        await qr.release();
     })));
 
 });

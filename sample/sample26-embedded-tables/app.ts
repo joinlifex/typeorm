@@ -27,14 +27,15 @@ createConnection(options).then(connection => {
     question.counters.raiting = 10;
     question.counters.commentCount = 3;
     question.counters.metadata = "#question #question-counter";
+    const qr = connection.createQueryRunner();
 
     questionRepository
-        .save(question)
+        .save(qr, question)
         .then(savedQuestion => {
             console.log("question has been saved: ", savedQuestion);
             
             // lets load it now:
-            return questionRepository.findOne(savedQuestion.id);
+            return questionRepository.findOne(qr, savedQuestion.id);
         })
         .then(loadedQuestion => {
             console.log("question has been loaded: ", loadedQuestion);
@@ -42,7 +43,7 @@ createConnection(options).then(connection => {
             loadedQuestion!.counters.commentCount = 7;
             loadedQuestion!.counters.metadata = "#updated question";
             
-            return questionRepository.save(loadedQuestion!);
+            return questionRepository.save(qr, loadedQuestion!);
         })
         .then(updatedQuestion => {
             console.log("question has been updated: ", updatedQuestion);

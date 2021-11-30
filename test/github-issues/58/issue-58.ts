@@ -38,16 +38,17 @@ describe("github issues > #58 relations with multiple primary keys", () => {
         postCategory2.addedByUser = true;
         postCategory2.category = category2;
         postCategory2.post = post;
+        const qr = connection.createQueryRunner();
 
-        await connection.manager.save(postCategory1);
-        await connection.manager.save(postCategory2);
+        await connection.manager.save(qr, postCategory1);
+        await connection.manager.save(qr, postCategory2);
 
         // check that all persisted objects exist
         const loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
             .innerJoinAndSelect("post.categories", "postCategory")
             .innerJoinAndSelect("postCategory.category", "category")
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost!).not.to.be.undefined;
         loadedPost!.should.be.eql({
@@ -70,6 +71,7 @@ describe("github issues > #58 relations with multiple primary keys", () => {
             }]
         });
 
+        await qr.release();
     })));
 
 });

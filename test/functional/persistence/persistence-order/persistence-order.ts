@@ -46,11 +46,12 @@ describe("persistence > order of persistence execution operations", () => {
             const post1 = new Post();
             post1.title = "Hello Post #1";
             post1.category = category1;
-
-            await connection.manager.save(post1);
+            const qr = connection.createQueryRunner();
+            
+            await connection.manager.save(qr, post1);
 
             // now check
-            /*const posts = await connection.manager.find(Post, {
+            /*const posts = await connection.manager.find(qr, Post, {
              alias: "post",
              innerJoinAndSelect: {
              category: "post.category"
@@ -75,6 +76,8 @@ describe("persistence > order of persistence execution operations", () => {
              name: "Category saved by cascades #2"
              }
              }]);*/
+             
+            await qr.release();
         })));
     });
 

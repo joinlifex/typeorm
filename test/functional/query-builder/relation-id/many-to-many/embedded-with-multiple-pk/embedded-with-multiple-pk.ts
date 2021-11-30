@@ -24,41 +24,42 @@ describe("query builder > relation-id > many-to-many > embedded-with-multiple-pk
     describe("owner side", () => {
 
         it("should load ids when loadRelationIdAndMap used on embedded table and each table have primary key", () => Promise.all(connections.map(async connection => {
-
+            const qr = connection.createQueryRunner();
+        
             const user1 = new User();
             user1.id = 1;
             user1.name = "Alice";
-            await connection.manager.save(user1);
+            await connection.manager.save(qr, user1);
 
             const user2 = new User();
             user2.id = 2;
             user2.name = "Bob";
-            await connection.manager.save(user2);
+            await connection.manager.save(qr, user2);
 
             const user3 = new User();
             user3.id = 3;
             user3.name = "Clara";
-            await connection.manager.save(user3);
+            await connection.manager.save(qr, user3);
 
             const category1 = new Category();
             category1.id = 1;
             category1.name = "cars";
-            await connection.manager.save(category1);
+            await connection.manager.save(qr, category1);
 
             const category2 = new Category();
             category2.id = 2;
             category2.name = "BMW";
-            await connection.manager.save(category2);
+            await connection.manager.save(qr, category2);
 
             const category3 = new Category();
             category3.id = 3;
             category3.name = "airplanes";
-            await connection.manager.save(category3);
+            await connection.manager.save(qr, category3);
 
             const category4 = new Category();
             category4.id = 4;
             category4.name = "Boeing";
-            await connection.manager.save(category4);
+            await connection.manager.save(qr, category4);
 
             const post1 = new Post();
             post1.id = 1;
@@ -73,7 +74,7 @@ describe("query builder > relation-id > many-to-many > embedded-with-multiple-pk
             post1.counters.subcntrs.version = 1;
             post1.counters.subcntrs.watches = 2;
             post1.counters.subcntrs.watchedUsers = [user1, user2];
-            await connection.manager.save(post1);
+            await connection.manager.save(qr, post1);
 
             const post2 = new Post();
             post2.id = 2;
@@ -88,14 +89,14 @@ describe("query builder > relation-id > many-to-many > embedded-with-multiple-pk
             post2.counters.subcntrs.version = 1;
             post2.counters.subcntrs.watches = 1;
             post2.counters.subcntrs.watchedUsers = [user3];
-            await connection.manager.save(post2);
+            await connection.manager.save(qr, post2);
 
             const loadedPosts = await connection.manager
                 .createQueryBuilder(Post, "post")
                 .loadRelationIdAndMap("post.counters.categoryIds", "post.counters.categories")
                 .loadRelationIdAndMap("post.counters.subcntrs.watchedUserIds", "post.counters.subcntrs.watchedUsers")
                 .orderBy("post.id")
-                .getMany();
+                .getMany(qr);
 
             expect(loadedPosts[0].should.be.eql(
                 {
@@ -152,7 +153,7 @@ describe("query builder > relation-id > many-to-many > embedded-with-multiple-pk
                 .where("post.id = :id", { id: 1 })
                 .andWhere("post.counters.code = :code", { code: 111 })
                 .andWhere("post.counters.subcntrs.version = :version", { version: 1 })
-                .getOne();
+                .getOne(qr);
 
             expect(loadedPost!.should.be.eql(
                 {
@@ -179,13 +180,15 @@ describe("query builder > relation-id > many-to-many > embedded-with-multiple-pk
                 }
             ));
 
+            await qr.release();
         })));
     });
 
     describe("inverse side", () => {
 
         it("should load ids when loadRelationIdAndMap used on embedded table and each table have primary key", () => Promise.all(connections.map(async connection => {
-
+            const qr = connection.createQueryRunner();
+        
             const post1 = new Post();
             post1.id = 1;
             post1.title = "About BMW";
@@ -197,7 +200,7 @@ describe("query builder > relation-id > many-to-many > embedded-with-multiple-pk
             post1.counters.subcntrs = new Subcounters();
             post1.counters.subcntrs.version = 1;
             post1.counters.subcntrs.watches = 2;
-            await connection.manager.save(post1);
+            await connection.manager.save(qr, post1);
 
             const post2 = new Post();
             post2.id = 2;
@@ -210,7 +213,7 @@ describe("query builder > relation-id > many-to-many > embedded-with-multiple-pk
             post2.counters.subcntrs = new Subcounters();
             post2.counters.subcntrs.version = 1;
             post2.counters.subcntrs.watches = 5;
-            await connection.manager.save(post2);
+            await connection.manager.save(qr, post2);
 
             const post3 = new Post();
             post3.id = 3;
@@ -223,7 +226,7 @@ describe("query builder > relation-id > many-to-many > embedded-with-multiple-pk
             post3.counters.subcntrs = new Subcounters();
             post3.counters.subcntrs.version = 2;
             post3.counters.subcntrs.watches = 10;
-            await connection.manager.save(post3);
+            await connection.manager.save(qr, post3);
 
             const post4 = new Post();
             post4.id = 4;
@@ -236,37 +239,37 @@ describe("query builder > relation-id > many-to-many > embedded-with-multiple-pk
             post4.counters.subcntrs = new Subcounters();
             post4.counters.subcntrs.version = 3;
             post4.counters.subcntrs.watches = 10;
-            await connection.manager.save(post4);
+            await connection.manager.save(qr, post4);
 
             const category1 = new Category();
             category1.id = 1;
             category1.name = "cars";
             category1.posts = [post1, post2];
-            await connection.manager.save(category1);
+            await connection.manager.save(qr, category1);
 
             const category2 = new Category();
             category2.id = 2;
             category2.name = "airplanes";
             category2.posts = [post3, post4];
-            await connection.manager.save(category2);
+            await connection.manager.save(qr, category2);
 
             const user1 = new User();
             user1.id = 1;
             user1.name = "Alice";
             user1.posts = [post1, post2];
-            await connection.manager.save(user1);
+            await connection.manager.save(qr, user1);
 
             const user2 = new User();
             user2.id = 2;
             user2.name = "Bob";
             user2.posts = [post3, post4];
-            await connection.manager.save(user2);
+            await connection.manager.save(qr, user2);
 
             const loadedCategories = await connection.manager
                 .createQueryBuilder(Category, "category")
                 .loadRelationIdAndMap("category.postIds", "category.posts")
                 .orderBy("category.id")
-                .getMany();
+                .getMany(qr);
 
             expect(loadedCategories[0].postIds).to.not.be.eql([]);
             expect(loadedCategories[0].postIds.length).to.be.equal(2);
@@ -282,7 +285,7 @@ describe("query builder > relation-id > many-to-many > embedded-with-multiple-pk
                 .loadRelationIdAndMap("category.postIds", "category.posts")
                 .where("category.id = :id", { id: 1 })
                 .andWhere("category.name = :name", { name: "cars" })
-                .getOne();
+                .getOne(qr);
 
             expect(loadedCategory!.postIds).to.not.be.eql([]);
             expect(loadedCategory!.postIds.length).to.be.equal(2);
@@ -293,7 +296,7 @@ describe("query builder > relation-id > many-to-many > embedded-with-multiple-pk
                 .createQueryBuilder(User, "user")
                 .loadRelationIdAndMap("user.postIds", "user.posts")
                 .orderBy("user.id")
-                .getMany();
+                .getMany(qr);
 
             expect(loadedUsers[0].postIds).to.not.be.eql([]);
             expect(loadedUsers[0].postIds.length).to.be.equal(2);
@@ -309,13 +312,14 @@ describe("query builder > relation-id > many-to-many > embedded-with-multiple-pk
                 .loadRelationIdAndMap("user.postIds", "user.posts")
                 .where("user.id = :id", { id: 1 })
                 .andWhere("user.name = :name", { name: "Alice" })
-                .getOne();
+                .getOne(qr);
 
             expect(loadedUser!.postIds).to.not.be.eql([]);
             expect(loadedUser!.postIds.length).to.be.equal(2);
             expect(loadedUser!.postIds[0]).to.be.eql({ id: 1, counters: { code: 111, subcntrs: { version: 1 }} });
             expect(loadedUser!.postIds[1]).to.be.eql({ id: 2, counters: { code: 222, subcntrs: { version: 1 }} });
 
+            await qr.release();
         })));
 
     });

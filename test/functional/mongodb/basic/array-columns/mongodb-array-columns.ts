@@ -18,6 +18,7 @@ describe("mongodb > array columns", () => {
     it("should insert / update array columns correctly", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
 
+        const qr = connection.createQueryRunner();
         // save a post
         const post = new Post();
         post.title = "Post";
@@ -30,10 +31,10 @@ describe("mongodb > array columns", () => {
             new Counters(3, "number #3"),
         ];
         post.other1 = [];
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // check saved post
-        const loadedPost = await postRepository.findOne({ title: "Post" });
+        const loadedPost = await postRepository.findOne(qr, { title: "Post" });
 
         expect(loadedPost).to.be.not.empty;
         expect(loadedPost!.names).to.be.not.empty;
@@ -78,10 +79,10 @@ describe("mongodb > array columns", () => {
         post.other1 = [
             new Counters(0, "other"),
         ];
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // now load updated post
-        const loadedUpdatedPost = await postRepository.findOne({ title: "Post" });
+        const loadedUpdatedPost = await postRepository.findOne(qr, { title: "Post" });
 
         expect(loadedUpdatedPost).to.be.not.empty;
         expect(loadedUpdatedPost!.names).to.be.not.empty;
@@ -116,6 +117,7 @@ describe("mongodb > array columns", () => {
         loadedUpdatedPost!.other1[0].likes.should.be.equal(0);
         loadedUpdatedPost!.other1[0].text.should.be.equal("other");
 
+        await qr.release();
     })));
 
     it("should retrieve arrays from the column metadata", () => Promise.all(connections.map(async connection => {
@@ -133,7 +135,7 @@ describe("mongodb > array columns", () => {
 
         const column = connection.getMetadata(Post)
             .columns
-            .find(c => c.propertyPath === 'counters.text')!;
+            .find(c => c.propertyPath === "counters.text")!;
 
         const value = column.getEntityValue(post);
 

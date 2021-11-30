@@ -17,6 +17,7 @@ const options: ConnectionOptions = {
 };
 
 createConnection(options).then(connection => {
+    const qr = connection.createQueryRunner();
 
     let category1 = new PostCategory();
     category1.name = "post category #1";
@@ -52,22 +53,22 @@ createConnection(options).then(connection => {
     let blogRepository = connection.getRepository(Blog);
 
     postRepository
-        .save(post)
+        .save(qr, post)
         .then(post => {
             console.log("Post has been saved");
-            return postRepository.findOne(post.id);
+            return postRepository.findOne(qr, post.id);
         })
         .then(loadedPost => {
             console.log("post is loaded: ", loadedPost);
-            return blogRepository.save(blog);
+            return blogRepository.save(qr, blog);
         })
         .then(blog => {
             console.log("Blog has been saved");
-            return blogRepository.findOne(blog.id);
+            return blogRepository.findOne(qr, blog.id);
         })
         .then(loadedBlog => {
             console.log("blog is loaded: ", loadedBlog);
-            return blogRepository.save(blog);
+            return blogRepository.save(qr, blog);
         })
         .catch(error => console.log("Cannot save. Error: ", error.stack ? error.stack : error));
 

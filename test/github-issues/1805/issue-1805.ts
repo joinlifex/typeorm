@@ -20,13 +20,15 @@ describe("github issues > #1805 bigint PK incorrectly returning as a number (exp
         const bigIntId = "76561198016705746";
         const account = new Account();
         account.id = bigIntId;
+        const qr = connection.createQueryRunner();
 
         const accountRepository = await connection.getRepository(Account);
 
-        await accountRepository.save(account);
+        await accountRepository.save(qr, account);
 
-        const loadedAccount = await accountRepository.findOne(bigIntId);
+        const loadedAccount = await accountRepository.findOne(qr, bigIntId);
         loadedAccount!.id.should.be.equal(bigIntId);
+        await qr.release();
     })));
 
 });

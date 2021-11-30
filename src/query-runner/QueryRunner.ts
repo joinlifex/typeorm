@@ -66,6 +66,7 @@ export interface QueryRunner {
      * @deprecated Call `getViews()`
      */
     loadedViews: View[];
+    
 
     /**
      * Creates/uses database connection from the connection pool to perform further operations.

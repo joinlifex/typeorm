@@ -42,10 +42,9 @@ describe("github issues > #6115 Down migration for enums with defaults are wrong
         const downQueries = sqlInMemory.downQueries.map(
             query => query.query
         );
-
         // update entity
         for (const query of upQueries) {
-            await connection.query(query)
+            await connection.query(queryRunner, query);
         }
 
         let table = await queryRunner.getTable("metric");
@@ -57,14 +56,14 @@ describe("github issues > #6115 Down migration for enums with defaults are wrong
         expect(defaultOperator2!.default).to.equal(`'equal'`);
 
         let defaultOperator3 = table!.findColumnByName("defaultOperator3");
-        expect(defaultOperator3!.default).to.be.undefined
+        expect(defaultOperator3!.default).to.be.undefined;
 
         let defaultOperator4 = table!.findColumnByName("defaultOperator4");
         expect(defaultOperator4!.default).to.equal(`'greaterthan'`);
 
         // revert update
         for (const query of downQueries.reverse()) {
-            await connection.query(query)
+            await connection.query(queryRunner, query);
         }
 
         table = await queryRunner.getTable("metric");
@@ -73,7 +72,7 @@ describe("github issues > #6115 Down migration for enums with defaults are wrong
         expect(defaultOperator!.default).to.equal(`'eq'`);
 
         defaultOperator2 = table!.findColumnByName("defaultOperator2");
-        expect(defaultOperator2!.default).to.be.undefined
+        expect(defaultOperator2!.default).to.be.undefined;
 
         defaultOperator3 = table!.findColumnByName("defaultOperator3");
         expect(defaultOperator3!.default).to.equal(`'eq'`);
@@ -83,5 +82,6 @@ describe("github issues > #6115 Down migration for enums with defaults are wrong
 
         await queryRunner.release();
         await connection.close();
+        
     })));
 });

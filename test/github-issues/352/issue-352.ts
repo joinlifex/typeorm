@@ -24,15 +24,17 @@ describe("github issues > #352 double precision round to int in mssql", () => {
             post.title = "hello post";
             posts.push(post);
         }
-        await connection.manager.save(posts);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, posts);
 
         const loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
             .where("post.id = :id", { id: new MssqlParameter(1.234567789, "float") })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost).to.exist;
         expect(loadedPost!.id).to.be.equal(1.234567789);
+        await qr.release();
 
     })));
 

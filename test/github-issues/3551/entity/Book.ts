@@ -2,7 +2,7 @@ import { Entity, ObjectIdColumn, Column, ObjectID } from "../../../../src";
 
 export class Page {
     @Column()
-    number: number;
+    "number": number;
 }
 
 export class Chapter {

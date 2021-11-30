@@ -16,28 +16,30 @@ describe("github issues > #345 Join query on ManyToMany relations not working", 
 
     it("embedded with custom column name should persist and load without errors", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         for (let i = 0; i < 20; i++) {
             const category = new Category();
             category.name = "Category #" + i;
-            await connection.manager.save(category);
+            await connection.manager.save(qr, category);
         }
 
         const post = new Post();
         post.title = "SuperRace";
         post.categories = [new Category()];
         post.categories[0].name = "SuperCategory";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         const loadedPost = await connection
             .manager
             .createQueryBuilder(Post, "post")
             .leftJoinAndSelect("post.categories", "category")
             .where("category.category_id IN (:...ids)", { ids: [21] })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost).not.to.be.undefined;
         expect(loadedPost!.categories).not.to.be.undefined;
 
+        await qr.release();
     })));
 
 });

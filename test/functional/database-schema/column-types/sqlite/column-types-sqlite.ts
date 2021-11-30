@@ -19,6 +19,7 @@ describe("database schema > column types > sqlite", () => {
 
     it("all types should work correctly - persist and hydrate", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const postRepository = connection.getRepository(Post);
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post");
@@ -51,7 +52,7 @@ describe("database schema > column types > sqlite", () => {
         post.float = 10.53;
         post.numeric = 10;
         post.decimal = 50;
-        post.boolean = true;
+        post["boolean"] = true;
         post.date = "2017-06-21";
         post.datetime = new Date();
         post.datetime.setMilliseconds(0);
@@ -59,9 +60,9 @@ describe("database schema > column types > sqlite", () => {
         post.simpleJson = { param: "VALUE" };
         post.simpleEnum = "A";
         post.simpleClassEnum1 = FruitEnum.Apple;
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.int.should.be.equal(post.int);
@@ -137,6 +138,7 @@ describe("database schema > column types > sqlite", () => {
         table!.findColumnByName("simpleClassEnum1")!.enum![1].should.be.equal("pineapple");
         table!.findColumnByName("simpleClassEnum1")!.enum![2].should.be.equal("banana");
 
+        await qr.release();
     })));
 
     it("all types should work correctly - persist and hydrate when types are not specified on columns", () => Promise.all(connections.map(async connection => {
@@ -145,17 +147,18 @@ describe("database schema > column types > sqlite", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post_without_types");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new PostWithoutTypes();
         post.id = 1;
         post.name = "Post";
-        post.boolean = true;
+        post["boolean"] = true;
         post.blob = Buffer.from("A");
         post.datetime = new Date();
         post.datetime.setMilliseconds(0);
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.boolean.should.be.equal(post.boolean);
@@ -168,6 +171,7 @@ describe("database schema > column types > sqlite", () => {
         table!.findColumnByName("blob")!.type.should.be.equal("blob");
         table!.findColumnByName("datetime")!.type.should.be.equal("datetime");
 
+        await qr.release();
     })));
 
 });

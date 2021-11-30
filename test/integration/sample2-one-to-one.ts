@@ -77,7 +77,12 @@ describe("one-to-one", function() {
             newPost.text = "Hello post";
             newPost.title = "this is post title";
             newPost.details = details;
-            return postRepository.save(newPost).then(post => savedPost = post as Post);
+            const queryRunner = connection.createQueryRunner();
+            const res = postRepository.save(queryRunner, newPost).then(post => savedPost = post as Post);
+            
+            queryRunner.release();
+
+            return res;
         });
 
         it("should return the same post instance after its created", function () {
@@ -101,7 +106,10 @@ describe("one-to-one", function() {
             expectedPost.text = savedPost.text;
             expectedPost.title = savedPost.title;
 
-            return postRepository.findOne(savedPost.id).should.eventually.eql(expectedPost);
+            const queryRunner = connection.createQueryRunner();
+            const res = postRepository.findOne(queryRunner, savedPost.id).should.eventually.eql(expectedPost);
+            queryRunner.release();
+            return res;
         });
 
         it("should have inserted post details in the database", async function() {
@@ -113,8 +121,10 @@ describe("one-to-one", function() {
             expectedDetails.comment = savedPost.details!.comment;
             expectedDetails.metadata = savedPost.details!.metadata;
 
-            const loadedPostDetails = await postDetailsRepository.findOne(savedPost.details!.id);
+            const queryRunner = connection.createQueryRunner();
+            const loadedPostDetails = await postDetailsRepository.findOne(queryRunner, savedPost.details!.id);
             loadedPostDetails!.should.be.eql(expectedDetails);
+            queryRunner.release();
         });
 
         it("should load post and its details if left join used", async function() {
@@ -130,15 +140,17 @@ describe("one-to-one", function() {
             expectedPost.details!.comment = savedPost.details!.comment;
             expectedPost.details!.metadata = savedPost.details!.metadata;
 
+            const queryRunner = connection.createQueryRunner();
             const post = await postRepository
                 .createQueryBuilder("post")
                 .leftJoinAndSelect("post.details", "details")
                 .where("post.id=:id")
                 .setParameter("id", savedPost.id)
-                .getOne();
+                .getOne(queryRunner);
 
             expect(post).not.to.be.undefined;
             post!.should.eql(expectedPost);
+            queryRunner.release();
         });
 
         it("should load details and its post if left join used (from reverse side)", function() {
@@ -156,13 +168,17 @@ describe("one-to-one", function() {
             expectedDetails.post.text = savedPost.text;
             expectedDetails.post.title = savedPost.title;
 
-            return postDetailsRepository
+            const queryRunner = connection.createQueryRunner();
+            const res = postDetailsRepository
                 .createQueryBuilder("details")
                 .leftJoinAndSelect("details.post", "post")
                 .where("details.id=:id")
                 .setParameter("id", savedPost.id)
-                .getOne()
+                .getOne(queryRunner)
                 .should.eventually.eql(expectedDetails);
+            queryRunner.release();
+
+            return res;
         });
 
         it("should load saved post without details if left joins are not specified", function() {
@@ -171,11 +187,14 @@ describe("one-to-one", function() {
             expectedPost.text = savedPost.text;
             expectedPost.title = savedPost.title;
 
-            return postRepository
+            const queryRunner = connection.createQueryRunner();
+            const res = postRepository
                 .createQueryBuilder("post")
                 .where("post.id=:id", { id: savedPost.id })
-                .getOne()
+                .getOne(queryRunner)
                 .should.eventually.eql(expectedPost);
+            queryRunner.release();
+            return res;
         });
 
         it("should load saved post without details if left joins are not specified", function() {
@@ -185,11 +204,14 @@ describe("one-to-one", function() {
             expectedDetails.comment = savedPost.details!.comment;
             expectedDetails.metadata = savedPost.details!.metadata;
 
-            return postDetailsRepository
+            const queryRunner = connection.createQueryRunner();
+            const res = postDetailsRepository
                 .createQueryBuilder("details")
                 .where("details.id=:id", { id: savedPost.id })
-                .getOne()
+                .getOne(queryRunner)
                 .should.eventually.eql(expectedDetails);
+            queryRunner.release();
+            return res;
         });
 
     });
@@ -211,7 +233,10 @@ describe("one-to-one", function() {
             newPost.title = "this is post title";
             newPost.category = category;
 
-            return postRepository.save(newPost).then(post => savedPost = post as Post);
+            const queryRunner = connection.createQueryRunner();
+            const res = postRepository.save(queryRunner, newPost).then(post => savedPost = post as Post);
+            queryRunner.release();
+            return res;
         });
 
         it("should return the same post instance after its created", function () {
@@ -232,14 +257,20 @@ describe("one-to-one", function() {
             expectedPost.id = savedPost.id;
             expectedPost.text = savedPost.text;
             expectedPost.title = savedPost.title;
-            return postRepository.findOne(savedPost.id).should.eventually.eql(expectedPost);
+            const queryRunner = connection.createQueryRunner();
+            const res = postRepository.findOne(queryRunner, savedPost.id).should.eventually.eql(expectedPost);
+            queryRunner.release();
+            return res;
         });
 
         it("should have inserted category in the database", function() {
             const expectedPost = new PostCategory();
             expectedPost.id = savedPost.category.id;
             expectedPost.name = "technology";
-            return postCategoryRepository.findOne(savedPost.category.id).should.eventually.eql(expectedPost);
+            const queryRunner = connection.createQueryRunner();
+            const res = postCategoryRepository.findOne(queryRunner, savedPost.category.id).should.eventually.eql(expectedPost);
+            queryRunner.release();
+            return res;
         });
 
         it("should load post and its category if left join used", function() {
@@ -251,12 +282,15 @@ describe("one-to-one", function() {
             expectedPost.category.id = savedPost.category.id;
             expectedPost.category.name = savedPost.category.name;
 
-            return postRepository
+            const queryRunner = connection.createQueryRunner();
+            const res = postRepository
                 .createQueryBuilder("post")
                 .leftJoinAndSelect("post.category", "category")
                 .where("post.id=:id", { id: savedPost.id })
-                .getOne()
+                .getOne(queryRunner)
                 .should.eventually.eql(expectedPost);
+            queryRunner.release();
+            return res;
         });
 
         it("should load details and its post if left join used (from reverse side)", function() {
@@ -290,22 +324,28 @@ describe("one-to-one", function() {
             newPost.title = "this is post title";
             newPost.details = details;
 
-            return postRepository.save(newPost);
+            const queryRunner = connection.createQueryRunner();
+            const res = postRepository.save(queryRunner, newPost);
+            queryRunner.release();
+            return res;
         });
 
         it("should ignore updates in the model and do not update the db when entity is updated", function () {
             newPost.details!.comment = "i am updated comment";
-            return postRepository.save(newPost).then(updatedPost => {
+            const queryRunner = connection.createQueryRunner();
+            const res = postRepository.save(queryRunner, newPost).then(updatedPost => {
                 updatedPost.details!.comment!.should.be.equal("i am updated comment");
                 return postRepository
                     .createQueryBuilder("post")
                     .leftJoinAndSelect("post.details", "details")
                     .where("post.id=:id")
                     .setParameter("id", updatedPost.id)
-                    .getOne();
+                    .getOne(queryRunner);
             }).then(updatedPostReloaded => {
                 updatedPostReloaded!.details!.comment.should.be.equal("this is post");
             });
+            queryRunner.release();
+            return res;
         }); // todo: also check that updates throw exception in strict cascades mode
     });
 
@@ -328,23 +368,29 @@ describe("one-to-one", function() {
             newPost.title = "this is post title";
             newPost.details = details;
 
-            return postRepository.save(newPost);
+            const queryRunner = connection.createQueryRunner();
+            const res = postRepository.save(queryRunner, newPost);
+            queryRunner.release();
+            return res;
         });
 
         it("should ignore updates in the model and do not update the db when entity is updated", function () {
             if (!connection)
                 return;
             delete newPost.details;
-            return postRepository.save(newPost).then(updatedPost => {
+            const queryRunner = connection.createQueryRunner();
+            const res = postRepository.save(queryRunner, newPost).then(updatedPost => {
                 return postRepository
                     .createQueryBuilder("post")
                     .leftJoinAndSelect("post.details", "details")
                     .where("post.id=:id")
                     .setParameter("id", updatedPost.id)
-                    .getOne();
+                    .getOne(queryRunner);
             }).then(updatedPostReloaded => {
                 updatedPostReloaded!.details!.comment.should.be.equal("this is post");
             });
+            queryRunner.release();
+            return res;
         });
     });
 
@@ -365,11 +411,12 @@ describe("one-to-one", function() {
             newPost.text = "Hello post";
             newPost.title = "this is post title";
 
-            return postImageRepository
-                .save(newImage)
+            const queryRunner = connection.createQueryRunner();
+            const res = postImageRepository
+                .save(queryRunner, newImage)
                 .then(image => {
                     newPost.image = image as PostImage;
-                    return postRepository.save(newPost);
+                    return postRepository.save(queryRunner, newPost);
 
                 }).then(post => {
                     newPost = post as Post;
@@ -378,11 +425,11 @@ describe("one-to-one", function() {
                         .leftJoinAndSelect("post.image", "image")
                         .where("post.id=:id")
                         .setParameter("id", post.id)
-                        .getOne();
+                        .getOne(queryRunner);
 
                 }).then(loadedPost => {
                     loadedPost!.image.url = "new-logo.png";
-                    return postRepository.save(loadedPost!);
+                    return postRepository.save(queryRunner, loadedPost!);
 
                 }).then(() => {
                     return postRepository
@@ -390,11 +437,13 @@ describe("one-to-one", function() {
                         .leftJoinAndSelect("post.image", "image")
                         .where("post.id=:id")
                         .setParameter("id", newPost.id)
-                        .getOne();
+                        .getOne(queryRunner);
 
                 }).then(reloadedPost => {
                     reloadedPost!.image.url.should.be.equal("new-logo.png");
                 });
+            queryRunner.release();
+            return res;
         });
 
     });
@@ -415,11 +464,12 @@ describe("one-to-one", function() {
             newPost.text = "Hello post";
             newPost.title = "this is post title";
 
-            return postMetadataRepository
-                .save(newMetadata)
+            const queryRunner = connection.createQueryRunner();
+            const res = postMetadataRepository
+                .save(queryRunner, newMetadata)
                 .then(metadata => {
                     newPost.metadata = metadata as PostMetadata;
-                    return postRepository.save(newPost);
+                    return postRepository.save(queryRunner, newPost);
 
                 }).then(post => {
                     newPost = post as Post;
@@ -428,11 +478,11 @@ describe("one-to-one", function() {
                         .leftJoinAndSelect("post.metadata", "metadata")
                         .where("post.id=:id")
                         .setParameter("id", post.id)
-                        .getOne();
+                        .getOne(queryRunner);
 
                 }).then(loadedPost => {
                     loadedPost!.metadata = null;
-                    return postRepository.save(loadedPost!);
+                    return postRepository.save(queryRunner, loadedPost!);
 
                 }).then(() => {
                     return postRepository
@@ -440,11 +490,13 @@ describe("one-to-one", function() {
                         .leftJoinAndSelect("post.metadata", "metadata")
                         .where("post.id=:id")
                         .setParameter("id", newPost.id)
-                        .getOne();
+                        .getOne(queryRunner);
 
                 }).then(reloadedPost => {
                     expect(reloadedPost!.metadata).to.not.exist;
                 });
+            queryRunner.release();
+            return res;
         });
 
     });

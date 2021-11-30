@@ -345,7 +345,6 @@ export abstract class BaseQueryRunner {
         type: MetadataTableType,
         name: string
     }): Query {
-
         const qb = this.connection.createQueryBuilder();
         const deleteQb = qb.delete()
             .from(this.getTypeormMetadataTableName())

@@ -20,12 +20,13 @@ describe("github issues > #1476 subqueries", () => {
     it("should", () => Promise.all(connections.map(async connection => {
         const planRepo = connection.getRepository(Plan);
         const itemRepo = connection.getRepository(Item);
+        const qr = connection.createQueryRunner();
         
         const plan1 = new Plan();
         plan1.planId = 1;
         plan1.planName = "Test";
 
-        await planRepo.save(plan1);
+        await planRepo.save(qr, plan1);
 
         const item1 = new Item();
         item1.itemId = 1;
@@ -35,7 +36,7 @@ describe("github issues > #1476 subqueries", () => {
         item2.itemId = 2;
         item2.planId = 1;
 
-        await itemRepo.save([item1, item2]);
+        await itemRepo.save(qr, [item1, item2]);
 
         const plans = await planRepo
             .createQueryBuilder("b")
@@ -47,7 +48,7 @@ describe("github issues > #1476 subqueries", () => {
                         .from(Item, "items")
                         .groupBy(`items.planId`);
             }, "i", `i.planId = b.planId`)
-            .getRawMany();
+            .getRawMany(qr);
 
         expect(plans).to.not.be.undefined;
 
@@ -62,5 +63,6 @@ describe("github issues > #1476 subqueries", () => {
             expect(plan.total).to.be.equal(2);
         }
 
+        await qr.release();
     })));
 });

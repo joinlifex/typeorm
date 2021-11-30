@@ -21,10 +21,10 @@ describe("github issues > #7479 Only first single quote in comments is escaped",
         const column2 = table!.findColumnByName("text2")!;
         const column3 = table!.findColumnByName("text3")!;
 
-        column1.comment!.should.be.equal(`E.g. 'foo', 'bar', or 'baz' etc.`)
-        column2.comment!.should.be.equal(`E.g. '''foo, 'bar''', or baz' etc.`)
-        column3.comment!.should.be.equal(`E.g. "foo", "bar", or "baz" etc.`)
+        column1.comment!.should.be.equal(`E.g. 'foo', 'bar', or 'baz' etc.`);
+        column2.comment!.should.be.equal(`E.g. '''foo, 'bar''', or baz' etc.`);
+        column3.comment!.should.be.equal(`E.g. "foo", "bar", or "baz" etc.`);
 
-        await queryRunner.release()
+        await queryRunner.release();
     })));
 });

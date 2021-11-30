@@ -16,41 +16,45 @@ describe("other issues > mongodb entity change in listeners should affect persis
 
     it("if entity was changed in the listener, changed property should be updated in the db", () => Promise.all(connections.map(async function (connection) {
 
+        const queryRunner = connection.createQueryRunner();
         // insert a post
         const post = new Post();
         post.title = "hello";
-        await connection.manager.save(post);
+        await connection.manager.save(queryRunner, post);
 
         // check if it was inserted correctly
-        const loadedPost = await connection.manager.findOne(Post);
+        const loadedPost = await connection.manager.findOne(queryRunner, Post);
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.title.should.be.equal("hello");
 
         // now update some property and let update listener trigger
         loadedPost!.active = true;
-        await connection.manager.save(loadedPost!);
+        await connection.manager.save(queryRunner, loadedPost!);
 
         // check if update listener was triggered and entity was really updated by the changes in the listener
-        const loadedUpdatedPost = await connection.manager.findOne(Post);
+        const loadedUpdatedPost = await connection.manager.findOne(queryRunner, Post);
 
         expect(loadedUpdatedPost).not.to.be.undefined;
         loadedUpdatedPost!.title.should.be.equal("hello!");
-        await connection.manager.save(loadedPost!);
+        await connection.manager.save(queryRunner, loadedPost!);
 
+        queryRunner.release();
     })));
 
     it("if entity was loaded in the listener, loaded property should be changed", () => Promise.all(connections.map(async function (connection) {
 
+        const queryRunner = connection.createQueryRunner();
         // insert a post
         const post = new Post();
         post.title = "hello";
-        await connection.manager.save(post);
+        await connection.manager.save(queryRunner, post);
 
-        const loadedPost = await connection.manager.findOne(Post);
+        const loadedPost = await connection.manager.findOne(queryRunner, Post);
 
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.loaded.should.be.equal(true);
-        await connection.manager.save(loadedPost!);
+        await connection.manager.save(queryRunner, loadedPost!);
 
+        queryRunner.release();
     })));
 });

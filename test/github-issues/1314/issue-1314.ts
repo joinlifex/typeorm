@@ -16,26 +16,28 @@ describe("github issues > #1314 UPDATE on json column stores string type", () =>
 
     it("should not store json type as string on update", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         let recordRepo = connection.getRepository(Record);
 
         let record = new Record();
         record.data = { foo: "bar" };
 
-        let persistedRecord = await recordRepo.save(record);
+        let persistedRecord = await recordRepo.save(qr, record);
         record.data.should.be.eql({ foo: "bar" });
 
-        let foundRecord = await recordRepo.findOne(persistedRecord.id);
+        let foundRecord = await recordRepo.findOne(qr, persistedRecord.id);
         expect(foundRecord).to.be.not.undefined;
         expect(foundRecord!.data.foo).to.eq("bar");
 
         // Update
         foundRecord!.data = {answer: 42};
-        await recordRepo.save(foundRecord!);
-        foundRecord = await recordRepo.findOne(persistedRecord.id);
+        await recordRepo.save(qr, foundRecord!);
+        foundRecord = await recordRepo.findOne(qr, persistedRecord.id);
 
         expect(foundRecord).to.be.not.undefined;
         expect(foundRecord!.data).to.not.be.equal("{\"answer\":42}");
         expect(foundRecord!.data.answer).to.eq(42);
+        await qr.release();
     })));
 
 });

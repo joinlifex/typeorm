@@ -16,30 +16,34 @@ describe("github issue > #1326 Wrong behavior w/ the same table names in differe
     after(() => closeTestingConnections(connections));
 
     it("should not confuse equivalent table names in different databases", () => Promise.all(connections.map(async connection => {
+        
+        
+        const qr = connection.createQueryRunner();
         for (let i = 1; i <= 10; i++) {
             const user = new User();
             user.name = "user #" + i;
-            await connection.manager.save(user);
+            await connection.manager.save(qr, user);
         }
         for (let i = 1; i <= 10; i++) {
             const user = new SpecificUser();
             user.name = "specific user #" + i;
-            await connection.manager.save(user);
+            await connection.manager.save(qr, user);
         }
 
-        const user = await connection.manager.findOne(User, { name: "user #1" });
+        const user = await connection.manager.findOne(qr, User, { name: "user #1" });
         expect(user).not.to.be.undefined;
         user!.should.be.eql({
             id: 1,
             name: "user #1"
         });
 
-        const specificUser = await connection.manager.findOne(SpecificUser, { name: "specific user #1" });
+        const specificUser = await connection.manager.findOne(qr, SpecificUser, { name: "specific user #1" });
         expect(specificUser).not.to.be.undefined;
         specificUser!.should.be.eql({
             id: 1,
             name: "specific user #1"
         });
+        await qr.release();
     })));
 
 });

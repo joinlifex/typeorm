@@ -21,9 +21,10 @@ describe("github issues > #1545 Typeorm runs insert query instead of update quer
 
         const validation2 = new ValidationModel();
         validation2.validation = 456;
+        const qr = connection.createQueryRunner();
 
-        await connection.manager.save(validation1);
-        await connection.manager.save(validation2);
+        await connection.manager.save(qr, validation1);
+        await connection.manager.save(qr, validation2);
 
         const data1_1 = new DataModel();
         data1_1.active = true;
@@ -32,14 +33,15 @@ describe("github issues > #1545 Typeorm runs insert query instead of update quer
         const main1 = new MainModel();
         main1.dataModel = [data1_1];
 
-        await connection.manager.save(main1);
+        await connection.manager.save(qr, main1);
 
         // console.dir(main1, { colors: true, depth: null });
 
         main1.dataModel[0].active = false;
-        await connection.manager.save(main1);
+        await connection.manager.save(qr, main1);
         // console.dir(main1, { colors: true, depth: null });
 
+        await qr.release();
         return true;
 
     })));

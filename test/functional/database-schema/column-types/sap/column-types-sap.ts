@@ -20,6 +20,7 @@ describe("database schema > column types > sap", () => {
 
     it("all types should work correctly - persist and hydrate", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const postRepository = connection.getRepository(Post);
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post");
@@ -57,13 +58,13 @@ describe("database schema > column types > sap", () => {
         post.blob = Buffer.from("This is blob");
         post.clob = "This is clob";
         post.nclob = "This is nclob";
-        post.boolean = true;
+        post["boolean"] = true;
         // post.array = ["A", "B", "C"]; // TODO
         post.varbinary = Buffer.from("This is varbinary");
         post.simpleArray = ["A", "B", "C"];
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.int.should.be.equal(post.int);
@@ -130,6 +131,8 @@ describe("database schema > column types > sap", () => {
         table!.findColumnByName("boolean")!.type.should.be.equal("boolean");
         table!.findColumnByName("varbinary")!.type.should.be.equal("varbinary");
         table!.findColumnByName("simpleArray")!.type.should.be.equal("text");
+    
+        await qr.release();
     })));
 
     it("all types should work correctly - persist and hydrate when options are specified on columns", () => Promise.all(connections.map(async connection => {
@@ -138,6 +141,7 @@ describe("database schema > column types > sap", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post_with_options");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new PostWithOptions();
         post.id = 1;
@@ -147,9 +151,9 @@ describe("database schema > column types > sap", () => {
         post.nvarchar = "This is nvarchar";
         post.alphanum = "This is alphanum";
         post.shorttext = "This is shorttext";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.dec.should.be.equal(post.dec);
         loadedPost.decimal.should.be.equal(post.decimal);
@@ -174,6 +178,7 @@ describe("database schema > column types > sap", () => {
         table!.findColumnByName("shorttext")!.type.should.be.equal("shorttext");
         table!.findColumnByName("shorttext")!.length!.should.be.equal("50");
 
+        await qr.release();
     })));
 
     it("all types should work correctly - persist and hydrate when types are not specified on columns", () => Promise.all(connections.map(async connection => {
@@ -182,16 +187,17 @@ describe("database schema > column types > sap", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post_without_types");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new PostWithoutTypes();
         post.id = 1;
         post.name = "Post";
-        post.boolean = true;
+        post["boolean"] = true;
         post.blob = Buffer.from("This is blob");
         post.timestamp = new Date();
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.boolean.should.be.equal(post.boolean);
@@ -204,6 +210,7 @@ describe("database schema > column types > sap", () => {
         table!.findColumnByName("blob")!.type.should.be.equal("blob");
         table!.findColumnByName("timestamp")!.type.should.be.equal("timestamp");
 
+        await qr.release();
     })));
 
 });

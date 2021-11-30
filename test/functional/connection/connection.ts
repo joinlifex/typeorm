@@ -189,14 +189,16 @@ describe("Connection", () => {
 
         it("database should be empty after schema is synced with dropDatabase flag", () => Promise.all(connections.map(async connection => {
             const postRepository = connection.getRepository(Post);
+            const qr = connection.createQueryRunner();
             const post = new Post();
             post.title = "new post";
-            await postRepository.save(post);
-            const loadedPost = await postRepository.findOne(post.id);
+            await postRepository.save(qr, post);
+            const loadedPost = await postRepository.findOne(qr, post.id);
             expect(loadedPost).to.be.eql(post);
             await connection.synchronize(true);
-            const againLoadedPost = await postRepository.findOne(post.id);
+            const againLoadedPost = await postRepository.findOne(qr, post.id);
             expect(againLoadedPost).to.be.undefined;
+            await qr.release();
         })));
 
     });
@@ -318,6 +320,7 @@ describe("Connection", () => {
 
         it("schema name can be set", () => {
             return Promise.all(connections.map(async connection => {
+                const qr = connection.createQueryRunner();
                 await connection.synchronize(true);
                 const schemaName = (connection.options as PostgresConnectionOptions).schema;
                 const comment = new CommentV1();
@@ -325,12 +328,13 @@ describe("Connection", () => {
                 comment.context = `To ${schemaName}`;
 
                 const commentRepo = connection.getRepository(CommentV1);
-                await commentRepo.save(comment);
+                await commentRepo.save(qr, comment);
 
                 const queryRunner = connection.createQueryRunner();
                 const rows = await queryRunner.query(`select * from "${schemaName}"."comment" where id = $1`, [comment.id]);
                 await queryRunner.release();
                 expect(rows[0]["context"]).to.be.eq(comment.context);
+                await qr.release();
             }));
 
         });

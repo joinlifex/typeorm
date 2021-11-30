@@ -25,42 +25,45 @@ describe("query builder > sub-query", () => {
 
     async function prepare(connection: Connection) {
 
+        const qr = connection.createQueryRunner();
         const user1 = new User();
         user1.name = "Alex Messer";
         user1.registered = true;
-        await connection.manager.save(user1);
+        await connection.manager.save(qr, user1);
 
         const user2 = new User();
         user2.name = "Dima Zotov";
         user2.registered = true;
-        await connection.manager.save(user2);
+        await connection.manager.save(qr, user2);
 
         const user3 = new User();
         user3.name = "Umed Khudoiberdiev";
         user3.registered = false;
-        await connection.manager.save(user3);
+        await connection.manager.save(qr, user3);
 
         const category1 = new Category();
         category1.name = "Alex Messer";
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "Dima Zotov";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const post1 = new Post();
         post1.title = "Alex Messer";
         post1.categories = [category1, category2];
-        await connection.manager.save(post1);
+        await connection.manager.save(qr, post1);
 
         const post2 = new Post();
         post2.title = "Dima Zotov";
         post2.categories = [category1, category2];
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post2);
 
         const post3 = new Post();
         post3.title = "Umed Khudoiberdiev";
-        await connection.manager.save(post3);
+        await connection.manager.save(qr, post3);
+        
+        await qr.release();
     }
 
     // -------------------------------------------------------------------------
@@ -69,22 +72,26 @@ describe("query builder > sub-query", () => {
 
     it("should execute sub query in where string using subQuery method", () => Promise.all(connections.map(async connection => {
         await prepare(connection);
+        const qr = connection.createQueryRunner();
 
         const qb = await connection.getRepository(Post).createQueryBuilder("post");
         const posts = await qb
             .where("post.title IN " + qb.subQuery().select("usr.name").from(User, "usr").where("usr.registered = :registered").getQuery())
             .setParameter("registered", true)
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         posts.should.be.eql([
             { id: 1, title: "Alex Messer" },
             { id: 2, title: "Dima Zotov" },
         ]);
+        
+        await qr.release();
     })));
 
     it("should execute sub query in where function using subQuery method", () => Promise.all(connections.map(async connection => {
         await prepare(connection);
+        const qr = connection.createQueryRunner();
 
         const posts = await connection.getRepository(Post)
             .createQueryBuilder("post")
@@ -98,16 +105,19 @@ describe("query builder > sub-query", () => {
             })
             .setParameter("registered", true)
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         posts.should.be.eql([
             { id: 1, title: "Alex Messer" },
             { id: 2, title: "Dima Zotov" },
         ]);
+        
+        await qr.release();
     })));
 
     it("should execute sub query in where function using subQuery method", () => Promise.all(connections.map(async connection => {
         await prepare(connection);
+        const qr = connection.createQueryRunner();
 
         const posts = await connection.getRepository(Post)
             .createQueryBuilder("post")
@@ -121,16 +131,19 @@ describe("query builder > sub-query", () => {
             })
             .setParameter("registered", true)
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         posts.should.be.eql([
             { id: 1, title: "Alex Messer" },
             { id: 2, title: "Dima Zotov" },
         ]);
+        
+        await qr.release();
     })));
 
     it("should execute sub query using different query builder", () => Promise.all(connections.map(async connection => {
         await prepare(connection);
+        const qr = connection.createQueryRunner();
 
         const userQb = await connection.getRepository(User)
             .createQueryBuilder("usr")
@@ -142,16 +155,19 @@ describe("query builder > sub-query", () => {
             .where("post.title IN (" + userQb.getQuery() + ")")
             .setParameters(userQb.getParameters())
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         posts.should.be.eql([
             { id: 1, title: "Alex Messer" },
             { id: 2, title: "Dima Zotov" },
         ]);
+        
+        await qr.release();
     })));
 
     it("should execute sub query in from expression (using different query builder)", () => Promise.all(connections.map(async connection => {
         await prepare(connection);
+        const qr = connection.createQueryRunner();
 
         const userQb = await connection.getRepository(User)
             .createQueryBuilder("usr")
@@ -163,16 +179,19 @@ describe("query builder > sub-query", () => {
             .select(`${connection.driver.escape("usr")}.${connection.driver.escape("name")}`, "name")
             .from("(" + userQb.getQuery() + ")", "usr")
             .setParameters(userQb.getParameters())
-            .getRawMany();
+            .getRawMany(qr);
 
         posts.should.be.eql([
             { name: "Alex Messer" },
             { name: "Dima Zotov" },
         ]);
+        
+        await qr.release();
     })));
 
     it("should execute sub query in from expression (using from's query builder)", () => Promise.all(connections.map(async connection => {
         await prepare(connection);
+        const qr = connection.createQueryRunner();
 
         const userQb = await connection.getRepository(User)
             .createQueryBuilder("usr")
@@ -189,16 +208,19 @@ describe("query builder > sub-query", () => {
                     .where("usr.registered = :registered", { registered: true });
             }, "usr")
             .setParameters(userQb.getParameters())
-            .getRawMany();
+            .getRawMany(qr);
 
         posts.should.be.eql([
             { name: "Alex Messer" },
             { name: "Dima Zotov" },
         ]);
+        
+        await qr.release();
     })));
 
     it("should execute sub query in from expression (using from's query builder)", () => Promise.all(connections.map(async connection => {
         await prepare(connection);
+        const qr = connection.createQueryRunner();
 
         const userQb = await connection.getRepository(User)
             .createQueryBuilder("usr")
@@ -215,16 +237,19 @@ describe("query builder > sub-query", () => {
                     .where("usr.registered = :registered", { registered: true });
             }, "usr")
             .setParameters(userQb.getParameters())
-            .getRawMany();
+            .getRawMany(qr);
 
         posts.should.be.eql([
             { name: "Alex Messer" },
             { name: "Dima Zotov" },
         ]);
+        
+        await qr.release();
     })));
 
     it("should execute sub query in from expression as second from expression", () => Promise.all(connections.map(async connection => {
         await prepare(connection);
+        const qr = connection.createQueryRunner();
 
         const posts = await connection
             .createQueryBuilder()
@@ -238,16 +263,19 @@ describe("query builder > sub-query", () => {
             }, "usr")
             .where(`${connection.driver.escape("post")}.${connection.driver.escape("title")} = ${connection.driver.escape("usr")}.${connection.driver.escape("name")}`)
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         posts.should.be.eql([
             { id: 1, title: "Alex Messer" },
             { id: 2, title: "Dima Zotov" },
         ]);
+        
+        await qr.release();
     })));
 
     it("should execute sub query in selects", () => Promise.all(connections.map(async connection => {
         await prepare(connection);
+        const qr = connection.createQueryRunner();
 
         const subQuery = connection
             .createQueryBuilder()
@@ -263,7 +291,7 @@ describe("query builder > sub-query", () => {
             .addSelect(`(${subQuery})`, "name")
             .from(Post, "post")
             .orderBy("post.id")
-            .getRawMany();
+            .getRawMany(qr);
 
         // CockroachDB returns numeric data types as string
         if (connection.driver instanceof CockroachDriver) {
@@ -280,10 +308,13 @@ describe("query builder > sub-query", () => {
                 { id: 3, name: "Alex Messer" },
             ]);
         }
+        
+        await qr.release();
     })));
 
     it("should execute sub query in selects (using provided sub query builder)", () => Promise.all(connections.map(async connection => {
         await prepare(connection);
+        const qr = connection.createQueryRunner();
 
         const posts = await connection
             .createQueryBuilder()
@@ -297,7 +328,7 @@ describe("query builder > sub-query", () => {
             }, "name")
             .from(Post, "post")
             .orderBy("post.id")
-            .getRawMany();
+            .getRawMany(qr);
 
         // CockroachDB returns numeric data types as string
         if (connection.driver instanceof CockroachDriver) {
@@ -314,10 +345,13 @@ describe("query builder > sub-query", () => {
                 { id: 3, name: "Alex Messer" },
             ]);
         }
+        
+        await qr.release();
     })));
 
     it("should execute sub query in joins (using provided sub query builder)", () => Promise.all(connections.map(async connection => {
         await prepare(connection);
+        const qr = connection.createQueryRunner();
 
         const subQuery = connection
             .createQueryBuilder()
@@ -330,16 +364,19 @@ describe("query builder > sub-query", () => {
             .createQueryBuilder("post")
             .innerJoin("post.categories", "category", `${connection.driver.escape("category")}.${connection.driver.escape("name")} IN (${subQuery})`)
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         posts.should.be.eql([
             { id: 1, title: "Alex Messer" },
             { id: 2, title: "Dima Zotov" },
         ]);
+        
+        await qr.release();
     })));
 
     it("should execute sub query in joins with subquery factory (as selection)", () => Promise.all(connections.map(async connection => {
         await prepare(connection);
+        const qr = connection.createQueryRunner();
 
         const joinConditionSubQuery = connection
             .createQueryBuilder()
@@ -354,17 +391,20 @@ describe("query builder > sub-query", () => {
                 return subQuery.select().from("category", "category");
             }, "category", `${connection.driver.escape("category")}.${connection.driver.escape("name")} IN (${joinConditionSubQuery})`)
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         posts.should.be.eql([
             { id: 1, title: "Alex Messer" },
             { id: 2, title: "Dima Zotov" },
             { id: 3, title: "Umed Khudoiberdiev" },
         ]);
+        
+        await qr.release();
     })));
 
     it("should execute sub query in joins as string (as selection)", () => Promise.all(connections.map(async connection => {
         await prepare(connection);
+        const qr = connection.createQueryRunner();
 
         const joinConditionSubQuery = connection
             .createQueryBuilder()
@@ -383,13 +423,15 @@ describe("query builder > sub-query", () => {
             .createQueryBuilder("post")
             .innerJoin("(" + joinSubQuery + ")", "category", `${connection.driver.escape("category")}.${connection.driver.escape("name")} IN (${joinConditionSubQuery})`)
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         posts.should.be.eql([
             { id: 1, title: "Alex Messer" },
             { id: 2, title: "Dima Zotov" },
             { id: 3, title: "Umed Khudoiberdiev" },
         ]);
+        
+        await qr.release();
     })));
 
 });

@@ -34,15 +34,16 @@ describe("github issues > #47 wrong sql syntax when loading lazy relation", () =
         post2.category = Promise.resolve(category2);
 
         // persist
-        await connection.manager.save(category1);
-        await connection.manager.save(post1);
-        await connection.manager.save(category2);
-        await connection.manager.save(post2);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, category1);
+        await connection.manager.save(qr, post1);
+        await connection.manager.save(qr, category2);
+        await connection.manager.save(qr, post2);
 
         // check that all persisted objects exist
         const loadedPost = await connection.manager
             .createQueryBuilder(Post, "post")
-            .getMany();
+            .getMany(qr);
 
         const loadedCategory1 = await loadedPost[0].category;
         expect(loadedCategory1!).not.to.be.undefined;
@@ -64,7 +65,7 @@ describe("github issues > #47 wrong sql syntax when loading lazy relation", () =
         loadedPosts2![0].id.should.equal(2);
         loadedPosts2![0].title.should.equal("Hello Post #2");
 
-        const reloadedPost = await connection.manager.findOne(Post, {id: post1.id});
+        const reloadedPost = await connection.manager.findOne(qr, Post, {id: post1.id});
 
         const promise = reloadedPost!.category;
         reloadedPost!.category = Promise.resolve(category2);
@@ -72,6 +73,7 @@ describe("github issues > #47 wrong sql syntax when loading lazy relation", () =
         (await reloadedPost!.category).id.should.equal(category2.id);
         // todo: need to test somehow how query is being generated, or how many raw data is returned
 
+        await qr.release();
     })));
 
 });

@@ -2,6 +2,7 @@ import {QueryBuilder} from "./QueryBuilder";
 import {RelationUpdater} from "./RelationUpdater";
 import {RelationRemover} from "./RelationRemover";
 import { TypeORMError } from "../error";
+import { QueryRunner } from "..";
 
 /**
  * Allows to work with entity relations and perform specific operations with those relations.
@@ -39,7 +40,7 @@ export class RelationQueryBuilder<Entity> extends QueryBuilder<Entity> {
      * Works only for many-to-one and one-to-one relations.
      * For many-to-many and one-to-many relations use #add and #remove methods instead.
      */
-    async set(value: any): Promise<void> {
+    async set(queryRunner: QueryRunner, value: any): Promise<void> {
         const relation = this.expressionMap.relationMetadata;
 
         if (!this.expressionMap.of) // todo: move this check before relation query builder creation?
@@ -57,7 +58,7 @@ export class RelationQueryBuilder<Entity> extends QueryBuilder<Entity> {
             throw new TypeORMError(`Value to be set into the relation must be a map of relation ids, for example: .set({ firstName: "...", lastName: "..." })`);
 
         const updater = new RelationUpdater(this, this.expressionMap);
-        return updater.update(value);
+        return updater.update(queryRunner, value);
     }
 
     /**
@@ -67,7 +68,7 @@ export class RelationQueryBuilder<Entity> extends QueryBuilder<Entity> {
      * Works only for many-to-many and one-to-many relations.
      * For many-to-one and one-to-one use #set method instead.
      */
-    async add(value: any|any[]): Promise<void> {
+    async add(queryRunner: QueryRunner, value: any|any[]): Promise<void> {
         if (Array.isArray(value) && value.length === 0)
             return;
 
@@ -88,7 +89,7 @@ export class RelationQueryBuilder<Entity> extends QueryBuilder<Entity> {
             throw new TypeORMError(`Value to be set into the relation must be a map of relation ids, for example: .set({ firstName: "...", lastName: "..." })`);
 
         const updater = new RelationUpdater(this, this.expressionMap);
-        return updater.update(value);
+        return updater.update(queryRunner, value);
     }
 
     /**
@@ -98,7 +99,7 @@ export class RelationQueryBuilder<Entity> extends QueryBuilder<Entity> {
      * Works only for many-to-many and one-to-many relations.
      * For many-to-one and one-to-one use #set method instead.
      */
-    async remove(value: any|any[]): Promise<void> {
+    async remove(queryRunner: QueryRunner, value: any|any[]): Promise<void> {
         if (Array.isArray(value) && value.length === 0)
             return;
 
@@ -113,7 +114,7 @@ export class RelationQueryBuilder<Entity> extends QueryBuilder<Entity> {
                 `Use .set(null) method instead.`);
 
         const remover = new RelationRemover(this, this.expressionMap);
-        return remover.remove(value);
+        return remover.remove(queryRunner, value);
     }
 
     /**
@@ -123,9 +124,9 @@ export class RelationQueryBuilder<Entity> extends QueryBuilder<Entity> {
      * Works only for many-to-many and one-to-many relations.
      * For many-to-one and one-to-one use #set method instead.
      */
-    async addAndRemove(added: any|any[], removed: any|any[]): Promise<void> {
-        await this.remove(removed);
-        await this.add(added);
+    async addAndRemove(queryRunner: QueryRunner, added: any|any[], removed: any|any[]): Promise<void> {
+        await this.remove(queryRunner, removed);
+        await this.add(queryRunner, added);
     }
 
     /**
@@ -144,15 +145,15 @@ export class RelationQueryBuilder<Entity> extends QueryBuilder<Entity> {
      * Loads a single entity (relational) from the relation.
      * You can also provide id of relational entity to filter by.
      */
-    async loadOne<T = any>(): Promise<T|undefined> {
-        return this.loadMany<T>().then(results => results[0]);
+    async loadOne<T = any>(queryRunner: QueryRunner): Promise<T|undefined> {
+        return this.loadMany<T>(queryRunner).then(results => results[0]);
     }
 
     /**
      * Loads many entities (relational) from the relation.
      * You can also provide ids of relational entities to filter by.
      */
-    async loadMany<T = any>(): Promise<T[]> {
+    async loadMany<T = any>(queryRunner: QueryRunner): Promise<T[]> {
         let of = this.expressionMap.of;
         if (!(of instanceof Object)) {
             const metadata = this.expressionMap.mainAlias!.metadata;
@@ -162,7 +163,7 @@ export class RelationQueryBuilder<Entity> extends QueryBuilder<Entity> {
             of = metadata.primaryColumns[0].createValueMap(of);
         }
 
-        return this.connection.relationLoader.load(this.expressionMap.relationMetadata, of, this.queryRunner);
+        return this.connection.relationLoader.load(this.expressionMap.relationMetadata, of, queryRunner);
     }
 
 }

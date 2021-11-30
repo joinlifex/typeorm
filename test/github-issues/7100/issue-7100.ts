@@ -22,14 +22,15 @@ describe("github issues > #7100 MSSQL error when user requests additional column
     it("should return user requested columns", () => Promise.all(connections.map(async connection => {
         const post = new Post();
         post.title = "title";
-        post.text = "text"
+        post.text = "text";
+        const qr = connection.createQueryRunner();
 
         await connection.createQueryBuilder()
             .insert()
             .into(Post)
             .values(post)
             .returning(["text"])
-            .execute();
+            .execute(qr);
 
         // Locally we have forgotten what text was set to, must re-fetch
         post.text = "";
@@ -39,9 +40,10 @@ describe("github issues > #7100 MSSQL error when user requests additional column
             .returning(["title", "text"])
             .whereEntity(post)
             .updateEntity(true)
-            .execute();
+            .execute(qr);
 
-        expect(post.title).to.be.equal("TITLE")
+        await qr.release();
+        expect(post.title).to.be.equal("TITLE");
         expect(post.text).to.be.equal("text");
     })));
 });

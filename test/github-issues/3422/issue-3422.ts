@@ -16,16 +16,18 @@ describe("github issues > #3422 cannot save to nested-tree table if schema is us
     after(() => closeTestingConnections(connections));
 
     it("should not fail when using schema and nested-tree", () => Promise.all(connections.map(async connection => {
-        await connection.query("CREATE SCHEMA IF NOT EXISTS admin");
+        const qr = connection.createQueryRunner();
+        await connection.query(qr, "CREATE SCHEMA IF NOT EXISTS admin");
         await connection.synchronize();
         const parent = new User();
-        await connection.manager.save(parent);
+        await connection.manager.save(qr, parent);
         const child = new User();
         child.manager = parent;
-        await connection.manager.save(child);
+        await connection.manager.save(qr, child);
 
-        const user = await connection.manager.getRepository(User).findOne(child.id, {relations: ["manager"]});
+        const user = await connection.manager.getRepository(User).findOne(qr, child.id, {relations: ["manager"]});
         user!.id.should.be.equal(child.id);
         user!.manager.id.should.be.equal(parent.id);
+        await qr.release();
     })));
 });

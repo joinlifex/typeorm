@@ -14,21 +14,23 @@ describe("github issues > #594 WhereInIds no longer works in the latest version.
 
     it("should load entities by given simple post ids (non mixed)", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         for (let i = 0; i < 10; i++) {
             const post = new Post();
             post.modelId = i;
-            await connection.manager.save(post);
+            await connection.manager.save(qr, post);
         }
 
         const loadedPosts = await connection.manager
             .createQueryBuilder(Post, "post")
             .whereInIds([1, 2, 5])
-            .getMany();
+            .getMany(qr);
 
         loadedPosts.length.should.be.equal(3);
         loadedPosts[0]!.postId.should.be.equal(1);
         loadedPosts[1]!.postId.should.be.equal(2);
         loadedPosts[2]!.postId.should.be.equal(5);
+        await qr.release();
     })));
 
 });

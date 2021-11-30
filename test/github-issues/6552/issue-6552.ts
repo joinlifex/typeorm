@@ -20,14 +20,15 @@ describe("github issues > #6552 MongoRepository delete by ObjectId deletes the w
   // before the fix this would delete incorrectly post1 instead of post2
   it("should delete the correct entity when id column is called _id", () => Promise.all(connections.map(async function (connection) {
 
+    const qr = connection.createQueryRunner();
     // setup: create 2 posts
     const post1 = new Post();
     post1.title = "Post 1";
-    await connection.manager.save(post1);
+    await connection.manager.save(qr, post1);
 
     const post2 = new Post();
     post2.title = "Post 2";
-    await connection.manager.save(post2);
+    await connection.manager.save(qr, post2);
 
     const objectIdInstance = PlatformTools.load("mongodb").ObjectID;
 
@@ -37,31 +38,32 @@ describe("github issues > #6552 MongoRepository delete by ObjectId deletes the w
     expect(post2._id).to.be.instanceof(objectIdInstance);
 
     // delete Post 2 by ObjectId directly
-    await connection.manager.delete(Post, post2._id);
+    await connection.manager.delete(qr, Post, post2._id);
     // This used to wrongly perform deleteOne({}) - deleting the first Post in the collection
 
     // Post 1 should remain in the DB
-    const count1 = await connection.manager.count(Post, { _id: post1._id } as FindConditions<Post>);
+    const count1 = await connection.manager.count(qr, Post, { _id: post1._id } as FindConditions<Post>);
     expect(count1).to.be.equal(1, "Post 1 should still exist");
 
     // Post 2 should be deleted
-    const count2 = await connection.manager.count(Post, { _id: post2._id } as FindConditions<Post>);
+    const count2 = await connection.manager.count(qr, Post, { _id: post2._id } as FindConditions<Post>);
     expect(count2).to.be.equal(0, "Post 2 should be deleted");
 
-
+    await qr.release();
   })));
 
   // before the fix this wouldn't delete anything
   it("should delete the correct entity when id column is not called _id", () => Promise.all(connections.map(async function (connection) {
 
+    const qr = connection.createQueryRunner();
     // setup: create 2 posts
     const post1 = new PostV2();
     post1.title = "Post 1";
-    await connection.manager.save(post1);
+    await connection.manager.save(qr, post1);
 
     const post2 = new PostV2();
     post2.title = "Post 2";
-    await connection.manager.save(post2);
+    await connection.manager.save(qr, post2);
 
     const objectIdInstance = PlatformTools.load("mongodb").ObjectID;
 
@@ -71,31 +73,32 @@ describe("github issues > #6552 MongoRepository delete by ObjectId deletes the w
     expect(post2.postId).to.be.instanceof(objectIdInstance);
 
     // delete Post 2 by ObjectId directly
-    await connection.manager.delete(PostV2, post2.postId);
+    await connection.manager.delete(qr, PostV2, post2.postId);
     // This used to wrongly perform deleteOne({_id: Buffer}) - not deleting anything because Buffer is not an ObjectId
 
     // Post 1 should remain in the DB
-    const count1 = await connection.manager.count(PostV2, { _id: post1.postId } as FindConditions<PostV2>);
+    const count1 = await connection.manager.count(qr, PostV2, { _id: post1.postId } as FindConditions<PostV2>);
     expect(count1).to.be.equal(1, "Post 1 should still exist");
 
     // Post 2 should be deleted
-    const count2 = await connection.manager.count(PostV2, { _id: post2.postId } as FindConditions<PostV2>);
+    const count2 = await connection.manager.count(qr, PostV2, { _id: post2.postId } as FindConditions<PostV2>);
     expect(count2).to.be.equal(0, "Post 2 should be deleted");
 
-
+    await qr.release();
   })));
 
   // before the fix this passed (added here to make sure we don't cause any regressions)
   it("should delete the correct entity when deleting by _id query", () => Promise.all(connections.map(async function (connection) {
 
+    const qr = connection.createQueryRunner();
     // setup: create 2 posts
     const post1 = new Post();
     post1.title = "Post 1";
-    await connection.manager.save(post1);
+    await connection.manager.save(qr, post1);
 
     const post2 = new Post();
     post2.title = "Post 2";
-    await connection.manager.save(post2);
+    await connection.manager.save(qr, post2);
 
     const objectIdInstance = PlatformTools.load("mongodb").ObjectID;
 
@@ -105,17 +108,17 @@ describe("github issues > #6552 MongoRepository delete by ObjectId deletes the w
     expect(post2._id).to.be.instanceof(objectIdInstance);
 
     // delete Post 2 by ObjectId directly
-    await connection.manager.delete(Post, { _id: post2._id });
+    await connection.manager.delete(qr, Post, { _id: post2._id });
 
     // Post 1 should remain in the DB
-    const count1 = await connection.manager.count(Post, { _id: post1._id } as FindConditions<Post>);
+    const count1 = await connection.manager.count(qr, Post, { _id: post1._id } as FindConditions<Post>);
     expect(count1).to.be.equal(1, "Post 1 should still exist");
 
     // Post 2 should be deleted
-    const count2 = await connection.manager.count(Post, { _id: post2._id } as FindConditions<Post>);
+    const count2 = await connection.manager.count(qr, Post, { _id: post2._id } as FindConditions<Post>);
     expect(count2).to.be.equal(0, "Post 2 should be deleted");
 
-
+    await qr.release();
   })));
 
 });

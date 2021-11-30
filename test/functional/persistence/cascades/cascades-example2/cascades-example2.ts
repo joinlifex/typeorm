@@ -17,6 +17,7 @@ describe("persistence > cascades > example 2", () => {
 
     it("should insert everything by cascades properly", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const photo = new Photo();
         const user = new User();
 
@@ -32,7 +33,7 @@ describe("persistence > cascades > example 2", () => {
         question.answers = [answer1, answer2];
         user.question = question;
 
-        await connection.manager.save(question);
+        await connection.manager.save(qr, question);
 
         const loadedQuestion = await connection.manager
             .createQueryBuilder(Question, "question")
@@ -40,7 +41,7 @@ describe("persistence > cascades > example 2", () => {
             .leftJoinAndSelect("answer.photo", "answerPhoto")
             .leftJoinAndSelect("answer.user", "answerUser")
             .leftJoinAndSelect("answerUser.question", "userQuestion")
-            .getOne();
+            .getOne(qr);
 
         loadedQuestion!.should.be.eql({
             id: 1,
@@ -73,6 +74,8 @@ describe("persistence > cascades > example 2", () => {
                 }
             }]
         });
+    
+        await qr.release();
     })));
 
 });

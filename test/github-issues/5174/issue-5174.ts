@@ -23,10 +23,11 @@ describe("github issues > #5174 `selectQueryBuilder.take` messes up the query wh
     Promise.all(connections.map(async (connection) => {
         const roleRepository = connection.getRepository(Role);
         const userRepository = connection.getRepository(User);
+        const qr = connection.createQueryRunner();
 
         const userWithId = (id: number) => ({ id });
 
-        await roleRepository.save([
+        await roleRepository.save(qr, [
             { id: "a", users: [1, 2, 3].map(userWithId) },
             { id: "b", users: [9, 10, 11, 12, 13].map(userWithId) },
             { id: "c", users: [14, 15, 16, 17].map(userWithId) }
@@ -38,7 +39,7 @@ describe("github issues > #5174 `selectQueryBuilder.take` messes up the query wh
             .where("role.id IN (:...ids)", { ids: ["a", "c"] })
             .take(5)
             .orderBy("user.id")
-            .getMany();
+            .getMany(qr);
 
         expect(results).to.be.deep.equal([
             { id: 1, role: { id: "a" } },
@@ -47,6 +48,7 @@ describe("github issues > #5174 `selectQueryBuilder.take` messes up the query wh
             { id: 14, role: { id: "c" } },
             { id: 15, role: { id: "c" } }
         ]);
+        await qr.release();
     })));
 
 });

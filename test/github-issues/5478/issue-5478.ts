@@ -22,10 +22,10 @@ describe("github issues > #5478 Setting enumName doesn't change how migrations g
         let table = await queryRunner.getTable("user");
         const column = table!.findColumnByName("userType")!;
         const newColumn = column.clone();
-        newColumn.enumName = "UserTypeEnum"
+        newColumn.enumName = "UserTypeEnum";
 
         // change column
-        await queryRunner.changeColumn(table!, column, newColumn)
+        await queryRunner.changeColumn(table!, column, newColumn);
 
         // check if `enumName` changed
         table = await queryRunner.getTable("user");
@@ -33,7 +33,7 @@ describe("github issues > #5478 Setting enumName doesn't change how migrations g
         expect(changedColumn.enumName).to.equal("UserTypeEnum");
 
         // revert changes
-        await queryRunner.executeMemoryDownSql()
+        await queryRunner.executeMemoryDownSql();
 
         // check if `enumName` reverted
         table = await queryRunner.getTable("user");

@@ -13,19 +13,21 @@ describe("github issues > #219 FindOptions should be able to resolve null values
     after(() => closeTestingConnections(connections));
 
     it("should properly query null values", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         for (let i = 1; i <= 10; i++) {
             const post1 = new Post();
             post1.title = "post #" + i;
             post1.text = i > 5 ? "about post" : null;
-            await connection.manager.save(post1);
+            await connection.manager.save(qr, post1);
         }
 
-        const postsWithoutText1 = await connection.manager.find(Post, { where: { text: null } });
+        const postsWithoutText1 = await connection.manager.find(qr, Post, { where: { text: null } });
         postsWithoutText1.length.should.be.equal(5);
 
-        const postsWithText1 = await connection.manager.find(Post, { where: {  text: "about post" } });
+        const postsWithText1 = await connection.manager.find(qr, Post, { where: {  text: "about post" } });
         postsWithText1.length.should.be.equal(5);
 
+        await qr.release();
     })));
 
 });

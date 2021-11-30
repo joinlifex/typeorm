@@ -17,6 +17,7 @@ describe("mongodb > embeddeds indices", () => {
 
     it("should insert entity with embeddeds indices correctly", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save a post
         const post = new Post();
@@ -25,11 +26,12 @@ describe("mongodb > embeddeds indices", () => {
         post.info = new Information();
         post.info.description = "This a description";
         post.info.likes = 1000;
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         // check saved post
-        const loadedPost = await postRepository.findOne({title: "Post"});
+        const loadedPost = await postRepository.findOne(qr, {title: "Post"});
         expect(loadedPost).to.be.not.empty;
+        await qr.release();
     })));
 
 });

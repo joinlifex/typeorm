@@ -133,7 +133,7 @@ export class CockroachQueryRunner extends BaseQueryRunner implements QueryRunner
         if (this.isTransactionActive)
             throw new TransactionAlreadyStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionStart');
+        await this.broadcaster.broadcast("BeforeTransactionStart");
 
         this.isTransactionActive = true;
         await this.query("START TRANSACTION");
@@ -143,7 +143,7 @@ export class CockroachQueryRunner extends BaseQueryRunner implements QueryRunner
         }
         this.storeQueries = true;
 
-        await this.broadcaster.broadcast('AfterTransactionStart');
+        await this.broadcaster.broadcast("AfterTransactionStart");
     }
 
     /**
@@ -154,7 +154,7 @@ export class CockroachQueryRunner extends BaseQueryRunner implements QueryRunner
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionCommit');
+        await this.broadcaster.broadcast("BeforeTransactionCommit");
 
         this.storeQueries = false;
 
@@ -174,7 +174,7 @@ export class CockroachQueryRunner extends BaseQueryRunner implements QueryRunner
             }
         }
 
-        await this.broadcaster.broadcast('AfterTransactionCommit');
+        await this.broadcaster.broadcast("AfterTransactionCommit");
     }
 
     /**
@@ -185,14 +185,14 @@ export class CockroachQueryRunner extends BaseQueryRunner implements QueryRunner
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        await this.broadcaster.broadcast('BeforeTransactionRollback');
+        await this.broadcaster.broadcast("BeforeTransactionRollback");
 
         this.storeQueries = false;
         await this.query("ROLLBACK");
         this.queries = [];
         this.isTransactionActive = false;
 
-        await this.broadcaster.broadcast('AfterTransactionRollback');
+        await this.broadcaster.broadcast("AfterTransactionRollback");
     }
 
     /**
@@ -212,7 +212,7 @@ export class CockroachQueryRunner extends BaseQueryRunner implements QueryRunner
 
         try {
             const raw = await new Promise<any>((ok, fail) => {
-                databaseConnection.query(query, parameters, (err: any, raw: any) => err ? fail(err) : ok(raw))
+                databaseConnection.query(query, parameters, (err: any, raw: any) => err ? fail(err) : ok(raw));
             });
 
             // log slow queries if maxQueryExecution time is set
@@ -225,18 +225,18 @@ export class CockroachQueryRunner extends BaseQueryRunner implements QueryRunner
 
             const result = new QueryResult();
 
-            if (raw.hasOwnProperty('rowCount')) {
+            if (raw.hasOwnProperty("rowCount")) {
                 result.affected = raw.rowCount;
             }
 
-            if (raw.hasOwnProperty('rows')) {
+            if (raw.hasOwnProperty("rows")) {
                 result.records = raw.rows;
             }
 
             switch (raw.command) {
                 case "DELETE":
                     // for DELETE query additionally return number of affected rows
-                    result.raw = [raw.rows, raw.rowCount]
+                    result.raw = [raw.rows, raw.rowCount];
                     break;
                 default:
                     result.raw = raw.rows;
@@ -1495,7 +1495,7 @@ export class CockroachQueryRunner extends BaseQueryRunner implements QueryRunner
             const getSchemaFromKey = (dbObject: any, key: string) => {
                 return dbObject[key] === currentSchema && (!this.driver.options.schema || this.driver.options.schema === currentSchema)
                     ? undefined
-                    : dbObject[key]
+                    : dbObject[key];
             };
 
             // We do not need to join schema name, when database is by default.
@@ -1560,8 +1560,8 @@ export class CockroachQueryRunner extends BaseQueryRunner implements QueryRunner
                     const isConstraintComposite = uniqueConstraints.every((uniqueConstraint) => {
                         return dbConstraints.some(dbConstraint => dbConstraint["constraint_type"] === "UNIQUE"
                             && dbConstraint["constraint_name"] === uniqueConstraint["constraint_name"]
-                            && dbConstraint["column_name"] !== dbColumn["column_name"])
-                    })
+                            && dbConstraint["column_name"] !== dbColumn["column_name"]);
+                    });
                     tableColumn.isUnique = uniqueConstraints.length > 0 && !isConstraintComposite;
 
                     if (dbColumn["column_default"] !== null && dbColumn["column_default"] !== undefined) {
@@ -1792,7 +1792,7 @@ export class CockroachQueryRunner extends BaseQueryRunner implements QueryRunner
     protected async insertViewDefinitionSql(view: View): Promise<Query> {
         const currentSchema = await this.getCurrentSchema();
 
-        let { schema, tableName: name } = this.driver.parseTableName(view)
+        let { schema, tableName: name } = this.driver.parseTableName(view);
 
         if (!schema) {
             schema = currentSchema;
@@ -1941,7 +1941,7 @@ export class CockroachQueryRunner extends BaseQueryRunner implements QueryRunner
      */
     protected escapeComment(comment?: string) {
         if (comment === undefined || comment.length === 0) {
-            return 'NULL';
+            return "NULL";
         }
 
         comment = comment

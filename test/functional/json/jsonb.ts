@@ -29,53 +29,67 @@ describe("jsonb type", () => {
     it("should persist jsonb correctly", () => Promise.all(connections.map(async connection => {
         await connection.synchronize(true);
         let recordRepo = connection.getRepository(Record);
+        const qr = connection.createQueryRunner();
         let record = new Record();
         record.data = { foo: "bar" };
-        let persistedRecord = await recordRepo.save(record);
-        let foundRecord = await recordRepo.findOne(persistedRecord.id);
+        let persistedRecord = await recordRepo.save(qr, record);
+        let foundRecord = await recordRepo.findOne(qr, persistedRecord.id);
         expect(foundRecord).to.be.not.undefined;
         expect(foundRecord!.data.foo).to.eq("bar");
         expect(foundRecord!.dataWithDefaultNull).to.be.null;
         expect(foundRecord!.dataWithDefaultObject).to.eql({ hello: "world", foo: "bar" });
+    
+        await qr.release();
     })));
 
     it("should persist jsonb string correctly", () => Promise.all(connections.map(async connection => {
         let recordRepo = connection.getRepository(Record);
+        const qr = connection.createQueryRunner();
         let record = new Record();
         record.data = "foo";
-        let persistedRecord = await recordRepo.save(record);
-        let foundRecord = await recordRepo.findOne(persistedRecord.id);
+        let persistedRecord = await recordRepo.save(qr, record);
+        let foundRecord = await recordRepo.findOne(qr, persistedRecord.id);
         expect(foundRecord).to.be.not.undefined;
         expect(foundRecord!.data).to.be.a("string");
         expect(foundRecord!.data).to.eq("foo");
+        await qr.release();
     })));
 
     it("should persist jsonb array correctly", () => Promise.all(connections.map(async connection => {
         let recordRepo = connection.getRepository(Record);
+        const qr = connection.createQueryRunner();
         let record = new Record();
         record.data = [1, "2", { a: 3 }];
-        let persistedRecord = await recordRepo.save(record);
-        let foundRecord = await recordRepo.findOne(persistedRecord.id);
+        let persistedRecord = await recordRepo.save(qr, record);
+        let foundRecord = await recordRepo.findOne(qr, persistedRecord.id);
         expect(foundRecord).to.be.not.undefined;
         expect(foundRecord!.data).to.deep.include.members([1, "2", { a: 3 }]);
+    
+        await qr.release();
     })));
 
     it("should create updates when changing object", () => Promise.all(connections.map(async connection => {
-        await connection.query(`ALTER TABLE record ALTER COLUMN "dataWithDefaultObject" SET DEFAULT '{"foo":"baz","hello": "earth"}';`)
+        const qr = connection.createQueryRunner();
+        await connection.query(qr, `ALTER TABLE record ALTER COLUMN "dataWithDefaultObject" SET DEFAULT '{"foo":"baz","hello": "earth"}';`);
 
         const sqlInMemory = await connection.driver.createSchemaBuilder().log();
 
         expect(sqlInMemory.upQueries).not.to.eql([]);
         expect(sqlInMemory.downQueries).not.to.eql([]);
-    })))
+    
+        await qr.release();
+    })));
 
     it("should not create updates when resorting object", () => Promise.all(connections.map(async connection => {
-        await connection.query(`ALTER TABLE record ALTER COLUMN "dataWithDefaultObject" SET DEFAULT '{"foo":"bar", "hello": "world"}';`)
+        const qr = connection.createQueryRunner();
+        await connection.query(qr, `ALTER TABLE record ALTER COLUMN "dataWithDefaultObject" SET DEFAULT '{"foo":"bar", "hello": "world"}';`);
 
         const sqlInMemory = await connection.driver.createSchemaBuilder().log();
 
         expect(sqlInMemory.upQueries).to.eql([]);
         expect(sqlInMemory.downQueries).to.eql([]);
+    
+        await qr.release();
     })));
 
     it("should not create new migrations when everything is equivalent", () => Promise.all(connections.map(async connection => {

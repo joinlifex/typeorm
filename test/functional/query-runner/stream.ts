@@ -17,33 +17,33 @@ describe("query runner > stream", () => {
     after(() => closeTestingConnections(connections));
 
     it("should stream data", () => Promise.all(connections.map(async connection => {
-        await connection.manager.save(Book, { ean: 'a' });
-        await connection.manager.save(Book, { ean: 'b' });
-        await connection.manager.save(Book, { ean: 'c' });
-        await connection.manager.save(Book, { ean: 'd' });
 
         const queryRunner = connection.createQueryRunner();
+        await connection.manager.save(queryRunner, Book, { ean: "a" });
+        await connection.manager.save(queryRunner, Book, { ean: "b" });
+        await connection.manager.save(queryRunner, Book, { ean: "c" });
+        await connection.manager.save(queryRunner, Book, { ean: "d" });
 
-        const query = connection.createQueryBuilder(Book, 'book')
+        const query = connection.createQueryBuilder(Book, "book")
             .select()
-            .getQuery()
+            .getQuery();
 
         const readStream = await queryRunner.stream(query);
 
-        await new Promise((ok) => readStream.once('readable', ok));
+        await new Promise((ok) => readStream.once("readable", ok));
 
         const data: any[] = [];
 
-        readStream.on('data', (row) => data.push(row));
+        readStream.on("data", (row) => data.push(row));
 
-        await new Promise((ok) => readStream.once('end', ok));
+        await new Promise((ok) => readStream.once("end", ok));
 
         expect(data).to.have.length(4);
 
-        expect(data[0]).to.be.eql({ book_ean: 'a' });
-        expect(data[1]).to.be.eql({ book_ean: 'b' });
-        expect(data[2]).to.be.eql({ book_ean: 'c' });
-        expect(data[3]).to.be.eql({ book_ean: 'd' });
+        expect(data[0]).to.be.eql({ book_ean: "a" });
+        expect(data[1]).to.be.eql({ book_ean: "b" });
+        expect(data[2]).to.be.eql({ book_ean: "c" });
+        expect(data[3]).to.be.eql({ book_ean: "d" });
 
         await queryRunner.release();
     })));

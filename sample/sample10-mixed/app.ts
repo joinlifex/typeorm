@@ -18,6 +18,7 @@ const options: ConnectionOptions = {
 };
 
 createConnection(options).then(connection => {
+    const qr = connection.createQueryRunner();
     let postRepository = connection.getRepository(Post);
 
     let postCover = new Cover();
@@ -44,9 +45,9 @@ createConnection(options).then(connection => {
     post.images.push(image);
     post.categories = [category1, category2];
     
-    postRepository.save(post).then(result => {
+    postRepository.save(qr, post).then(result => {
 
-        /*const qb = postRepository.createQueryBuilder("post")
+        /*const qb = postRepositorycreateQueryBuilder("post")
             .leftJoinAndSelect("post.details", "details")
             .leftJoinAndSelect("post.images", "images")
            // .leftJoinAndSelect("post.coverId", "coverId")
@@ -75,7 +76,7 @@ createConnection(options).then(connection => {
                 post.text = "Hello world of post#4";
                 post.categories = [category2, category1];
                 post.images.push(image);
-                return postRepository.save(post);
+                return postRepository.save(qr, post);
 
             })
             .then(() => qb.getSingleResult())
@@ -126,7 +127,7 @@ createConnection(options).then(connection => {
         }]
     };
 
-    let entity = postRepository.create(postJson);
+    let entity = postRepository.create(qr, postJson);
     return postRepository.initialize(postJson)
         .then(result => {
             const mergedEntity = postRepository.merge(result, entity);
@@ -173,7 +174,7 @@ createConnection(options).then(connection => {
     //post.details = details;
 
     postRepository
-        .save(post)
+        .save(qr, post)
         .then(post => console.log("Post has been saved"))
         .catch(error => console.log("Cannot save. Error: ", error));*/
 

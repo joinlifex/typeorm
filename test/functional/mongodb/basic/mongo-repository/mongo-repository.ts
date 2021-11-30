@@ -27,17 +27,18 @@ describe("mongodb > MongoRepository", () => {
 
     it("should be able to use entity cursor which will return instances of entity classes", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getMongoRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save few posts
         const firstPost = new Post();
         firstPost.title = "Post #1";
         firstPost.text = "Everything about post #1";
-        await postRepository.save(firstPost);
+        await postRepository.save(qr, firstPost);
 
         const secondPost = new Post();
         secondPost.title = "Post #2";
         secondPost.text = "Everything about post #2";
-        await postRepository.save(secondPost);
+        await postRepository.save(qr, secondPost);
 
         const cursor = postRepository.createEntityCursor({
             title: "Post #1"
@@ -50,23 +51,25 @@ describe("mongodb > MongoRepository", () => {
         expect(loadedPosts[0].title).to.eql("Post #1");
         expect(loadedPosts[0].text).to.eql("Everything about post #1");
 
+        await qr.release();
     })));
 
     it("should be able to use entity cursor which will return instances of entity classes", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getMongoRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save few posts
         const firstPost = new Post();
         firstPost.title = "Post #1";
         firstPost.text = "Everything about post #1";
-        await postRepository.save(firstPost);
+        await postRepository.save(qr, firstPost);
 
         const secondPost = new Post();
         secondPost.title = "Post #2";
         secondPost.text = "Everything about post #2";
-        await postRepository.save(secondPost);
+        await postRepository.save(qr, secondPost);
 
-        const loadedPosts = await postRepository.find({
+        const loadedPosts = await postRepository.find(qr, {
             where: {
                 $or: [
                     {
@@ -84,67 +87,78 @@ describe("mongodb > MongoRepository", () => {
         expect(loadedPosts[0].id).to.eql(firstPost.id);
         expect(loadedPosts[0].title).to.eql("Post #1");
         expect(loadedPosts[0].text).to.eql("Everything about post #1");
+    
+        await qr.release();
     })));
 
     it("should be able to use findByIds with both objectId and strings", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getMongoRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save few posts
         const firstPost = new Post();
         firstPost.title = "Post #1";
         firstPost.text = "Everything about post #1";
-        await postRepository.save(firstPost);
+        await postRepository.save(qr, firstPost);
 
         const secondPost = new Post();
         secondPost.title = "Post #2";
         secondPost.text = "Everything about post #2";
-        await postRepository.save(secondPost);
+        await postRepository.save(qr, secondPost);
 
-        expect(await postRepository.findByIds([ firstPost.id ])).to.have.length(1);
-        expect(await postRepository.findByIds([ firstPost.id.toHexString() ])).to.have.length(1);
-        expect(await postRepository.findByIds([ { id: firstPost.id } ])).to.have.length(1);
-        expect(await postRepository.findByIds([ undefined ])).to.have.length(0);
+        expect(await postRepository.findByIds(qr, [ firstPost.id ])).to.have.length(1);
+        expect(await postRepository.findByIds(qr, [ firstPost.id.toHexString() ])).to.have.length(1);
+        expect(await postRepository.findByIds(qr, [ { id: firstPost.id } ])).to.have.length(1);
+        expect(await postRepository.findByIds(qr, [ undefined ])).to.have.length(0);
+    
+        await qr.release();
     })));
 
     // todo: cover other methods as well
     it("should be able to save and update mongo entities", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getMongoRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save few posts
         const firstPost = new Post();
         firstPost.title = "Post #1";
         firstPost.text = "Everything about post #1";
-        await postRepository.save(firstPost);
+        await postRepository.save(qr, firstPost);
 
         const secondPost = new Post();
         secondPost.title = "Post #2";
         secondPost.text = "Everything about post #2";
-        await postRepository.save(secondPost);
+        await postRepository.save(qr, secondPost);
 
         // save few posts
         firstPost.text = "Everything and more about post #1";
-        await postRepository.save(firstPost);
+        await postRepository.save(qr, firstPost);
 
-        const loadedPosts = await postRepository.find();
+        const loadedPosts = await postRepository.find(qr);
 
         expect(loadedPosts).to.have.length(2);
         expect(loadedPosts[0].text).to.eql("Everything and more about post #1");
         expect(loadedPosts[1].text).to.eql("Everything about post #2");
+    
+        await qr.release();
     })));
 
     it("should ignore non-column properties", () => Promise.all(connections.map(async connection => {
         // Github issue #5321
         const postRepository = connection.getMongoRepository(Post);
+        const qr = connection.createQueryRunner();
 
-        await postRepository.save({
+        await postRepository.save(qr, {
             title: "Hello",
             text: "World",
             unreal: "Not a Column"
         });
 
-        const loadedPosts = await postRepository.find();
+        const loadedPosts = await postRepository.find(qr);
 
         expect(loadedPosts).to.have.length(1);
         expect(loadedPosts[0]).to.not.have.property("unreal");
+    
+        await qr.release();
     })));
 });

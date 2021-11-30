@@ -22,15 +22,17 @@ describe("github issues > #2518 TreeRepository.findDescendantsTree does not load
     it("should load descendants when findDescendantsTree is called for a tree entity", () =>
         Promise.all(
             connections.map(async connection => {
+                const qr = connection.createQueryRunner();
                 const repo: TreeRepository<File> = connection.getTreeRepository(File);
-                const root: File = await repo.save({ id: 1, name: "root" } as File);
-                const child = await repo.save({ id: 2, name: "child", parent: root } as File);
+                const root: File = await repo.save(qr, { id: 1, name: "root" } as File);
+                const child = await repo.save(qr, { id: 2, name: "child", parent: root } as File);
                 expect(child.parentId).to.be.equal(1);
                 const file: File | any = await repo.createQueryBuilder("file")
                     .where("file.id = :id", { id: 1 })
-                    .getOne();
-                await repo.findDescendantsTree(file);
+                    .getOne(qr);
+                await repo.findDescendantsTree(qr, file);
                 expect(file.children.length).to.be.greaterThan(0);
+                await qr.release();
             })
         )
     );
@@ -38,13 +40,15 @@ describe("github issues > #2518 TreeRepository.findDescendantsTree does not load
     it("should load descendants when findTrees are called", () =>
         Promise.all(
             connections.map(async connection => {
+                const qr = connection.createQueryRunner();
                 const repo = connection.getTreeRepository(File);
-                const root: File = await repo.save({ id: 1, name: "root" } as File);
-                const child = await repo.save({ id: 2, name: "child", parent: root } as File);
+                const root: File = await repo.save(qr, { id: 1, name: "root" } as File);
+                const child = await repo.save(qr, { id: 2, name: "child", parent: root } as File);
                 expect(child.parentId).to.be.equal(1);
-                const trees: File[] = await repo.findTrees();
+                const trees: File[] = await repo.findTrees(qr);
                 expect(trees).to.be.an("array");
                 expect(trees[0].children.length).to.be.greaterThan(0);
+                await qr.release();
             })
         )
     );

@@ -18,6 +18,7 @@ describe("columns > embedded columns", () => {
 
     it("should insert / update / remove entity with embedded correctly", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(SimplePost);
+        const qr = connection.createQueryRunner();
 
         // save few posts
         const post = new SimplePost();
@@ -29,9 +30,9 @@ describe("columns > embedded columns", () => {
         post.counters.favorites = 10;
         post.counters.information = new Information();
         post.counters.information.description = "Hello post";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = await postRepository.findOne({ title: "Post" });
+        const loadedPost = await postRepository.findOne(qr, { title: "Post" });
 
         expect(loadedPost).to.be.not.empty;
         expect(loadedPost!.counters).to.be.not.empty;
@@ -49,9 +50,9 @@ describe("columns > embedded columns", () => {
         post.title = "Updated post";
         post.counters.comments = 2;
         post.counters.information.description = "Hello updated post";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedUpdatedPost = await postRepository.findOne({ title: "Updated post" });
+        const loadedUpdatedPost = await postRepository.findOne(qr, { title: "Updated post" });
 
         expect(loadedUpdatedPost).to.be.not.empty;
         expect(loadedUpdatedPost!.counters).to.be.not.empty;
@@ -66,12 +67,13 @@ describe("columns > embedded columns", () => {
         loadedUpdatedPost!.counters.information.should.be.instanceOf(Information);
         loadedUpdatedPost!.counters.information.description.should.be.equal("Hello updated post");
 
-        await postRepository.remove(post);
+        await postRepository.remove(qr, post);
 
-        const removedPost = await postRepository.findOne({ title: "Post" });
-        const removedUpdatedPost = await postRepository.findOne({ title: "Updated post" });
+        const removedPost = await postRepository.findOne(qr, { title: "Post" });
+        const removedUpdatedPost = await postRepository.findOne(qr, { title: "Updated post" });
         expect(removedPost).to.be.undefined;
         expect(removedUpdatedPost).to.be.undefined;
+        await qr.release();
     })));
 
     it("should properly generate column names", () => Promise.all(connections.map(async connection => {

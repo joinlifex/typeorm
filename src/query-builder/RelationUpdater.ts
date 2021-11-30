@@ -4,6 +4,7 @@ import {ObjectLiteral} from "../common/ObjectLiteral";
 import {QueryExpressionMap} from "./QueryExpressionMap";
 import {OracleDriver} from "../driver/oracle/OracleDriver";
 import { TypeORMError } from "../error";
+import { QueryRunner } from "..";
 
 /**
  * Allows to work with entity relations and perform specific operations with those relations.
@@ -27,7 +28,7 @@ export class RelationUpdater {
     /**
      * Performs set or add operation on a relation.
      */
-    async update(value: any|any[]): Promise<void> {
+    async update(queryRunner: QueryRunner, value: any|any[]): Promise<void> {
         const relation = this.expressionMap.relationMetadata;
 
         if (relation.isManyToOne || relation.isOneToOneOwner) {
@@ -45,7 +46,7 @@ export class RelationUpdater {
                 .update(relation.entityMetadata.target)
                 .set(updateSet)
                 .whereInIds(this.expressionMap.of)
-                .execute();
+                .execute(queryRunner);
 
         } else if ((relation.isOneToOneNotOwner || relation.isOneToMany) && value === null) { // we handle null a bit different way
 
@@ -73,7 +74,7 @@ export class RelationUpdater {
                 .set(updateSet)
                 .where(condition)
                 .setParameters(parameters)
-                .execute();
+                .execute(queryRunner);
 
         } else if (relation.isOneToOneNotOwner || relation.isOneToMany) {
 
@@ -94,7 +95,7 @@ export class RelationUpdater {
                 .update(relation.inverseEntityMetadata.target)
                 .set(updateSet)
                 .whereInIds(value)
-                .execute();
+                .execute(queryRunner);
 
         } else { // many to many
             const junctionMetadata = relation.junctionEntityMetadata!;
@@ -126,7 +127,7 @@ export class RelationUpdater {
                         .insert()
                         .into(junctionMetadata.tableName)
                         .values(value)
-                        .execute();
+                        .execute(queryRunner);
                 }));
             } else {
                 await this.queryBuilder
@@ -134,7 +135,7 @@ export class RelationUpdater {
                     .insert()
                     .into(junctionMetadata.tableName)
                     .values(bulkInserted)
-                    .execute();
+                    .execute(queryRunner);
             }
         }
     }

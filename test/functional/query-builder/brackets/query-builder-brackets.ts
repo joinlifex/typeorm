@@ -16,7 +16,7 @@ describe("query builder > brackets", () => {
     after(() => closeTestingConnections(connections));
 
     it("should put parentheses in the SQL", () => Promise.all(connections.map(async connection => {
-        const sql = await connection.createQueryBuilder(User, "user")
+            const sql = await connection.createQueryBuilder(User, "user")
             .where("user.isAdmin = :isAdmin", { isAdmin: true })
             .orWhere(new Brackets(qb => {
                 qb.where("user.firstName = :firstName1", { firstName1: "Hello" })
@@ -27,11 +27,11 @@ describe("query builder > brackets", () => {
                     .andWhere("user.lastName = :lastName2", { lastName2: "Earth" });
             }))
             .andWhere(new Brackets(qb => {
-                qb.where("user.firstName = :firstName3 AND foo = bar", { firstName3: "Hello" })
+                qb.where("user.firstName = :firstName3 AND foo = bar", { firstName3: "Hello" });
 
             }))
             .disableEscaping()
-            .getSql()
+            .getSql();
 
         expect(sql).to.be.equal(
             "SELECT user.id AS user_id, user.firstName AS user_firstName, " +
@@ -41,28 +41,29 @@ describe("query builder > brackets", () => {
             "OR (user.firstName = ? AND user.lastName = ?) " +
             "OR (user.firstName = ? AND user.lastName = ?) " +
             "AND (user.firstName = ? AND foo = bar)"
-        )
+        );
     })));
 
     it("should put brackets correctly into WHERE expression", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+            
         const user1 = new User();
         user1.firstName = "Timber";
         user1.lastName = "Saw";
         user1.isAdmin = false;
-        await connection.manager.save(user1);
+        await connection.manager.save(qr, user1);
 
         const user2 = new User();
         user2.firstName = "Alex";
         user2.lastName = "Messer";
         user2.isAdmin = false;
-        await connection.manager.save(user2);
+        await connection.manager.save(qr, user2);
 
         const user3 = new User();
         user3.firstName = "Umed";
         user3.lastName = "Pleerock";
         user3.isAdmin = true;
-        await connection.manager.save(user3);
+        await connection.manager.save(qr, user3);
 
         const users = await connection.createQueryBuilder(User, "user")
             .where("user.isAdmin = :isAdmin", { isAdmin: true })
@@ -74,10 +75,11 @@ describe("query builder > brackets", () => {
                 qb.where("user.firstName = :firstName2", { firstName2: "Alex" })
                     .andWhere("user.lastName = :lastName2", { lastName2: "Messer" });
             }))
-            .getMany();
+            .getMany(qr);
 
         expect(users.length).to.be.equal(3);
 
+        await qr.release();
     })));
 
 });

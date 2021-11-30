@@ -23,12 +23,12 @@ describe("github issues > #6900 MongoDB ConnectionManager doesn't select given d
             return;
         }
 
-        const host: string = (options[0] as MongoConnectionOptions).host || 'localhost';
+        const host: string = (options[0] as MongoConnectionOptions).host || "localhost";
 
         const connection = await createConnection({
             ...options[0],
             url: `mongodb://${host}`,
-            database: 'foo'
+            database: "foo"
         } as ConnectionOptions);
         connections.push(connection);
 
@@ -37,8 +37,8 @@ describe("github issues > #6900 MongoDB ConnectionManager doesn't select given d
         const mongoDriver = connection.driver as MongoDriver ;
         const client = (mongoDriver.queryRunner!.databaseConnection as any) as MongoClient;
 
-        expect(client.db().databaseName).to.be.equal('foo');
-        expect(mongoDriver.database).to.be.equal('foo');
+        expect(client.db().databaseName).to.be.equal("foo");
+        expect(mongoDriver.database).to.be.equal("foo");
     });
 
     it("should write data to the correct database", async () => {
@@ -49,21 +49,22 @@ describe("github issues > #6900 MongoDB ConnectionManager doesn't select given d
             return;
         }
 
-        const host: string = (options[0] as MongoConnectionOptions).host || 'localhost';
+        const host: string = (options[0] as MongoConnectionOptions).host || "localhost";
 
         const connection = await createConnection({
             ...options[0],
             entities: [ Warn ],
             url: `mongodb://${host}`,
-            database: 'foo'
+            database: "foo"
         } as ConnectionOptions);
         connections.push(connection);
 
         await reloadTestingDatabases(connections);
 
-        const repo = connection.getRepository(Warn)
+        const repo = connection.getRepository(Warn);
+        const qr = connection.createQueryRunner();
 
-        await repo.insert({
+        await repo.insert(qr, {
             id: Math.floor(Math.random() * 1000000),
             guild: "Hello",
             user: "WORLD",
@@ -75,6 +76,7 @@ describe("github issues > #6900 MongoDB ConnectionManager doesn't select given d
         const mongoDriver = connection.driver as MongoDriver ;
         const client = (mongoDriver.queryRunner!.databaseConnection as any) as MongoClient;
 
-        expect(await client.db('foo').collection('warnings').count({})).to.be.greaterThan(0);
-    })
+        expect(await client.db("foo").collection("warnings").count({})).to.be.greaterThan(0);
+        await qr.release();
+    });
 });

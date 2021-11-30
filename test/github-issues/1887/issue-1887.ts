@@ -23,7 +23,9 @@ describe("github issues > #1887 Having problems with UNIQUEIDENTIFIERS", () => {
         err.errorDescription = "test insert error";
         err.errorNumber = 505;
         err.executionGuid = "82E66316-AC4C-4EE2-8F98-66694FA38261";
-        await errorRepository.insert(err);
+        const qr = connection.createQueryRunner();
+        await errorRepository.insert(qr, err);
+        await qr.release();
     })));
 
 });

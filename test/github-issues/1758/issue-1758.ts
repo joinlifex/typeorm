@@ -20,7 +20,7 @@ describe("github issues > #1758 Synchronization bug in PostgreSQL bug occurs whe
         it("should correctly synchronize schema when we explicitly state the default schema as 'public'", () => Promise.all(connections.map(async connection => {
             await connection.synchronize();
         })));
-    })
+    });
 
     describe("mssql", () => {
         let connections: Connection[];
@@ -38,6 +38,6 @@ describe("github issues > #1758 Synchronization bug in PostgreSQL bug occurs whe
         it("should correctly synchronize schema when we explicitly state the default schema as 'public'", () => Promise.all(connections.map(async connection => {
             await connection.synchronize();
         })));
-    })
+    });
 
 });

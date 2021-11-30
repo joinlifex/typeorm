@@ -16,13 +16,15 @@ describe("github issue > #1416 Wrong behavior when fetching an entity that has a
     after(() => closeTestingConnections(connections));
 
     it("should load eager relations of an entity's relations recursively", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
+
         const metadata = new PhotoMetadata();
         metadata.height = 640;
         metadata.width = 480;
         metadata.compressed = true;
         metadata.comment = "cybershoot";
         metadata.orientation = "portait";
-        await connection.manager.save(metadata);
+        await connection.manager.save(qr, metadata);
 
         const photo = new Photo();
         photo.name = "Me and Bears";
@@ -30,14 +32,14 @@ describe("github issue > #1416 Wrong behavior when fetching an entity that has a
         photo.filename = "photo-with-bears.jpg";
         photo.isPublished = true;
         photo.metadata = metadata;
-        await connection.manager.save(photo);
+        await connection.manager.save(qr, photo);
 
         let photoAuthor = new Author();
         photoAuthor.name = "John Doe";
         photoAuthor.photos = [photo];
-        await connection.manager.save(photoAuthor);
+        await connection.manager.save(qr, photoAuthor);
 
-        const author = await connection.manager.findOne(Author, { 
+        const author = await connection.manager.findOne(qr, Author, { 
             where: { 
                 name: photoAuthor.name
             }, 
@@ -48,5 +50,6 @@ describe("github issue > #1416 Wrong behavior when fetching an entity that has a
         expect(author.photos[0]).to.eql(photo);
         expect(author.photos[0].metadata).not.to.be.undefined;
         expect(author.photos[0].metadata).to.eql(metadata);
+        await qr.release();
     })));
 });

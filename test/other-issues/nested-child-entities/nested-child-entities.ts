@@ -20,12 +20,14 @@ describe("other issues > using nested child entities", () => {
         const squadBilliardsTournament = new SquadBilliardsTournament({
             name: "Squad Tournament",
         });
+        const queryRunner = connection.createQueryRunner();
 
-        await connection.manager.save(squadBilliardsTournament);
+        await connection.manager.save(queryRunner, squadBilliardsTournament);
         const tournamentGraph = new TournamentGraph();
 
         tournamentGraph.tournament = squadBilliardsTournament;
 
-        await connection.manager.save(tournamentGraph);
+        await connection.manager.save(queryRunner, tournamentGraph);
+        queryRunner.release();
     })));
 });

@@ -11,7 +11,8 @@ describe("query builder > enabling transaction", () => {
     after(() => closeTestingConnections(connections));
 
     it("should execute query in a transaction", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+            
         const post = new Post();
         post.title = "about transactions in query builder";
 
@@ -20,10 +21,11 @@ describe("query builder > enabling transaction", () => {
             .into(Post)
             .values(post)
             .useTransaction(true)
-            .execute();
+            .execute(qr);
 
         // todo: check if transaction query was executed
 
+        await qr.release();
     })));
 
     // todo: add tests for update and remove queries as well

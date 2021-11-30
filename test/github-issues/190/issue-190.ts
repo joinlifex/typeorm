@@ -15,19 +15,21 @@ describe("github issues > #190 too many SQL variables when using setMaxResults i
 
     it("should not fail if high max results is used", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         for (let i = 0; i < 1000; i++) {
             const post1 = new Post();
             post1.title = "Hello Post #1";
-            await connection.manager.save(post1);
+            await connection.manager.save(qr, post1);
         }
 
         const loadedPosts = await connection.manager
             .createQueryBuilder(Post, "post")
             .leftJoinAndSelect("post.categories", "categories")
             .take(1000)
-            .getMany();
+            .getMany(qr);
 
         loadedPosts.length.should.be.equal(1000);
+        await qr.release();
     })));
 
 });

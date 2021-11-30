@@ -21,6 +21,7 @@ describe("sqljs driver > save", () => {
     after(() => closeTestingConnections(connections));
 
     it("should save to file", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         if (fs.existsSync(pathToSqlite)) {
             fs.unlinkSync(pathToSqlite);
         }
@@ -29,23 +30,26 @@ describe("sqljs driver > save", () => {
         post.title = "The second title";
 
         const repository = connection.getRepository(Post);
-        await repository.save(post);
+        await repository.save(qr, post);
         const manager = getSqljsManager("sqljs");
 
         await manager.saveDatabase(pathToSqlite);
         expect(fs.existsSync(pathToSqlite)).to.be.true;
+        await qr.release();
     })));
 
     it("should load a file that was saved", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const manager = getSqljsManager("sqljs");
         await manager.loadDatabase(pathToSqlite);
 
         const repository = connection.getRepository(Post);
-        const post = await repository.findOne({title: "The second title"});
+        const post = await repository.findOne(qr, {title: "The second title"});
 
         expect(post).not.to.be.undefined;
         if (post) {
             expect(post.title).to.be.equal("The second title");
         }
+        await qr.release();
     })));
 });

@@ -33,50 +33,51 @@ describe("view entity > general", () => {
     })));
 
     it("should correctly return data from View", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const category1 = new Category();
         category1.name = "Cars";
-        await connection.manager.save(category1);
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "Airplanes";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const post1 = new Post();
         post1.name = "About BMW";
         post1.categoryId = category1.id;
-        await connection.manager.save(post1);
+        await connection.manager.save(qr, post1);
 
         const post2 = new Post();
         post2.name = "About Boeing";
         post2.categoryId = category2.id;
-        await connection.manager.save(post2);
+        await connection.manager.save(qr, post2);
 
         const album1 = new Album();
         album1.name = "BMW photos";
         album1.categoryId = category1.id;
-        await connection.manager.save(album1);
+        await connection.manager.save(qr, album1);
 
         const album2 = new Album();
         album2.name = "Boeing photos";
         album2.categoryId = category2.id;
-        await connection.manager.save(album2);
+        await connection.manager.save(qr, album2);
 
         const photo1 = new Photo();
         photo1.name = "BMW E39";
         photo1.albumId = album1.id;
-        await connection.manager.save(photo1);
+        await connection.manager.save(qr, photo1);
 
         const photo2 = new Photo();
         photo2.name = "BMW E60";
         photo2.albumId = album1.id;
-        await connection.manager.save(photo2);
+        await connection.manager.save(qr, photo2);
 
         const photo3 = new Photo();
         photo3.name = "Boeing 737";
         photo3.albumId = album2.id;
-        await connection.manager.save(photo3);
+        await connection.manager.save(qr, photo3);
 
-        const postCategories = await connection.manager.find(PostCategory);
+        const postCategories = await connection.manager.find(qr, PostCategory);
         postCategories.length.should.be.equal(2);
 
         const postId1 = connection.driver instanceof CockroachDriver ? "1" : 1;
@@ -89,7 +90,7 @@ describe("view entity > general", () => {
         postCategories[1].name.should.be.equal("About Boeing");
         postCategories[1].categoryName.should.be.equal("Airplanes");
 
-        const photoAlbumCategories = await connection.manager.find(PhotoAlbumCategory);
+        const photoAlbumCategories = await connection.manager.find(qr, PhotoAlbumCategory);
         photoAlbumCategories.length.should.be.equal(2);
 
         const photoId1 = connection.driver instanceof CockroachDriver ? "1" : 1;
@@ -105,12 +106,13 @@ describe("view entity > general", () => {
         photoAlbumCategories[1].categoryName.should.be.equal("Cars");
 
         const albumId = connection.driver instanceof CockroachDriver ? "1" : 1;
-        const photoAlbumCategory = await connection.manager.findOne(PhotoAlbumCategory, { id: 1 });
+        const photoAlbumCategory = await connection.manager.findOne(qr, PhotoAlbumCategory, { id: 1 });
         photoAlbumCategory!.id.should.be.equal(photoId1);
         photoAlbumCategory!.name.should.be.equal("BMW E39");
         photoAlbumCategory!.albumName.should.be.equal("BMW photos");
         photoAlbumCategory!.categoryName.should.be.equal("Cars");
         photoAlbumCategory!.photoAlbumId.should.be.equal(albumId);
 
+        await qr.release();
     })));
 });

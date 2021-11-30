@@ -28,6 +28,7 @@ describe("github issues > #1901 The correct way of adding `ON UPDATE CURRENT_TIM
 
         table = await queryRunner.getTable("post");
         expect(table!.findColumnByName("updateAt")!.onUpdate).to.be.undefined;
+        queryRunner.release();
 
     })));
 

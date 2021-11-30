@@ -17,17 +17,18 @@ createConnection(options).then(async connection => {
     post.text = "Hello how are you?";
     post.title = "hello";
     post.likesCount = 100;
+    const qr = connection.createQueryRunner();
 
-    await connection.getRepository(Post).save(post);
+    await connection.getRepository(Post).save(qr, post);
     console.log("Post has been saved: ", post);
 
-    const loadedPost = await connection.getRepository(Post).findOne({
+    const loadedPost = await connection.getRepository(Post).findOne(qr, {
         text: "Hello how are you?",
     });
     console.log("Post has been loaded: ", loadedPost);
 
     // take last 5 of saved posts
-    const allPosts = await connection.getRepository(Post).find({ take: 5 });
+    const allPosts = await connection.getRepository(Post).find(qr, { take: 5 });
     console.log("All posts: ", allPosts);
 
     // perform mongodb-specific query using cursor which returns properly initialized entities

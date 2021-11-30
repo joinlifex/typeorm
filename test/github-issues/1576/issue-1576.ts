@@ -22,10 +22,12 @@ describe("github issues > #1576 Entities with null as `id` are merged [@next]", 
         let cat2 = new Category();
         cat2.name = "2";
         newpost.categories = [cat1, cat2];
+        const qr = connection.createQueryRunner();
 
-        const post = connection.manager.create(Post, newpost);
+        const post = connection.manager.create(qr, Post, newpost);
 
         expect(post.categories).to.have.length(2);
+        await qr.release();
     })));
 
 });

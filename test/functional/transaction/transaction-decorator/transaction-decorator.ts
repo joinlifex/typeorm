@@ -20,7 +20,7 @@ describe("transaction > method wrapped into transaction decorator", () => {
     const controller = new PostController();
 
     it("should execute all operations in the method in a transaction", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.title = "successfully saved post";
 
@@ -31,14 +31,15 @@ describe("transaction > method wrapped into transaction decorator", () => {
         await controller.save.apply(controller, [post, category]);
 
         // controller should have saved both post and category successfully
-        const loadedPost = await connection.manager.findOne(Post, { where: { title: "successfully saved post" } });
+        const loadedPost = await connection.manager.findOne(qr, Post, { where: { title: "successfully saved post" } });
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.should.be.eql(post);
 
-        const loadedCategory = await connection.manager.findOne(Category, { where: { name: "successfully saved category" } });
+        const loadedCategory = await connection.manager.findOne(qr, Category, { where: { name: "successfully saved category" } });
         expect(loadedCategory).not.to.be.undefined;
         loadedCategory!.should.be.eql(category);
 
+        await qr.release();
     })));
 
     it("should rollback transaction if any operation in the method failed", () => Promise.all(connections.map(async connection => {
@@ -56,13 +57,14 @@ describe("transaction > method wrapped into transaction decorator", () => {
             throwError = err;
         }
         expect(throwError).not.to.be.undefined;
-
-        const loadedPost = await connection.manager.findOne(Post, { where: { title: "successfully saved post" }});
+        const qr = connection.createQueryRunner();
+        const loadedPost = await connection.manager.findOne(qr, Post, { where: { title: "successfully saved post" }});
         expect(loadedPost).to.be.undefined;
 
-        const loadedCategory = await connection.manager.findOne(Category, { where: { name: "successfully saved category" }});
+        const loadedCategory = await connection.manager.findOne(qr, Category, { where: { name: "successfully saved category" }});
         expect(loadedCategory).to.be.undefined;
 
+        await qr.release();
     })));
 
     it("should rollback transaction if any operation in the method failed", () => Promise.all(connections.map(async connection => {
@@ -80,13 +82,14 @@ describe("transaction > method wrapped into transaction decorator", () => {
             throwError = err;
         }
         expect(throwError).not.to.be.undefined;
-
-        const loadedPost = await connection.manager.findOne(Post, { where: { title: "successfully saved post" }});
+        const qr = connection.createQueryRunner();
+        const loadedPost = await connection.manager.findOne(qr, Post, { where: { title: "successfully saved post" }});
         expect(loadedPost).to.be.undefined;
 
-        const loadedCategory = await connection.manager.findOne(Category, { where: { name: "successfully saved category" }});
+        const loadedCategory = await connection.manager.findOne(qr, Category, { where: { name: "successfully saved category" }});
         expect(loadedCategory).to.be.undefined;
 
+        await qr.release();
     })));
 
     it("should save even if second operation failed in method not wrapped into @Transaction decorator", () => Promise.all(connections.map(async connection => {
@@ -105,15 +108,16 @@ describe("transaction > method wrapped into transaction decorator", () => {
             throwError = err;
         }
         expect(throwError).not.to.be.undefined;
-
+        const qr = connection.createQueryRunner();
         // controller should have saved both post and category successfully
-        const loadedPost = await connection.manager.findOne(Post, { where: { title: "successfully saved post" }});
+        const loadedPost = await connection.manager.findOne(qr, Post, { where: { title: "successfully saved post" }});
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.should.be.eql(post);
 
-        const loadedCategory = await connection.manager.findOne(Category, { where: { name: "successfully saved category" }});
+        const loadedCategory = await connection.manager.findOne(qr, Category, { where: { name: "successfully saved category" }});
         expect(loadedCategory).to.be.undefined;
 
+        await qr.release();
     })));
 
     it("should inject repository and custom repository into method decorated with @Transaction", () => Promise.all(connections.map(async connection => {
@@ -129,15 +133,16 @@ describe("transaction > method wrapped into transaction decorator", () => {
         // controller should successfully call custom repository method and return the found entity
         expect(savedCategory).not.to.be.undefined;
         savedCategory!.should.be.eql(category);
-
+        const qr = connection.createQueryRunner();
         // controller should have saved both post and category successfully
-        const loadedPost = await connection.manager.findOne(Post, { where: { title: "successfully saved post" } });
+        const loadedPost = await connection.manager.findOne(qr, Post, { where: { title: "successfully saved post" } });
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.should.be.eql(post);
 
-        const loadedCategory = await connection.manager.findOne(Category, { where: { name: "successfully saved category" } });
+        const loadedCategory = await connection.manager.findOne(qr, Category, { where: { name: "successfully saved category" } });
         expect(loadedCategory).not.to.be.undefined;
         loadedCategory!.should.be.eql(category);
+        await qr.release();
     })));
 
     it("should execute all operations in the method in a transaction with a specified isolation", () => Promise.all(connections.map(async connection => {
@@ -150,15 +155,16 @@ describe("transaction > method wrapped into transaction decorator", () => {
 
         // call controller method
         await controller.saveWithNonDefaultIsolation.apply(controller, [post, category]);
-
+        const qr = connection.createQueryRunner();
         // controller should have saved both post and category successfully
-        const loadedPost = await connection.manager.findOne(Post, { where: { title: "successfully saved post" } });
+        const loadedPost = await connection.manager.findOne(qr, Post, { where: { title: "successfully saved post" } });
         expect(loadedPost).not.to.be.undefined;
         loadedPost!.should.be.eql(post);
 
-        const loadedCategory = await connection.manager.findOne(Category, { where: { name: "successfully saved category" } });
+        const loadedCategory = await connection.manager.findOne(qr, Category, { where: { name: "successfully saved category" } });
         expect(loadedCategory).not.to.be.undefined;
         loadedCategory!.should.be.eql(category);
+        await qr.release();
 
     })));
 

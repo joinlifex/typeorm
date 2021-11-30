@@ -16,6 +16,7 @@ describe("github issues > #184 [Postgres] Single-Inheritance not working with in
 
     it("single table inheritance should accept a Integer Type", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         // Saving via subtype repository works
         let employeeRepository = connection.getRepository(Employee);
         const employee = new Employee();
@@ -25,8 +26,8 @@ describe("github issues > #184 [Postgres] Single-Inheritance not working with in
         employee.salary = 200000;
         employee.shared = "e";
 
-        await employeeRepository.save(employee);
-        await employeeRepository.findOne(1);
+        await employeeRepository.save(qr, employee);
+        await employeeRepository.findOne(qr, 1);
 
         // let homesitterRepository = connection.getRepository(Homesitter);
         // const homesitter = new Homesitter();
@@ -45,8 +46,9 @@ describe("github issues > #184 [Postgres] Single-Inheritance not working with in
         employee2.lastName = "khudoiberdiev";
         employee2.salary = 200000;
         employee2.shared = "e";
-        await personRepository.save(employee2);
+        await personRepository.save(qr, employee2);
 
+        await qr.release();
     })));
 
 });

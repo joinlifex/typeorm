@@ -16,12 +16,13 @@ describe("persistence > multi primary keys", () => {
     describe("insert", function () {
 
         it("should insert entity when there are multi column primary keys", () => Promise.all(connections.map(async connection => {
+            const qr = connection.createQueryRunner();
             const post1 = new Post();
             post1.title = "Hello Post #1";
             post1.firstId = 1;
             post1.secondId = 2;
 
-            await connection.manager.save(post1);
+            await connection.manager.save(qr, post1);
 
             post1.should.be.eql({
                 firstId: 1,
@@ -35,10 +36,10 @@ describe("persistence > multi primary keys", () => {
             category1.name = "Category saved by cascades #1";
             category1.posts = [post1];
 
-            await connection.manager.save(category1);
+            await connection.manager.save(qr, category1);
 
             // now check
-            const posts = await connection.manager.find(Post, {
+            const posts = await connection.manager.find(qr, Post, {
                 join: {
                     alias: "post",
                     innerJoinAndSelect: {
@@ -60,6 +61,8 @@ describe("persistence > multi primary keys", () => {
                 }
             }]);
 
+        
+            await qr.release();
         })));
     });
 });

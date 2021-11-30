@@ -27,14 +27,18 @@ describe("github issues > #7106 shorten sequence names (for RDBMS with a limit) 
         const short = new ShortTableName();
         short.Name = "Dharawal";
         short.Value = 2500;
-        await connection.getRepository(ShortTableName).save(short);
+        const qr = connection.createQueryRunner();
+        await connection.getRepository(ShortTableName).save(qr, short);
+        await qr.release();
         return expect(connection.synchronize()).to.not.be.rejectedWith(QueryFailedError);
     })));
 
     it("should be able to work with long sequence name with long table name", () => Promise.all(connections.map(async (connection) => {
         const long = new ReallyReallyVeryVeryVeryLongTableName();
         long.Name = "Eora";
-        await connection.getRepository(ReallyReallyVeryVeryVeryLongTableName).save(long);
+        const qr = connection.createQueryRunner();
+        await connection.getRepository(ReallyReallyVeryVeryVeryLongTableName).save(qr, long);
+        await qr.release();
         return expect(connection.synchronize()).to.not.be.rejectedWith(QueryFailedError);
     })));
 

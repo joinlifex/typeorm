@@ -19,7 +19,8 @@ describe("github issues > #4277 Using cache in findAndCount and getManyAndCount 
   });
   beforeEach(async () => {
     await reloadTestingDatabases(connections);
-    await Promise.all(connections.map((conn) => {
+    await Promise.all(connections.map(async (conn) => {
+      const qr = conn.createQueryRunner();
       const repo = conn.getRepository(User);
   
       const usersToInsert = [...Array(10)].map((e) => {
@@ -28,7 +29,9 @@ describe("github issues > #4277 Using cache in findAndCount and getManyAndCount 
         return user;
       });
 
-      return repo.save(usersToInsert);
+      const res = await repo.save(qr, usersToInsert);
+      await qr.release();
+      return res;
     }));
   });
   after(() => closeTestingConnections(connections));
@@ -36,11 +39,12 @@ describe("github issues > #4277 Using cache in findAndCount and getManyAndCount 
   it("getManyAndCount and findAndCount should count correctly when using cacheId", () => Promise.all(connections.map(async connection => {
     const repo = connection.getRepository(User);
 
+    const qr = connection.createQueryRunner();
     const getManyAndCount = () => repo.createQueryBuilder()
       .cache("cache-id-1", 60000)
-      .getManyAndCount();
+      .getManyAndCount(qr);
 
-    const findAndCount = () => repo.findAndCount({
+    const findAndCount = () => repo.findAndCount(qr, {
       cache: {
         id: "cache-id-2",
         milliseconds: 60000,
@@ -56,7 +60,7 @@ describe("github issues > #4277 Using cache in findAndCount and getManyAndCount 
     expect(users2.length).equal(10);
     expect(count2).equal(10);
 
-    await repo.save({ name: "Jeremy Clarkson" });
+    await repo.save(qr, { name: "Jeremy Clarkson" });
     
     // After caching, both queries should be cached correctly. Save above should not affect results
     const [_users, _count] = await getManyAndCount();
@@ -66,16 +70,18 @@ describe("github issues > #4277 Using cache in findAndCount and getManyAndCount 
     const [_users2, _count2] = await findAndCount();
     expect(_users2.length).equal(10);
     expect(_count2).equal(10);
+    await qr.release();
   })));
 
   it("getManyAndCount and findAndCount should count correctly when NOT using cacheId", () => Promise.all(connections.map(async connection => {
     const repo = connection.getRepository(User);
+    const qr = connection.createQueryRunner();
 
     const getManyAndCount = () => repo.createQueryBuilder()
       .cache(60000)
-      .getManyAndCount();
+      .getManyAndCount(qr);
 
-    const findAndCount = () => repo.findAndCount({
+    const findAndCount = () => repo.findAndCount(qr, {
       cache: 60000,
     });
 
@@ -88,7 +94,7 @@ describe("github issues > #4277 Using cache in findAndCount and getManyAndCount 
     expect(users2.length).equal(10);
     expect(count2).equal(10);
 
-    await repo.save({ name: "Jeremy Clarkson" });
+    await repo.save(qr, { name: "Jeremy Clarkson" });
     
     // After caching, both queries should be cached correctly. Save above should not affect results
     const [_users, _count] = await getManyAndCount();
@@ -98,15 +104,17 @@ describe("github issues > #4277 Using cache in findAndCount and getManyAndCount 
     const [_users2, _count2] = await findAndCount();
     expect(_users2.length).equal(10);
     expect(_count2).equal(10);
+    await qr.release();
   })));
 
   it("getManyAndCount and findAndCount should count correctly when NOT using cache", () => Promise.all(connections.map(async connection => {
     const repo = connection.getRepository(User);
+    const qr = connection.createQueryRunner();
 
     const getManyAndCount = () => repo.createQueryBuilder()
-      .getManyAndCount();
+      .getManyAndCount(qr);
 
-    const findAndCount = () => repo.findAndCount();
+    const findAndCount = () => repo.findAndCount(qr);
 
 
     const [users, count] = await getManyAndCount();
@@ -117,7 +125,7 @@ describe("github issues > #4277 Using cache in findAndCount and getManyAndCount 
     expect(users2.length).equal(10);
     expect(count2).equal(10);
 
-    await repo.save({ name: "Jeremy Clarkson" });
+    await repo.save(qr, { name: "Jeremy Clarkson" });
     
     // After queries, both should NOT be cached. Save above SHOULD affect results
     const [_users, _count] = await getManyAndCount();
@@ -127,6 +135,7 @@ describe("github issues > #4277 Using cache in findAndCount and getManyAndCount 
     const [_users2, _count2] = await findAndCount();
     expect(_users2.length).equal(11);
     expect(_count2).equal(11);
+    await qr.release();
   })));
 
 });

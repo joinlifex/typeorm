@@ -18,8 +18,9 @@ describe.skip("github issues > #1926 Update fails for entity with compound relat
     it("Should update OneToMany entity with compound relation-based primary key", () => Promise.all(connections.map(async connection => {
         let role = new Role();
         role.title = "The Boss";
+        const qr = connection.createQueryRunner();
 
-        role = await connection.manager.save(role);
+        role = await connection.manager.save(qr, role);
 
         let event = new Event();
         event.title = "The Big Event";
@@ -31,12 +32,13 @@ describe.skip("github issues > #1926 Update fails for entity with compound relat
 
         event.roles = [eventRole];
 
-        event = await connection.manager.save(event);
+        event = await connection.manager.save(qr, event);
 
         event.roles[0].description = "Be a good boss";
 
         // Fails with:
         // QueryFailedError: duplicate key value violates unique constraint "PK_..."
-        await connection.manager.save(event);
+        await connection.manager.save(qr, event);
+        await qr.release();
     })));
 });

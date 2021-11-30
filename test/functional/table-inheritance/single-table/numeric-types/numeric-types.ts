@@ -20,6 +20,7 @@ describe("table-inheritance > single-table > numeric types", () => {
         if (connection.driver instanceof CockroachDriver) {
             return;
         }
+        const qr = connection.createQueryRunner();
 
         // -------------------------------------------------------------------------
         // Create
@@ -28,12 +29,12 @@ describe("table-inheritance > single-table > numeric types", () => {
         const student = new Student();
         student.name = "Alice";
         student.faculty = "Economics";
-        await connection.getRepository(Student).save(student);
+        await connection.getRepository(Student).save(qr, student);
 
         const teacher = new Teacher();
         teacher.name = "Roger";
         teacher.specialization = "Math";
-        await connection.getRepository(Teacher).save(teacher);
+        await connection.getRepository(Teacher).save(qr, teacher);
 
         // -------------------------------------------------------------------------
         // Select
@@ -41,7 +42,7 @@ describe("table-inheritance > single-table > numeric types", () => {
 
         let persons = await connection.manager
             .createQueryBuilder(Person, "person")
-            .getMany();
+            .getMany(qr);
 
         expect(persons[0].id).to.be.equal(1);
         expect(persons[0].type).to.be.equal(0);
@@ -52,6 +53,7 @@ describe("table-inheritance > single-table > numeric types", () => {
         expect(persons[1].type).to.be.equal(1);
         expect(persons[1].name).to.be.equal("Roger");
         expect((persons[1] as Teacher).specialization).to.be.equal("Math");
+        await qr.release();
     })));
 
 });

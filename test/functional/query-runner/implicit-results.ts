@@ -20,7 +20,7 @@ describe("query runner > implicit results", () => {
         const queryRunner = connection.createQueryRunner();
         
         // Create sample procedure with implicit results
-        await connection.query(`
+        await connection.query(queryRunner, `
           CREATE OR REPLACE PROCEDURE TEST_IMPLICIT_RESULTS
           AS
             test_array dbms_sql.varchar2_table;
@@ -40,13 +40,13 @@ describe("query runner > implicit results", () => {
           END;
         `);
 
-        expect(result).to.be.an('array');
+        expect(result).to.be.an("array");
         expect(result).to.eql(
           [
             [
-              { COLUMN_VALUE: 'First' },
-              { COLUMN_VALUE: 'Second' },
-              { COLUMN_VALUE: 'Third' },
+              { COLUMN_VALUE: "First" },
+              { COLUMN_VALUE: "Second" },
+              { COLUMN_VALUE: "Third" },
             ]
           ]
         );

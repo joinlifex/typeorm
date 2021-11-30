@@ -18,11 +18,12 @@ describe("github issues > #8346 MySQL: Regression when using take, orderBy, and 
     after(() => closeTestingConnections(connections));
 
     it("should return customers ordered by contacts", () => Promise.all(connections.map(async connection => {
-        const [user1, user2]  = await connection.getRepository(Customer).save([
+        const qr = connection.createQueryRunner();
+        const [user1, user2]  = await connection.getRepository(Customer).save(qr, [
             { name: "userA" },
             { name: "userB" },
         ]);
-        await connection.getRepository(CustomerContact).save([
+        await connection.getRepository(CustomerContact).save(qr, [
             { firstName: "firstName1", lastName: "lastName1", customer: user1 },
             { firstName: "firstName2", lastName: "lastName2", customer: user2 },
         ]);
@@ -30,13 +31,14 @@ describe("github issues > #8346 MySQL: Regression when using take, orderBy, and 
         const customerRepository = connection.getRepository(Customer);
 
         const results = await customerRepository
-            .createQueryBuilder('customer')
-            .leftJoinAndSelect('customer.contacts', 'contacts')
+            .createQueryBuilder("customer")
+            .leftJoinAndSelect("customer.contacts", "contacts")
             .take(10)
-            .orderBy('contacts.firstName', 'DESC')
-            .getMany();
+            .orderBy("contacts.firstName", "DESC")
+            .getMany(qr);
 
         expect(results[0].id).to.equal(user2.id);
         expect(results[1].id).to.equal(user1.id);
+        await qr.release();
     })));
-})
+});

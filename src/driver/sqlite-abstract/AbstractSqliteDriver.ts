@@ -426,7 +426,7 @@ export abstract class AbstractSqliteDriver implements Driver {
      */
     parseTableName(target: EntityMetadata | Table | View | TableForeignKey | string): { database?: string, schema?: string, tableName: string } {
         const driverDatabase = this.database;
-        const driverSchema = undefined
+        const driverSchema = undefined;
 
         if (target instanceof Table || target instanceof View) {
             const parsed = this.parseTableName(target.name);
@@ -455,7 +455,7 @@ export abstract class AbstractSqliteDriver implements Driver {
                 database: target.database || driverDatabase,
                 schema: target.schema || driverSchema,
                 tableName: target.tableName
-            }
+            };
 
         }
 

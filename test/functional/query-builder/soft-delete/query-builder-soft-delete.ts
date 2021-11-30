@@ -21,19 +21,20 @@ describe("query builder > soft-delete", () => {
 
     it("should perform soft deletion and recovery correctly", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user = new User();
         user.name = "Alex Messer";
 
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         await connection
             .createQueryBuilder()
             .softDelete()
             .from(User)
             .where("name = :name", { name: "Alex Messer" })
-            .execute();
+            .execute(qr);
 
-        const loadedUser1 = await connection.getRepository(User).findOne(
+        const loadedUser1 = await connection.getRepository(User).findOne(qr, 
             { name: "Alex Messer" },
             { withDeleted: true }
         );
@@ -45,18 +46,20 @@ describe("query builder > soft-delete", () => {
             .restore()
             .from(User)
             .where("name = :name", { name: "Alex Messer" })
-            .execute();
+            .execute(qr);
 
-        const loadedUser2 = await connection.getRepository(User).findOne({ name: "Alex Messer" });
+        const loadedUser2 = await connection.getRepository(User).findOne(qr, { name: "Alex Messer" });
         expect(loadedUser2).to.exist;
         expect(loadedUser2!.deletedAt).to.be.equals(null);
 
+        await qr.release();
     })));
 
     it("should soft-delete and restore properties inside embeds as well", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         // save few photos
-        await connection.manager.save(Photo, {
+        await connection.manager.save(qr, Photo, {
             url: "1.jpg",
             counters: {
                 likes: 2,
@@ -64,7 +67,7 @@ describe("query builder > soft-delete", () => {
                 comments: 1,
             }
         });
-        await connection.manager.save(Photo, {
+        await connection.manager.save(qr, Photo, {
             url: "2.jpg",
             counters: {
                 likes: 0,
@@ -82,12 +85,12 @@ describe("query builder > soft-delete", () => {
                     likes: 2
                 }
             })
-            .execute();
+            .execute(qr);
         
-        const loadedPhoto1 = await connection.getRepository(Photo).findOne({ url: "1.jpg" });
+        const loadedPhoto1 = await connection.getRepository(Photo).findOne(qr, { url: "1.jpg" });
         expect(loadedPhoto1).to.be.undefined;
 
-        const loadedPhoto2 = await connection.getRepository(Photo).findOne({ url: "2.jpg" });
+        const loadedPhoto2 = await connection.getRepository(Photo).findOne(qr, { url: "2.jpg" });
         loadedPhoto2!.should.be.eql({
             id: 2,
             url: "2.jpg",
@@ -109,9 +112,9 @@ describe("query builder > soft-delete", () => {
                 likes: 2
             }
         })
-        .execute();
+        .execute(qr);
 
-        const restoredPhoto2 = await connection.getRepository(Photo).findOne({ url: "1.jpg" });
+        const restoredPhoto2 = await connection.getRepository(Photo).findOne(qr, { url: "1.jpg" });
         restoredPhoto2!.should.be.eql({
             id: 1,
             url: "1.jpg",
@@ -123,12 +126,13 @@ describe("query builder > soft-delete", () => {
                 deletedAt: null
             }
         });
-
-
+        
+        await qr.release();
     })));
 
     it("should perform soft delete with limit correctly", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user1 = new User();
         user1.name = "Alex Messer";
         const user2 = new User();
@@ -136,7 +140,7 @@ describe("query builder > soft-delete", () => {
         const user3 = new User();
         user3.name = "Brad Porter";
 
-        await connection.manager.save([user1, user2, user3]);
+        await connection.manager.save(qr, [user1, user2, user3]);
 
         const limitNum = 2;
 
@@ -145,9 +149,9 @@ describe("query builder > soft-delete", () => {
             .softDelete()
             .from(User)
             .limit(limitNum)
-            .execute();
+            .execute(qr);
 
-            const loadedUsers = await connection.getRepository(User).find({
+            const loadedUsers = await connection.getRepository(User).find(qr, {
                 where: {
                     deletedAt: Not(IsNull())
                 },
@@ -160,14 +164,16 @@ describe("query builder > soft-delete", () => {
             .softDelete()
             .from(User)
             .limit(limitNum)
-            .execute().should.be.rejectedWith(LimitOnUpdateNotSupportedError);
+            .execute(qr).should.be.rejectedWith(LimitOnUpdateNotSupportedError);
         }
 
+        await qr.release();
     })));
 
 
     it("should perform restory with limit correctly", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user1 = new User();
         user1.name = "Alex Messer";
         const user2 = new User();
@@ -175,7 +181,7 @@ describe("query builder > soft-delete", () => {
         const user3 = new User();
         user3.name = "Brad Porter";
 
-        await connection.manager.save([user1, user2, user3]);
+        await connection.manager.save(qr, [user1, user2, user3]);
 
         const limitNum = 2;
 
@@ -183,15 +189,15 @@ describe("query builder > soft-delete", () => {
             await connection.createQueryBuilder()
             .softDelete()
             .from(User)
-            .execute();
+            .execute(qr);
 
             await connection.createQueryBuilder()
             .restore()
             .from(User)
             .limit(limitNum)
-            .execute();
+            .execute(qr);
 
-            const loadedUsers = await connection.getRepository(User).find();
+            const loadedUsers = await connection.getRepository(User).find(qr);
             expect(loadedUsers).to.exist;
             loadedUsers!.length.should.be.equal(limitNum);
         } else {
@@ -199,17 +205,19 @@ describe("query builder > soft-delete", () => {
             .restore()
             .from(User)
             .limit(limitNum)
-            .execute().should.be.rejectedWith(LimitOnUpdateNotSupportedError);
+            .execute(qr).should.be.rejectedWith(LimitOnUpdateNotSupportedError);
         }
 
+        await qr.release();
     })));
 
     it("should throw error when delete date column is missing", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user = new UserWithoutDeleteDateColumn();
         user.name = "Alex Messer";
 
-        await connection.manager.save(user);
+        await connection.manager.save(qr, user);
 
         let error1: Error | undefined;
         try {
@@ -217,7 +225,7 @@ describe("query builder > soft-delete", () => {
                 .softDelete()
                 .from(UserWithoutDeleteDateColumn)
                 .where("name = :name", { name: "Alex Messer" })
-                .execute();
+                .execute(qr);
         } catch (err) {
             error1 = err;
         }
@@ -229,17 +237,19 @@ describe("query builder > soft-delete", () => {
                 .restore()
                 .from(UserWithoutDeleteDateColumn)
                 .where("name = :name", { name: "Alex Messer" })
-                .execute();
+                .execute(qr);
         } catch (err) {
             error2 = err;
         }
         expect(error2).to.be.an.instanceof(MissingDeleteDateColumnError);
 
+        await qr.release();
     })));
 
     it("should find with soft deleted relations", () => Promise.all(connections.map(async connection => {
         const photoRepository = connection.getRepository(Photo);
         const userRepository = connection.getRepository(User);
+        const qr = connection.createQueryRunner();
           
         const photo1 = new Photo();
         photo1.url = "image-1.jpg";
@@ -255,26 +265,28 @@ describe("query builder > soft-delete", () => {
         user2.name = "user-2";
         user2.picture = photo2;
 
-        await photoRepository.save(photo1);
-        await photoRepository.save(photo2);
-        await userRepository.save(user1);
-        await userRepository.save(user2);
+        await photoRepository.save(qr, photo1);
+        await photoRepository.save(qr, photo2);
+        await userRepository.save(qr, user1);
+        await userRepository.save(qr, user2);
 
-        const users = await userRepository.find({
+        const users = await userRepository.find(qr, {
             relations: ["picture"]
         });
 
         expect(users[0].picture.deletedAt).to.equal(null);
         expect(users[1].picture.deletedAt).to.equal(null);
 
-        await photoRepository.softDelete(photo1);
+        await photoRepository.softDelete(qr, photo1);
 
-        const usersWithSoftDelete = await userRepository.find({
+        const usersWithSoftDelete = await userRepository.find(qr, {
             withDeleted: true,
             relations: ["picture"]
         });
 
         expect(usersWithSoftDelete[0].picture.deletedAt).to.not.equal(null);
         expect(usersWithSoftDelete[1].picture.deletedAt).to.equal(null);
+        
+        await qr.release();
     })));
 });

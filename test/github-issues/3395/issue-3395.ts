@@ -14,13 +14,15 @@ describe("github issues > #3395 Transform.from does nothing when column is NULL"
 
     it("should run transform from if column is null", () => Promise.all(connections.map(async function (connection) {
 
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.id = 1;
-        await connection.getRepository(Post).save(post);
+        await connection.getRepository(Post).save(qr, post);
 
-        const loadedPost = await connection.getRepository(Post).findOne(1);
+        const loadedPost = await connection.getRepository(Post).findOne(qr, 1);
 
         loadedPost!.text!.should.be.eq("This is null");
+        await qr.release();
     })));
 
 });

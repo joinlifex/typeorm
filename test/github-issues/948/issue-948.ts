@@ -18,11 +18,13 @@ describe("github issues > #948 EntityManager#save always considers a Postgres ar
         const user = new User();
         user.name = "Hello Test";
         user.roles = ["admin", "user"];
-        await connection.manager.save(user);
+        const queryRunner = connection.createQueryRunner();
+        await connection.manager.save(queryRunner, user);
 
         // todo: produces update query but it should not
-        await connection.manager.save(user);
+        await connection.manager.save(queryRunner, user);
 
+        queryRunner.release();
     })));
 
 });

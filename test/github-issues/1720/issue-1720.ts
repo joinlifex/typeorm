@@ -17,20 +17,22 @@ describe("github issues > #1720 Listener not invoked when relation loaded throug
     it("should work as expected", () => Promise.all(connections.map(async connection => {
         const category1 = new Category();
         category1.name = "cat #1";
-        await connection.manager.save(category1);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, category1);
 
         const category2 = new Category();
         category2.name = "cat #2";
-        await connection.manager.save(category2);
+        await connection.manager.save(qr, category2);
 
         const post1 = new Post();
         post1.title = "post #1";
         post1.categories = [category1, category2];
-        await connection.manager.save(post1);
+        await connection.manager.save(qr, post1);
 
-        const loadedPost = await connection.manager.findOne(Post, { relations: ["categories"] });
+        const loadedPost = await connection.manager.findOne(qr, Post, { relations: ["categories"] });
         loadedPost!.categories[0].loaded.should.be.equal(true);
         loadedPost!.categories[1].loaded.should.be.equal(true);
+        await qr.release();
     })));
 
 });

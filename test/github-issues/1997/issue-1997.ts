@@ -51,12 +51,14 @@ describe("github issues > #1997 enum type not working in postgres when defined i
         const post = new Post();
         post.enum = "A";
         post.name = "Post #1";
-        await postRepository.save(post);
+        const qr = connection.createQueryRunner();
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.enum.should.be.equal(post.enum);
 
         table!.findColumnByName("enum")!.type.should.be.equal("enum");
+        await qr.release();
     })));
 
     it("should create ENUM column and revert creation", () => Promise.all(connections.map(async connection => {

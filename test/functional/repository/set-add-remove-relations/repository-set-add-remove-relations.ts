@@ -24,30 +24,31 @@ describe.skip("repository > set/add/remove relation methods", function() {
     // -------------------------------------------------------------------------
 
     it("add elements to many-to-many from owner side", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
         // save a new category
-        const newCategory1 = categoryRepository.create();
+        const newCategory1 = categoryRepository.create(qr);
         newCategory1.name = "Animals";
-        await categoryRepository.save(newCategory1);
+        await categoryRepository.save(qr, newCategory1);
 
         // save a new category
-        const newCategory2 = categoryRepository.create();
+        const newCategory2 = categoryRepository.create(qr);
         newCategory2.name = "Kids";
-        await categoryRepository.save(newCategory2);
+        await categoryRepository.save(qr, newCategory2);
 
         // save a new post
-        const newPost = postRepository.create();
+        const newPost = postRepository.create(qr);
         newPost.title = "Super post";
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         // add categories to a post
         // await postSpecificRepository.addToRelation(post => post.manyCategories, newPost.id, [newCategory1.id, newCategory2.id]);
 
         // load a post, want to have categories count
-        const loadedPost = await postRepository.findOne(1, {
+        const loadedPost = await postRepository.findOne(qr, 1, {
             join: {
                 alias: "post",
                 leftJoinAndSelect: {
@@ -61,33 +62,35 @@ describe.skip("repository > set/add/remove relation methods", function() {
         expect(loadedPost!.manyCategories![0]).not.to.be.undefined;
         expect(loadedPost!.manyCategories![1]).not.to.be.undefined;
 
+        await qr.release();
     })));
 
     it("add elements to many-to-many from inverse side", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
         // save a new post
-        const newPost1 = postRepository.create();
+        const newPost1 = postRepository.create(qr);
         newPost1.title = "post #1";
-        await postRepository.save(newPost1);
+        await postRepository.save(qr, newPost1);
 
         // save a new post
-        const newPost2 = postRepository.create();
+        const newPost2 = postRepository.create(qr);
         newPost2.title = "post #2";
-        await postRepository.save(newPost2);
+        await postRepository.save(qr, newPost2);
 
         // save a new category
-        const newCategory = categoryRepository.create();
+        const newCategory = categoryRepository.create(qr);
         newCategory.name = "Kids";
-        await categoryRepository.save(newCategory);
+        await categoryRepository.save(qr, newCategory);
 
         // add categories to a post
         // await categorySpecificRepository.addToRelation(category => category.manyPosts, newCategory.id, [newPost1.id, newPost2.id]);
 
         // load a post, want to have categories count
-        const loadedCategory = await categoryRepository.findOne(1, {
+        const loadedCategory = await categoryRepository.findOne(qr, 1, {
             join: {
                 alias: "category",
                 leftJoinAndSelect: { manyPosts: "category.manyPosts" } }
@@ -98,39 +101,42 @@ describe.skip("repository > set/add/remove relation methods", function() {
         expect(loadedCategory!.manyPosts).not.to.be.undefined;
         expect(loadedCategory!.manyPosts![0]).not.to.be.undefined;
         expect(loadedCategory!.manyPosts![1]).not.to.be.undefined;
+        
+        await qr.release();
     })));
 
     it("remove elements to many-to-many from owner side", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
         // save a new category
-        const newCategory1 = categoryRepository.create();
+        const newCategory1 = categoryRepository.create(qr);
         newCategory1.name = "Animals";
-        await categoryRepository.save(newCategory1);
+        await categoryRepository.save(qr, newCategory1);
 
         // save a new category
-        const newCategory2 = categoryRepository.create();
+        const newCategory2 = categoryRepository.create(qr);
         newCategory2.name = "Kids";
-        await categoryRepository.save(newCategory2);
+        await categoryRepository.save(qr, newCategory2);
 
         // save a new category
-        const newCategory3 = categoryRepository.create();
+        const newCategory3 = categoryRepository.create(qr);
         newCategory3.name = "Adults";
-        await categoryRepository.save(newCategory3);
+        await categoryRepository.save(qr, newCategory3);
 
         // save a new post with categories
-        const newPost = postRepository.create();
+        const newPost = postRepository.create(qr);
         newPost.title = "Super post";
         newPost.manyCategories = [newCategory1, newCategory2, newCategory3];
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         // add categories to a post
         // await postSpecificRepository.removeFromRelation(post => post.manyCategories, newPost.id, [newCategory1.id, newCategory3.id]);
 
         // load a post, want to have categories count
-        const loadedPost = await postRepository.findOne(1, {
+        const loadedPost = await postRepository.findOne(qr, 1, {
             join: {
                 alias: "post",
                 leftJoinAndSelect: { manyCategories: "post.manyCategories" }
@@ -142,39 +148,41 @@ describe.skip("repository > set/add/remove relation methods", function() {
         loadedPost!.manyCategories.length.should.be.equal(1);
         loadedPost!.manyCategories![0].name.should.be.equal("Kids");
 
+        await qr.release();
     })));
 
     it("remove elements to many-to-many from inverse side", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
         // save a new category
-        const newPost1 = postRepository.create();
+        const newPost1 = postRepository.create(qr);
         newPost1.title = "post #1";
-        await postRepository.save(newPost1);
+        await postRepository.save(qr, newPost1);
 
         // save a new category
-        const newPost2 = postRepository.create();
+        const newPost2 = postRepository.create(qr);
         newPost2.title = "post #2";
-        await postRepository.save(newPost2);
+        await postRepository.save(qr, newPost2);
 
         // save a new category
-        const newPost3 = postRepository.create();
+        const newPost3 = postRepository.create(qr);
         newPost3.title = "post #3";
-        await postRepository.save(newPost3);
+        await postRepository.save(qr, newPost3);
 
         // save a new post with categories
-        const newCategory = categoryRepository.create();
+        const newCategory = categoryRepository.create(qr);
         newCategory.name = "SuperCategory";
         newCategory.manyPosts = [newPost1, newPost2, newPost3];
-        await categoryRepository.save(newCategory);
+        await categoryRepository.save(qr, newCategory);
 
         // add categories to a post
         // await categorySpecificRepository.removeFromRelation(post => post.manyPosts, newCategory.id, [newPost1.id, newPost3.id]);
 
         // load a post, want to have categories count
-        const loadedCategory = await categoryRepository.findOne(1, {
+        const loadedCategory = await categoryRepository.findOne(qr, 1, {
             join: {
                 alias: "category",
                 leftJoinAndSelect: { manyPosts: "category.manyPosts" }
@@ -185,29 +193,31 @@ describe.skip("repository > set/add/remove relation methods", function() {
         expect(loadedCategory!.manyPosts).not.to.be.undefined;
         loadedCategory!.manyPosts.length.should.be.equal(1);
         loadedCategory!.manyPosts[0].title.should.be.equal("post #2");
+        await qr.release();
     })));
 
     // todo: fix this test later
     it("set element to one-to-many relation", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
         // save a new category
-        const newCategory1 = categoryRepository.create();
+        const newCategory1 = categoryRepository.create(qr);
         newCategory1.name = "Animals";
-        await categoryRepository.save(newCategory1);
+        await categoryRepository.save(qr, newCategory1);
 
         // save a new post
-        const newPost = postRepository.create();
+        const newPost = postRepository.create(qr);
         newPost.title = "Super post";
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         // add categories to a post
         // await postSpecificRepository.setRelation(post => post.categories, newPost.id, newCategory1.id);
 
         // load a post, want to have categories count
-        const loadedPost = await postRepository.findOne(1, {
+        const loadedPost = await postRepository.findOne(qr, 1, {
             join: {
                 alias: "post",
                 leftJoinAndSelect: { categories: "post.categories" }
@@ -218,28 +228,30 @@ describe.skip("repository > set/add/remove relation methods", function() {
         expect(loadedPost!.categories).not.to.be.undefined;
         expect(loadedPost!.categories![0]).not.to.be.undefined;
 
+        await qr.release();
     })));
 
     it("set element to many-to-one relation", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
         // save a new category
-        const newPost = postRepository.create();
+        const newPost = postRepository.create(qr);
         newPost.title = "post #1";
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         // save a new category
-        const newCategory = categoryRepository.create();
+        const newCategory = categoryRepository.create(qr);
         newCategory.name = "Kids";
-        await categoryRepository.save(newCategory);
+        await categoryRepository.save(qr, newCategory);
 
         // add categories to a post
         // await categorySpecificRepository.setRelation(category => category.post, newCategory.id, newPost.id);
 
         // load a post, want to have categories count
-        const loadedCategory = await categoryRepository.findOne(1, {
+        const loadedCategory = await categoryRepository.findOne(qr, 1, {
             join: {
                 alias: "category",
                 leftJoinAndSelect: { post: "category.post" }
@@ -248,29 +260,31 @@ describe.skip("repository > set/add/remove relation methods", function() {
 
         expect(loadedCategory!).not.to.be.undefined;
         expect(loadedCategory!.post).not.to.be.undefined;
+        await qr.release();
     })));
 
     it("set element to NULL in one-to-many relation", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
         // save a new category
-        const newCategory1 = categoryRepository.create();
+        const newCategory1 = categoryRepository.create(qr);
         newCategory1.name = "Animals";
-        await categoryRepository.save(newCategory1);
+        await categoryRepository.save(qr, newCategory1);
 
         // save a new post
-        const newPost = postRepository.create();
+        const newPost = postRepository.create(qr);
         newPost.title = "Super post";
         newPost.categories = [newCategory1];
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         // add categories to a post
         // await postSpecificRepository.setRelation(post => post.categories, newPost.id, null);
 
         // load a post, want to have categories count
-        const loadedPost = await postRepository.findOne(1, {
+        const loadedPost = await postRepository.findOne(qr, 1, {
             join: {
                 alias: "post",
                 leftJoinAndSelect: { categories: "post.categories" }
@@ -279,29 +293,31 @@ describe.skip("repository > set/add/remove relation methods", function() {
 
         expect(loadedPost!).not.to.be.undefined;
         expect(loadedPost!.categories).to.be.eql([]);
+        await qr.release();
     })));
 
     it("set element to NULL in many-to-one relation", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const postRepository = connection.getRepository(Post);
         const categoryRepository = connection.getRepository(Category);
 
         // save a new category
-        const newPost = postRepository.create();
+        const newPost = postRepository.create(qr);
         newPost.title = "post #1";
-        await postRepository.save(newPost);
+        await postRepository.save(qr, newPost);
 
         // save a new category
-        const newCategory = categoryRepository.create();
+        const newCategory = categoryRepository.create(qr);
         newCategory.name = "Kids";
         newCategory.post = newPost;
-        await categoryRepository.save(newCategory);
+        await categoryRepository.save(qr, newCategory);
 
         // add categories to a post
         // await categorySpecificRepository.setRelation(category => category.post, newCategory.id, null);
 
         // load a post, want to have categories count
-        const loadedCategory = await categoryRepository.findOne(1, {
+        const loadedCategory = await categoryRepository.findOne(qr, 1, {
             join: {
                 alias: "category",
                 leftJoinAndSelect: { post: "category.post" }
@@ -311,6 +327,7 @@ describe.skip("repository > set/add/remove relation methods", function() {
         expect(loadedCategory).not.to.be.undefined;
         expect(loadedCategory!.post).to.be.undefined;
 
+        await qr.release();
     })));
 
 });

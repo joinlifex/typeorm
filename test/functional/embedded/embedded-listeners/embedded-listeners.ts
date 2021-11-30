@@ -15,16 +15,17 @@ describe("other issues > entity listeners must work in embeddeds as well", () =>
 
     it("getters and setters should work correctly", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.title = "Super title";
         post.text = "About this post";
-        await connection.manager.save(post);
+        await connection.manager.save(qr, post);
 
         const loadedPost = await connection
             .manager
             .createQueryBuilder(Post, "post")
             .where("post.id = :id", { id: post.id })
-            .getOne();
+            .getOne(qr);
 
         expect(loadedPost).not.to.be.undefined;
         expect(loadedPost!.title).not.to.be.undefined;
@@ -32,6 +33,7 @@ describe("other issues > entity listeners must work in embeddeds as well", () =>
         loadedPost!.title.should.be.equal("Super title");
         loadedPost!.text.should.be.equal("About this post");
 
+        await qr.release();
     })));
 
 });

@@ -16,7 +16,8 @@ describe("embedded > multiple-primary-columns-with-nested-embed", () => {
     after(() => closeTestingConnections(connections));
 
     it("should insert, load, update and remove entities with embeddeds when primary column defined in main and in embedded entities", () => Promise.all(connections.map(async connection => {
-
+        const qr = connection.createQueryRunner();
+        
         const postRepository = connection.getRepository(Post);
 
         const post1 = new Post();
@@ -30,7 +31,7 @@ describe("embedded > multiple-primary-columns-with-nested-embed", () => {
         post1.counters.subcounters = new Subcounters();
         post1.counters.subcounters.version = 1;
         post1.counters.subcounters.watches = 5;
-        await connection.getRepository(Post).save(post1);
+        await connection.getRepository(Post).save(qr, post1);
 
         const post2 = new Post();
         post2.id = 2;
@@ -43,12 +44,12 @@ describe("embedded > multiple-primary-columns-with-nested-embed", () => {
         post2.counters.subcounters = new Subcounters();
         post2.counters.subcounters.version = 1;
         post2.counters.subcounters.watches = 10;
-        await postRepository.save(post2);
+        await postRepository.save(qr, post2);
 
         const loadedPosts = await connection.manager
             .createQueryBuilder(Post, "post")
             .orderBy("post.id")
-            .getMany();
+            .getMany(qr);
 
         expect(loadedPosts[0].should.be.eql(
             {
@@ -83,7 +84,7 @@ describe("embedded > multiple-primary-columns-with-nested-embed", () => {
             }
         ));
 
-        const loadedPost = (await postRepository.findOne({ id: 1, counters: { code: 1, subcounters: { version: 1 } } }))!;
+        const loadedPost = (await postRepository.findOne(qr, { id: 1, counters: { code: 1, subcounters: { version: 1 } } }))!;
         expect(loadedPost.should.be.eql(
             {
                 id: 1,
@@ -103,9 +104,9 @@ describe("embedded > multiple-primary-columns-with-nested-embed", () => {
 
         loadedPost.counters.favorites += 1;
         loadedPost.counters.subcounters.watches += 1;
-        await postRepository.save(loadedPost);
+        await postRepository.save(qr, loadedPost);
 
-        const loadedPost2 = (await postRepository.findOne({ id: 1, counters: { code: 1, subcounters: { version: 1 } } }))!;
+        const loadedPost2 = (await postRepository.findOne(qr, { id: 1, counters: { code: 1, subcounters: { version: 1 } } }))!;
         expect(loadedPost2.should.be.eql(
             {
                 id: 1,
@@ -123,11 +124,13 @@ describe("embedded > multiple-primary-columns-with-nested-embed", () => {
             }
         ));
 
-        await postRepository.remove(loadedPost2);
+        await postRepository.remove(qr, loadedPost2);
 
-        const loadedPosts2 = (await postRepository.find())!;
+        const loadedPosts2 = (await postRepository.find(qr))!;
         expect(loadedPosts2.length).to.be.equal(1);
         expect(loadedPosts2[0].title).to.be.equal("About airplanes");
+    
+        await qr.release();
     })));
 
 });

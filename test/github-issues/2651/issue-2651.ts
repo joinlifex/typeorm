@@ -16,21 +16,23 @@ describe("github issues > #2651 set shouldn't have update statements twice when 
 
     it("should add and remove relations of an entity if given a mix of ids and objects", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const post1 = new Post();
         post1.title = "post #1";
-        await connection.manager.save(post1);
+        await connection.manager.save(qr, post1);
 
         // within this issue update was failing
-        await connection.manager.update(Post, {
+        await connection.manager.update(qr, Post, {
             id: 1
         }, {
             title: "updated post",
             updatedAt: new Date()
         });
 
-        const loadedPost1 = await connection.manager.findOneOrFail(Post, { id: 1 });
+        const loadedPost1 = await connection.manager.findOneOrFail(qr, Post, { id: 1 });
         expect(loadedPost1.title).to.be.eql("updated post");
 
+        await qr.release();
     })));
 
 });

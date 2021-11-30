@@ -23,9 +23,10 @@ describe("github issues > #306 embeddeds with custom column name don't work", ()
         race.duration.durationHours = 10;
         race.duration.durationMinutes = 30;
 
-        await connection.manager.save(race);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, race);
 
-        const loadedRace = await connection.manager.findOne(Race, { name: "National Race" });
+        const loadedRace = await connection.manager.findOne(qr, Race, { name: "National Race" });
         expect(loadedRace).to.be.not.undefined;
         expect(loadedRace!.id).to.be.not.undefined;
         expect(loadedRace!.duration).to.be.not.undefined;
@@ -35,6 +36,7 @@ describe("github issues > #306 embeddeds with custom column name don't work", ()
         loadedRace!.duration.durationHours.should.be.equal(10);
         loadedRace!.duration.durationMinutes.should.be.equal(30);
 
+        await qr.release();
     })));
 
 });

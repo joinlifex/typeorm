@@ -16,8 +16,10 @@ describe("database schema > column types > postgres", () => {
 
         for (const connection of connections) {
             if (connection.driver instanceof PostgresDriver) {
+                const qr = connection.createQueryRunner();
                 // We want to have UTC as timezone
-                await connection.query("SET TIME ZONE 'UTC';");
+                await connection.query(qr, "SET TIME ZONE 'UTC';");
+                await qr.release();
             }
         }
     });
@@ -30,6 +32,7 @@ describe("database schema > column types > postgres", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new Post();
         post.id = 1;
@@ -67,7 +70,7 @@ describe("database schema > column types > postgres", () => {
         post.timestampWithTimeZone.setMilliseconds(0);
         post.timestamptz = new Date();
         post.timestamptz.setMilliseconds(0);
-        post.boolean = true;
+        post["boolean"] = true;
         post.bool = false;
         post.enum = "A";
         post.point = "(10,20)";
@@ -97,9 +100,9 @@ describe("database schema > column types > postgres", () => {
         post.simpleArray = ["A", "B", "C"];
         post.simpleJson = { param: "VALUE" };
         post.simpleEnum = "A";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.integer.should.be.equal(post.integer);
@@ -235,6 +238,7 @@ describe("database schema > column types > postgres", () => {
         table!.findColumnByName("simpleJson")!.type.should.be.equal("text");
         table!.findColumnByName("simpleEnum")!.type.should.be.equal("enum");
 
+        await qr.release();
     })));
 
     it("all types should work correctly - persist and hydrate when options are specified on columns", () => Promise.all(connections.map(async connection => {
@@ -243,6 +247,7 @@ describe("database schema > column types > postgres", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post_with_options");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new PostWithOptions();
         post.id = 1;
@@ -257,9 +262,9 @@ describe("database schema > column types > postgres", () => {
         post.time = "15:30:13.278";
         post.timeWithTimeZone = "15:30:13.27801+05";
         post.int4range = "[2,4)";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.numeric.should.be.equal(post.numeric);
         loadedPost.decimal.should.be.equal(post.decimal);
@@ -299,6 +304,7 @@ describe("database schema > column types > postgres", () => {
         table!.findColumnByName("int4range")!.type.should.be.equal("int4range");
         table!.findColumnByName("int4range")!.isNullable!.should.be.equal(true);
 
+        await qr.release();
     })));
 
     it("all types should work correctly - persist and hydrate when types are not specified on columns", () => Promise.all(connections.map(async connection => {
@@ -307,6 +313,7 @@ describe("database schema > column types > postgres", () => {
         const queryRunner = connection.createQueryRunner();
         const table = await queryRunner.getTable("post_without_types");
         await queryRunner.release();
+        const qr = connection.createQueryRunner();
 
         const post = new PostWithoutTypes();
         post.id = 1;
@@ -314,9 +321,9 @@ describe("database schema > column types > postgres", () => {
         post.bit = true;
         post.datetime = new Date();
         post.datetime.setMilliseconds(0);
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
-        const loadedPost = (await postRepository.findOne(1))!;
+        const loadedPost = (await postRepository.findOne(qr, 1))!;
         loadedPost.id.should.be.equal(post.id);
         loadedPost.name.should.be.equal(post.name);
         loadedPost.bit.should.be.equal(post.bit);
@@ -327,6 +334,7 @@ describe("database schema > column types > postgres", () => {
         table!.findColumnByName("bit")!.type.should.be.equal("boolean");
         table!.findColumnByName("datetime")!.type.should.be.equal("timestamp without time zone");
 
+        await qr.release();
     })));
 
 });

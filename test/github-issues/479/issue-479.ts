@@ -28,9 +28,10 @@ describe("github issues > #479 orWhere breaks skip / take", () => {
         const car6 = new Car();
         car6.name = "Porshe";
 
+        const qr = connection.createQueryRunner();
         await connection
             .getRepository(Car)
-            .save([car1, car2, car3, car4, car5, car6]);
+            .save(qr, [car1, car2, car3, car4, car5, car6]);
 
         const cars = await connection
             .getRepository(Car)
@@ -40,9 +41,10 @@ describe("github issues > #479 orWhere breaks skip / take", () => {
             .orderBy("car.id")
             .skip(0)
             .take(1)
-            .getMany();
+            .getMany(qr);
 
         expect(cars.length).to.be.equal(1);
+        await qr.release();
     })));
 
 });

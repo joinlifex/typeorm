@@ -18,64 +18,67 @@ describe("transaction > transaction with entity manager", () => {
     it("should execute all operations in a single transaction", () => Promise.all(connections.map(async connection => {
 
         let postId: number|undefined = undefined, categoryId: number|undefined = undefined;
+        const qr = connection.createQueryRunner();
 
-        await connection.manager.transaction(async entityManager => {
+        await connection.manager.transaction(qr, async queryRunner => {
 
             const post = new Post();
             post.title = "Post #1";
-            await entityManager.save(post);
+            await queryRunner.manager.save(queryRunner, post);
 
             const category = new Category();
             category.name = "Category #1";
-            await entityManager.save(category);
+            await queryRunner.manager.save(queryRunner, category);
 
             postId = post.id;
             categoryId = category.id;
 
         });
 
-        const post = await connection.manager.findOne(Post, { where: { title: "Post #1" }});
+        const post = await connection.manager.findOne(qr, Post, { where: { title: "Post #1" }});
         expect(post).not.to.be.undefined;
         post!.should.be.eql({
             id: postId,
             title: "Post #1"
         });
 
-        const category = await connection.manager.findOne(Category, { where: { name: "Category #1" }});
+        const category = await connection.manager.findOne(qr, Category, { where: { name: "Category #1" }});
         expect(category).not.to.be.undefined;
         category!.should.be.eql({
             id: categoryId,
             name: "Category #1"
         });
 
+        await qr.release();
     })));
 
     it("should not save anything if any of operation in transaction fail", () => Promise.all(connections.map(async connection => {
 
         let postId: number|undefined = undefined, categoryId: number|undefined = undefined;
+        const qr = connection.createQueryRunner();
 
         try {
-            await connection.manager.transaction(async entityManager => {
+            await connection.manager.transaction(qr, async queryRunner => {
 
                 const post = new Post();
                 post.title = "Post #1";
-                await entityManager.save(post);
+                await queryRunner.manager.save(queryRunner, post);
 
                 const category = new Category();
                 category.name = "Category #1";
-                await entityManager.save(category);
+                await queryRunner.manager.save(queryRunner, category);
 
                 postId = post.id;
                 categoryId = category.id;
 
-                const loadedPost = await entityManager.findOne(Post, { where: { title: "Post #1" }});
+                const loadedPost = await queryRunner.manager.findOne(queryRunner, Post, { where: { title: "Post #1" }});
                 expect(loadedPost).not.to.be.undefined;
                 loadedPost!.should.be.eql({
                     id: postId,
                     title: "Post #1"
                 });
 
-                const loadedCategory = await entityManager.findOne(Category, { where: { name: "Category #1" }});
+                const loadedCategory = await queryRunner.manager.findOne(queryRunner, Category, { where: { name: "Category #1" }});
                 expect(loadedCategory).not.to.be.undefined;
                 loadedCategory!.should.be.eql({
                     id: categoryId,
@@ -84,19 +87,20 @@ describe("transaction > transaction with entity manager", () => {
 
                 // now try to save post without title - it will fail and transaction will be reverted
                 const wrongPost = new Post();
-                await entityManager.save(wrongPost);
+                await queryRunner.manager.save(queryRunner, wrongPost);
 
             });
         } catch (err) {
             /* skip error */
         }
 
-        const post = await connection.manager.findOne(Post, { where: { title: "Post #1" }});
+        const post = await connection.manager.findOne(qr, Post, { where: { title: "Post #1" }});
         expect(post).to.be.undefined;
 
-        const category = await connection.manager.findOne(Category, { where: { name: "Category #1" }});
+        const category = await connection.manager.findOne(qr, Category, { where: { name: "Category #1" }});
         expect(category).to.be.undefined;
 
+        await qr.release();
     })));
 
 });

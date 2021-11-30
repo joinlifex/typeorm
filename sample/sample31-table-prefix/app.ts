@@ -14,7 +14,7 @@ const options: ConnectionOptions = {
 };
 
 createConnection(options).then(async connection => {
-
+    const qr = connection.createQueryRunner();
     let category1 = new Category();
     category1.name = "Animals";
 
@@ -33,7 +33,7 @@ createConnection(options).then(async connection => {
 
     let postRepository = connection.getRepository(Post);
 
-    await postRepository.save(post);
+    await postRepository.save(qr, post);
     console.log("Post has been saved");
 
 }).catch(error => console.log("Error: ", error));

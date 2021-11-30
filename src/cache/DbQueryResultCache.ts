@@ -58,8 +58,7 @@ export class DbQueryResultCache implements QueryResultCache {
     /**
      * Creates table for storing cache if it does not exist yet.
      */
-    async synchronize(queryRunner?: QueryRunner): Promise<void> {
-        queryRunner = this.getQueryRunner(queryRunner);
+    async synchronize(queryRunner: QueryRunner): Promise<void> {
         const driver = this.connection.driver;
         const tableExist = await queryRunner.hasTable(this.queryResultCacheTable); // todo: table name should be configurable
         if (tableExist)
@@ -117,10 +116,9 @@ export class DbQueryResultCache implements QueryResultCache {
      * Returns cache result if found.
      * Returns undefined if result is not cached.
      */
-    getFromCache(options: QueryResultCacheOptions, queryRunner?: QueryRunner): Promise<QueryResultCacheOptions|undefined> {
-        queryRunner = this.getQueryRunner(queryRunner);
+    getFromCache(options: QueryResultCacheOptions, queryRunner: QueryRunner): Promise<QueryResultCacheOptions|undefined> {
         const qb = this.connection
-            .createQueryBuilder(queryRunner)
+            .createQueryBuilder()
             .select()
             .from(this.queryResultCacheTable, "cache");
 
@@ -128,19 +126,19 @@ export class DbQueryResultCache implements QueryResultCache {
             return qb
                 .where(`${qb.escape("cache")}.${qb.escape("identifier")} = :identifier`)
                 .setParameters({ identifier: this.connection.driver instanceof SqlServerDriver ? new MssqlParameter(options.identifier, "nvarchar") : options.identifier })
-                .getRawOne();
+                .getRawOne(queryRunner);
 
         } else if (options.query) {
             if (this.connection.driver instanceof OracleDriver) {
                 return qb
                     .where(`dbms_lob.compare(${qb.escape("cache")}.${qb.escape("query")}, :query) = 0`, { query: options.query })
-                    .getRawOne();
+                    .getRawOne(queryRunner);
             }
 
             return qb
                 .where(`${qb.escape("cache")}.${qb.escape("query")} = :query`)
                 .setParameters({ query: this.connection.driver instanceof SqlServerDriver ? new MssqlParameter(options.query, "nvarchar") : options.query })
-                .getRawOne();
+                .getRawOne(queryRunner);
         }
 
         return Promise.resolve(undefined);
@@ -182,7 +180,7 @@ export class DbQueryResultCache implements QueryResultCache {
                 .set(insertedValues);
 
             qb.where(`${qb.escape("identifier")} = :condition`, { condition: insertedValues.identifier });
-            await qb.execute();
+            await qb.execute(queryRunner);
 
         } else if (savedCache && savedCache.query) { // if exist then update
             const qb = queryRunner.manager
@@ -197,7 +195,7 @@ export class DbQueryResultCache implements QueryResultCache {
                 qb.where(`${qb.escape("query")} = :condition`, { condition: insertedValues.query });
             }
 
-            await qb.execute();
+            await qb.execute(queryRunner);
 
         } else { // otherwise insert
             await queryRunner.manager
@@ -205,7 +203,7 @@ export class DbQueryResultCache implements QueryResultCache {
                 .insert()
                 .into(this.queryResultCacheTable)
                 .values(insertedValues)
-                .execute();
+                .execute(queryRunner);
         }
 
         if (shouldCreateQueryRunner) {
@@ -217,34 +215,21 @@ export class DbQueryResultCache implements QueryResultCache {
      * Clears everything stored in the cache.
      */
     async clear(queryRunner: QueryRunner): Promise<void> {
-        return this.getQueryRunner(queryRunner).clearTable(this.queryResultCacheTable);
+        return queryRunner.clearTable(this.queryResultCacheTable);
     }
 
     /**
      * Removes all cached results by given identifiers from cache.
      */
-    async remove(identifiers: string[], queryRunner?: QueryRunner): Promise<void> {
+    async remove(identifiers: string[], queryRunner: QueryRunner): Promise<void> {
         await Promise.all(identifiers.map(identifier => {
-            const qb = this.getQueryRunner(queryRunner).manager.createQueryBuilder();
+            const qb = queryRunner.manager.createQueryBuilder();
             return qb.delete()
                 .from(this.queryResultCacheTable)
                 .where(`${qb.escape("identifier")} = :identifier`, {identifier})
-                .execute();
+                .execute(queryRunner);
         }));
     }
 
-    // -------------------------------------------------------------------------
-    // Protected Methods
-    // -------------------------------------------------------------------------
-
-    /**
-     * Gets a query runner to work with.
-     */
-    protected getQueryRunner(queryRunner: QueryRunner|undefined): QueryRunner {
-        if (queryRunner)
-            return queryRunner;
-
-        return this.connection.createQueryRunner();
-    }
 
 }

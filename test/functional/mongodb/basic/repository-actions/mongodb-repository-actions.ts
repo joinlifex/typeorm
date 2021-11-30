@@ -17,28 +17,35 @@ describe("mongodb > basic repository actions", () => {
     after(() => closeTestingConnections(connections));
 
     it("create should create instance of same entity", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const postRepository = connection.getRepository(Post);
-        postRepository.create().should.be.instanceOf(Post);
-    })));
+        postRepository.create(qr).should.be.instanceOf(Post);
+    
+        await qr.release();})));
+
 
     it("create should be able to fill data from the given object", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const postRepository = connection.getRepository(Post);
-        const post = postRepository.create({
+        const post = postRepository.create(qr, {
             title: "This is created post",
             text: "All about this post"
         });
         post.should.be.instanceOf(Post);
         post.title.should.be.equal("This is created post");
         post.text.should.be.equal("All about this post");
+   
+        await qr.release();
     })));
 
     it("merge should merge all given partial objects into given source entity", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const postRepository = connection.getRepository(Post);
-        const post = postRepository.create({
+        const post = postRepository.create(qr, {
             title: "This is created post",
             text: "All about this post"
         });
-        const mergedPost = postRepository.merge(post,
+        const mergedPost = postRepository.merge(qr, post,
             { title: "This is updated post" },
             { text: "And its text is updated as well" }
         );
@@ -46,9 +53,12 @@ describe("mongodb > basic repository actions", () => {
         mergedPost.should.be.equal(post);
         mergedPost.title.should.be.equal("This is updated post");
         mergedPost.text.should.be.equal("And its text is updated as well");
+    
+        await qr.release();
     })));
 
     it("merge should merge all given recursive partial objects into given source entity", () => Promise.all(connections.map(async connection => {
+        const qr = connection.createQueryRunner();
         const postRepository = connection.getRepository(Post);
         const counter1 = new Counters();
         counter1.likes = 5;
@@ -56,12 +66,12 @@ describe("mongodb > basic repository actions", () => {
         counter2.likes = 2;
         counter2.viewer = new User();
         counter2.viewer.name = "Hello World";
-        const post = postRepository.create({
+        const post = postRepository.create(qr, {
             title: "This is created post",
             text: "All about this post",
             counters: counter1
         });
-        const mergedPost = postRepository.merge(post,
+        const mergedPost = postRepository.merge(qr, post,
             { title: "This is updated post" },
             { text: "And its text is updated as well" },
             { counters: counter2 }
@@ -72,53 +82,66 @@ describe("mongodb > basic repository actions", () => {
         mergedPost.text.should.be.equal("And its text is updated as well");
         mergedPost.counters.likes.should.be.equal(2);
         mergedPost.counters.viewer.name.should.be.equal("Hello World");
+    
+        await qr.release();
     })));
 
     it("target should be valid", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
         expect(postRepository.target).not.to.be.undefined;
         postRepository.target.should.be.eql(Post);
+    
     })));
 
     it("should persist entity successfully and after persistence have generated object id", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.title = "Post #1";
         post.text = "Everything about post!";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         expect(post.id).not.to.be.undefined;
+    
+        await qr.release();
     })));
 
     it("hasId should return true if id really has an id", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
         const post = new Post();
         post.title = "Post #1";
         post.text = "Everything about post!";
-        await postRepository.save(post);
+        await postRepository.save(qr, post);
 
         expect(post.id).not.to.be.undefined;
         postRepository.hasId(post).should.be.true;
+    
+        await qr.release();
     })));
 
     it("unsupported methods should throw exception", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
         expect(() => postRepository.createQueryBuilder("post")).to.throw(Error);
-        expect(() => postRepository.query("SELECT * FROM POSTS")).to.throw(Error);
+        expect(() => postRepository.query(qr, "SELECT * FROM POSTS")).to.throw(Error);
+    
+        await qr.release();
     })));
 
     it("should return persisted objects using find* methods", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
 
+        const qr = connection.createQueryRunner();
         const post1 = new Post();
         post1.title = "First Post";
         post1.text = "Everything about first post";
-        await postRepository.save(post1);
+        await postRepository.save(qr, post1);
 
         const post2 = new Post();
         post2.title = "Second Post";
         post2.text = "Everything about second post";
-        await postRepository.save(post2);
+        await postRepository.save(qr, post2);
 
         // save few posts
         const posts: Post[] = [];
@@ -128,22 +151,22 @@ describe("mongodb > basic repository actions", () => {
             post.text = "Everything about post #" + i;
             posts.push(post);
         }
-        await postRepository.save(posts);
+        await postRepository.save(qr, posts);
 
         // assert.findOne method
-        const loadedPost1 = await postRepository.findOne(post1.id);
+        const loadedPost1 = await postRepository.findOne(qr, post1.id);
         expect(loadedPost1!.id).to.be.eql(post1.id);
         expect(loadedPost1!.title).to.be.equal("First Post");
         expect(loadedPost1!.text).to.be.equal("Everything about first post");
 
         // assert findOne method
-        const loadedPost2 = await postRepository.findOne({ title: "Second Post" });
+        const loadedPost2 = await postRepository.findOne(qr, { title: "Second Post" });
         expect(loadedPost2!.id).to.be.eql(post2.id);
         expect(loadedPost2!.title).to.be.equal("Second Post");
         expect(loadedPost2!.text).to.be.equal("Everything about second post");
 
         // assert findByIds method
-        const loadedPost3 = await postRepository.findByIds([
+        const loadedPost3 = await postRepository.findByIds(qr, [
             post1.id,
             post2.id
         ]);
@@ -155,7 +178,7 @@ describe("mongodb > basic repository actions", () => {
         expect(loadedPost3[1].text).to.be.equal("Everything about second post");
 
         // assert find method
-        const loadedPosts1 = await postRepository.find({
+        const loadedPosts1 = await postRepository.find(qr, {
             skip: 10,
             take: 10
         });
@@ -168,7 +191,7 @@ describe("mongodb > basic repository actions", () => {
         expect(loadedPosts1[9]!.text).not.to.be.undefined;
 
         // assert find method
-        const [loadedPosts2, loadedPosts2Count] = await postRepository.findAndCount({
+        const [loadedPosts2, loadedPosts2Count] = await postRepository.findAndCount(qr, {
             skip: 5,
             take: 5
         });
@@ -181,10 +204,13 @@ describe("mongodb > basic repository actions", () => {
         expect(loadedPosts2[4]!.title).not.to.be.undefined;
         expect(loadedPosts2[4]!.text).not.to.be.undefined;
 
+    
+        await qr.release();
     })));
 
     it("should sort entities in a query", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save few posts
         const posts: Post[] = [];
@@ -195,12 +221,12 @@ describe("mongodb > basic repository actions", () => {
             post.index = i;
             posts.push(post);
         }
-        await postRepository.save(posts);
+        await postRepository.save(qr, posts);
 
 
 
         // ASCENDANT SORTING
-        let queryPostsAsc = await postRepository.find({
+        let queryPostsAsc = await postRepository.find(qr, {
             order: { index: "ASC" }
         });
 
@@ -211,7 +237,7 @@ describe("mongodb > basic repository actions", () => {
         }
 
         // DESCENDANT SORTING
-        let queryPostsDesc = await postRepository.find({
+        let queryPostsDesc = await postRepository.find(qr, {
             order: { index: "DESC" }
         });
 
@@ -220,10 +246,13 @@ describe("mongodb > basic repository actions", () => {
             expect(queryPostsDesc[j]!.index).eq(9 - j);
         }
 
+    
+        await qr.release();
     })));
 
     it("clear should remove all persisted entities", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save few posts
         const posts: Post[] = [];
@@ -233,44 +262,50 @@ describe("mongodb > basic repository actions", () => {
             post.text = "Everything about post #" + i;
             posts.push(post);
         }
-        await postRepository.save(posts);
+        await postRepository.save(qr, posts);
 
-        const [loadedPosts, postsCount] = await postRepository.findAndCount();
+        const [loadedPosts, postsCount] = await postRepository.findAndCount(qr);
         expect(postsCount).to.be.equal(50);
         loadedPosts.length.should.be.equal(50);
 
-        await postRepository.clear();
+        await postRepository.clear(qr);
 
-        const [loadedPostsAfterClear, postsCountAfterClear] = await postRepository.findAndCount();
+        const [loadedPostsAfterClear, postsCountAfterClear] = await postRepository.findAndCount(qr);
         expect(postsCountAfterClear).to.be.equal(0);
         loadedPostsAfterClear.should.be.eql([]);
+    
+        await qr.release();
     })));
 
     it("remove should remove given entity", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
 
+        const qr = connection.createQueryRunner();
         const post1 = new Post();
         post1.title = "First Post";
         post1.text = "Everything about first post";
-        await postRepository.save(post1);
+        await postRepository.save(qr, post1);
 
         const post2 = new Post();
         post2.title = "Second Post";
         post2.text = "Everything about second post";
-        await postRepository.save(post2);
+        await postRepository.save(qr, post2);
 
-        const loadedPost1 = await postRepository.findOne(post1.id);
-        await postRepository.remove(loadedPost1!);
-        await postRepository.remove(post2);
+        const loadedPost1 = await postRepository.findOne(qr, post1.id);
+        await postRepository.remove(qr, loadedPost1!);
+        await postRepository.remove(qr, post2);
 
-        const [loadedPostsAfterClear, postsCountAfterClear] = await postRepository.findAndCount();
+        const [loadedPostsAfterClear, postsCountAfterClear] = await postRepository.findAndCount(qr);
         expect(postsCountAfterClear).to.be.equal(0);
         loadedPostsAfterClear.should.be.eql([]);
+    
+        await qr.release();
     })));
 
     it("clear should remove all persisted entities", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
 
+        const qr = connection.createQueryRunner();
         // save few posts
         const posts: Post[] = [];
         for (let i = 0; i < 50; i++) {
@@ -279,30 +314,33 @@ describe("mongodb > basic repository actions", () => {
             post.text = "Everything about post #" + i;
             posts.push(post);
         }
-        await postRepository.save(posts);
+        await postRepository.save(qr, posts);
 
-        const [loadedPosts, postsCount] = await postRepository.findAndCount();
+        const [loadedPosts, postsCount] = await postRepository.findAndCount(qr);
         expect(postsCount).to.be.equal(50);
         loadedPosts.length.should.be.equal(50);
 
-        await postRepository.clear();
+        await postRepository.clear(qr, );
 
-        const [loadedPostsAfterClear, postsCountAfterClear] = await postRepository.findAndCount();
+        const [loadedPostsAfterClear, postsCountAfterClear] = await postRepository.findAndCount(qr, );
         expect(postsCountAfterClear).to.be.equal(0);
         loadedPostsAfterClear.should.be.eql([]);
+    
+        await qr.release();
     })));
 
     it("preload should pre-load given object", () => Promise.all(connections.map(async connection => {
         const postRepository = connection.getRepository(Post);
+        const qr = connection.createQueryRunner();
 
         // save a post first
         const postToSave = new Post();
         postToSave.title = "First Post";
         postToSave.text = "Everything about first post";
-        await postRepository.save(postToSave);
+        await postRepository.save(qr, postToSave);
 
         // now preload a post with setting
-        const post = await postRepository.preload({
+        const post = await postRepository.preload(qr, {
             id: postToSave.id,
             title: "This is updated post"
         });
@@ -311,6 +349,8 @@ describe("mongodb > basic repository actions", () => {
         post!.id.should.be.equal(postToSave.id);
         post!.title.should.be.equal("This is updated post");
         post!.text.should.be.equal("Everything about first post");
+    
+        await qr.release();
     })));
 
 });

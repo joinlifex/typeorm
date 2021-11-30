@@ -340,9 +340,9 @@ describe("query runner > create table", () => {
             await queryRunner.createTable(newTableBook);
             const aBook = new Book();
             aBook.ean = "asdf";
-            await connection.manager.save(aBook);
+            await connection.manager.save(queryRunner, aBook);
 
-            const desc = await connection.manager.query("SELECT rowid FROM book WHERE ean = 'asdf'");
+            const desc = await connection.manager.query(queryRunner, "SELECT rowid FROM book WHERE ean = 'asdf'");
             expect(desc[0].rowid).equals(1);
 
             await queryRunner.dropTable("book");
@@ -355,7 +355,7 @@ describe("query runner > create table", () => {
             await queryRunner.createTable(newTableBook2);
 
             try {
-                await connection.manager.query("SELECT rowid FROM book2");
+                await connection.manager.query(queryRunner, "SELECT rowid FROM book2");
             } catch (e) {
                 expect(e.message).contains("no such column: rowid");
             }

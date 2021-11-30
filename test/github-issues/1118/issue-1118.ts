@@ -15,14 +15,16 @@ describe("github issues > #1118 findByIds must return empty results if no criter
     it("drivers which does not support offset without limit should throw an exception, other drivers must work fine", () => Promise.all(connections.map(async connection => {
         const post = new Post();
         post.name = "post #1";
-        await connection.manager.save(post);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, post);
 
-        await connection.manager.findByIds(Post, [1]).should.eventually.eql([{
+        await connection.manager.findByIds(qr, Post, [1]).should.eventually.eql([{
             id: 1,
             name: "post #1"
         }]);
 
-        await connection.manager.findByIds(Post, []).should.eventually.eql([]);
+        await connection.manager.findByIds(qr, Post, []).should.eventually.eql([]);
+        await qr.release();
     })));
 
 });

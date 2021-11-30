@@ -23,12 +23,14 @@ describe("github issues > #485 If I set the datatype of PrimaryGeneratedColumn t
         const table = await queryRunner.getTable("post");
         await queryRunner.release();
 
+        const qr = connection.createQueryRunner();
         const post = new Post();
-        const savedPost = await postRepository.save(post);
-        const loadedPost = await postRepository.findOne(savedPost.id);
+        const savedPost = await postRepository.save(qr, post);
+        const loadedPost = await postRepository.findOne(qr, savedPost.id);
 
         expect(loadedPost).to.be.not.undefined;
         expect(loadedPost!.id).to.equal(savedPost.id);
         table!.findColumnByName("id")!.type.should.be.equal("uuid");
+        await qr.release();
     })));
 });

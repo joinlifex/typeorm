@@ -37,21 +37,24 @@ describe("github issues > #2871 Empty enum array is returned as array with singl
           return;
     const documents: DocumentEnum[] = [DocumentEnum.DOCUMENT_A, DocumentEnum.DOCUMENT_B, DocumentEnum.DOCUMENT_C];
 
-    const barSaved = await repository.save({documents}) as Bar;
-    const barFromDb = await repository.findOne(barSaved.barId) as Bar;
+    const qr = connection.createQueryRunner();
+    const barSaved = await repository.save(qr, {documents}) as Bar;
+    const barFromDb = await repository.findOne(qr, barSaved.barId) as Bar;
 
     expect(barFromDb.documents).to.eql(documents);
+    await qr.release();
   });
 
   it("should extract array with one value from enum array with one value from 'postgres'", async () => {
       if (!connection)
           return;
     const documents: DocumentEnum[] = [DocumentEnum.DOCUMENT_D];
-
-    const barSaved = await repository.save({documents}) as Bar;
-    const barFromDb = await repository.findOne(barSaved.barId) as Bar;
+    const qr = connection.createQueryRunner();
+    const barSaved = await repository.save(qr, {documents}) as Bar;
+    const barFromDb = await repository.findOne(qr, barSaved.barId) as Bar;
 
     expect(barFromDb.documents).to.eql(documents);
+    await qr.release();
   });
 
   // This `it` test that issue #2871 is fixed
@@ -59,10 +62,12 @@ describe("github issues > #2871 Empty enum array is returned as array with singl
       if (!connection)
           return;
     const documents: DocumentEnum[] = [];
+    const qr = connection.createQueryRunner();
 
-    const barSaved = await repository.save({documents}) as Bar;
-    const barFromDb = await repository.findOne(barSaved.barId) as Bar;
+    const barSaved = await repository.save(qr, {documents}) as Bar;
+    const barFromDb = await repository.findOne(qr, barSaved.barId) as Bar;
 
     expect(barFromDb.documents).to.eql(documents);
+    await qr.release();
   });
 });

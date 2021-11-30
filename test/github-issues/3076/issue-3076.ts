@@ -30,7 +30,7 @@ describe("github issues > #3076 Postgres enum in schema with default is recreate
 
     it("should handle `enumName` default change", () => Promise.all(connections.map(async connection => {
         const entityMetadata = connection.getMetadata(SomeEntity);
-        const columnMetadata = entityMetadata.columns.find(column => column.databaseName === "creationMechanism")
+        const columnMetadata = entityMetadata.columns.find(column => column.databaseName === "creationMechanism");
         columnMetadata!.default = CreationMechanism.SOURCE_B;
 
         const sqlInMemory = await connection.driver.createSchemaBuilder().log();

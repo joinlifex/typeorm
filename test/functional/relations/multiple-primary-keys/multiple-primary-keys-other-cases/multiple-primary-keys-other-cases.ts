@@ -18,57 +18,58 @@ describe("relations > multiple-primary-keys > other-cases", () => {
 
     it("should load related entity when entity uses relation ids as primary id", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         const user1 = new User();
         user1.name = "Alice";
-        await connection.manager.save(user1);
+        await connection.manager.save(qr, user1);
 
         const user2 = new User();
         user2.name = "Bob";
-        await connection.manager.save(user2);
+        await connection.manager.save(qr, user2);
 
         const user3 = new User();
         user3.name = "Clara";
-        await connection.manager.save(user3);
+        await connection.manager.save(qr, user3);
 
         const person1 = new Person();
         person1.fullName = "Alice A";
         person1.user = user1;
-        await connection.manager.save(person1);
+        await connection.manager.save(qr, person1);
 
         const person2 = new Person();
         person2.fullName = "Bob B";
         person2.user = user2;
-        await connection.manager.save(person2);
+        await connection.manager.save(qr, person2);
 
         const event1 = new Event();
         event1.name = "Event #1";
         event1.author = person1;
-        await connection.manager.save(event1);
+        await connection.manager.save(qr, event1);
 
         const event2 = new Event();
         event2.name = "Event #2";
         event2.author = person2;
-        await connection.manager.save(event2);
+        await connection.manager.save(qr, event2);
 
         const eventMember1 = new EventMember();
         eventMember1.user = user1;
         eventMember1.event = event1;
-        await connection.manager.save(eventMember1);
+        await connection.manager.save(qr, eventMember1);
 
         const eventMember2 = new EventMember();
         eventMember2.user = user2;
         eventMember2.event = event1;
-        await connection.manager.save(eventMember2);
+        await connection.manager.save(qr, eventMember2);
 
         const eventMember3 = new EventMember();
         eventMember3.user = user1;
         eventMember3.event = event2;
-        await connection.manager.save(eventMember3);
+        await connection.manager.save(qr, eventMember3);
 
         const eventMember4 = new EventMember();
         eventMember4.user = user3;
         eventMember4.event = event2;
-        await connection.manager.save(eventMember4);
+        await connection.manager.save(qr, eventMember4);
 
         const loadedEvents = await connection.manager
             .createQueryBuilder(Event, "event")
@@ -77,7 +78,7 @@ describe("relations > multiple-primary-keys > other-cases", () => {
             .leftJoinAndSelect("event.members", "members")
             .leftJoinAndSelect("members.user", "user")
             .orderBy("event.id, user.id")
-            .getMany();
+            .getMany(qr);
 
         expect(loadedEvents[0].author).to.not.be.undefined;
         expect(loadedEvents[0].author.fullName).to.be.equal("Alice A");
@@ -103,7 +104,7 @@ describe("relations > multiple-primary-keys > other-cases", () => {
             .leftJoinAndSelect("user.members", "members")
             .leftJoinAndSelect("members.event", "event")
             .orderBy("user.id, event.id")
-            .getMany();
+            .getMany(qr);
 
         expect(loadedUsers[0].members).to.not.be.eql([]);
         expect(loadedUsers[0].members[0].event.id).to.be.equal(1);
@@ -117,6 +118,7 @@ describe("relations > multiple-primary-keys > other-cases", () => {
         expect(loadedUsers[2].members[0].event.id).to.be.equal(2);
         expect(loadedUsers[2].members[0].event.name).to.be.equal("Event #2");
 
+        await qr.release();
     })));
 
 });

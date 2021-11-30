@@ -26,14 +26,16 @@ describe("github issues > #71 ManyToOne relation with custom column name persist
         artikel.saison = "------";
         artikel.kollektion = kollektion;
 
-        await connection.manager.save(artikel);
+        const qr = connection.createQueryRunner();
+        await connection.manager.save(qr, artikel);
 
         const loadedArtikel = await connection.manager
             .createQueryBuilder(Artikel, "artikel")
             .innerJoinAndSelect("artikel.kollektion", "kollektion")
             .where("artikel.id=:id", { id: 1 })
-            .getOne();
+            .getOne(qr);
 
+        await qr.release();
         expect(kollektion).not.to.be.undefined;
         expect(loadedArtikel).not.to.be.undefined;
         loadedArtikel!.should.be.eql({

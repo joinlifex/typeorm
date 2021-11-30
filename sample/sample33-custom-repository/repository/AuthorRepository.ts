@@ -1,3 +1,4 @@
+import { QueryRunner } from "../../../src";
 import {EntityRepository} from "../../../src/decorator/EntityRepository";
 import {AbstractRepository} from "../../../src/repository/AbstractRepository";
 import {Author} from "../entity/Author";
@@ -8,18 +9,18 @@ import {Author} from "../entity/Author";
 @EntityRepository(Author)
 export class AuthorRepository extends AbstractRepository<Author> {
 
-    createAndSave(firstName: string, lastName: string) {
+    createAndSave(queryRunner: QueryRunner, firstName: string, lastName: string) {
         const author = new Author();
         author.firstName = firstName;
         author.lastName = lastName;
 
-        return this.manager.save(author);
+        return this.manager.save(queryRunner, author);
     }
 
-    findMyAuthor() {
+    findMyAuthor(queryRunner: QueryRunner) {
         return this
             .createQueryBuilder("author")
-            .getOne();
+            .getOne(queryRunner);
     }
 
 }

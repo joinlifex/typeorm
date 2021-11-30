@@ -30,13 +30,14 @@ describe("github issues > #4096 SQLite support for orUpdate", () => {
       user2.bio = "Updated bio";
 
       const UserRepository = connection.manager.getRepository(User);
+      const qr = connection.createQueryRunner();
 
       await UserRepository
         .createQueryBuilder()
         .insert()
         .into(User)
         .values(user1)
-        .execute();
+        .execute(qr);
 
       await UserRepository
         .createQueryBuilder()
@@ -44,11 +45,12 @@ describe("github issues > #4096 SQLite support for orUpdate", () => {
         .into(User)
         .values(user2)
         .orUpdate(["bio"], [ "email", "username" ])
-        .execute();
+        .execute(qr);
 
-      const users = await UserRepository.find();
+      const users = await UserRepository.find(qr);
       expect(users).not.to.be.undefined;
       expect(users).to.have.lengthOf(1);
       expect(users[0]).to.includes({ bio: "Updated bio" });
+      await qr.release();
     })));
  });

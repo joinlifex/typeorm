@@ -15,14 +15,16 @@ describe("github issues > #1504 Cannot eagerly query Entity with relation more t
 
     it("should not throw an error", () => Promise.all(connections.map(async connection => {
 
+        const qr = connection.createQueryRunner();
         await connection
             .getRepository(TestEntity1)
-            .findOne(1, { relations: [
+            .findOne(qr, 1, { relations: [
                 "Entity2",
                 "Entity2.Entity3",
                 "Entity2.Entity3.Entity4",
             ]});
 
+        await qr.release();
     })));
 
 });
