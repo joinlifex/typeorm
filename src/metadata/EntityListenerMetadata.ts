@@ -3,6 +3,7 @@ import {EntityListenerMetadataArgs} from "../metadata-args/EntityListenerMetadat
 import {ObjectLiteral} from "../common/ObjectLiteral";
 import {EntityMetadata} from "./EntityMetadata";
 import {EmbeddedMetadata} from "./EmbeddedMetadata";
+import { QueryRunner } from "..";
 
 /**
  * This metadata contains all information about entity's listeners.
@@ -66,11 +67,11 @@ export class EntityListenerMetadata {
     /**
      * Executes listener method of the given entity.
      */
-    execute(entity: ObjectLiteral) {
+    execute(queryRunner: QueryRunner, entity: ObjectLiteral) {
         if (!this.embeddedMetadata)
-            return entity[this.propertyName]();
+            return entity[this.propertyName](queryRunner);
 
-        this.callEntityEmbeddedMethod(entity, this.embeddedMetadata.propertyPath.split("."));
+        this.callEntityEmbeddedMethod(queryRunner, entity, this.embeddedMetadata.propertyPath.split("."));
     }
 
     // ---------------------------------------------------------------------
@@ -80,20 +81,20 @@ export class EntityListenerMetadata {
     /**
      * Calls embedded entity listener method no matter how nested it is.
      */
-    protected callEntityEmbeddedMethod(entity: ObjectLiteral, propertyPaths: string[]): void {
+    protected callEntityEmbeddedMethod(queryRunner: QueryRunner, entity: ObjectLiteral, propertyPaths: string[]): void {
         const propertyPath = propertyPaths.shift();
         if (!propertyPath || !entity[propertyPath])
             return;
 
         if (propertyPaths.length === 0) {
             if (entity[propertyPath] instanceof Array) {
-                entity[propertyPath].map((embedded: ObjectLiteral) => embedded[this.propertyName]());
+                entity[propertyPath].map((embedded: ObjectLiteral) => embedded[this.propertyName](queryRunner));
             } else {
-                entity[propertyPath][this.propertyName]();
+                entity[propertyPath][this.propertyName](queryRunner);
             }
         } else {
             if (entity[propertyPath])
-                this.callEntityEmbeddedMethod(entity[propertyPath], propertyPaths);
+                this.callEntityEmbeddedMethod(queryRunner, entity[propertyPath], propertyPaths);
         }
     }
 

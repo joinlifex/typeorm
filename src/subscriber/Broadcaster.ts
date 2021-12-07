@@ -72,7 +72,7 @@ export class Broadcaster {
         if (entity && metadata.beforeInsertListeners.length) {
             metadata.beforeInsertListeners.forEach(listener => {
                 if (listener.isAllowed(entity)) {
-                    const executionResult = listener.execute(entity);
+                    const executionResult = listener.execute(this.queryRunner, entity);
                     if (executionResult instanceof Promise)
                         result.promises.push(executionResult);
                     result.count++;
@@ -110,7 +110,7 @@ export class Broadcaster {
         if (entity && metadata.beforeUpdateListeners.length) {
             metadata.beforeUpdateListeners.forEach(listener => {
                 if (listener.isAllowed(entity)) {
-                    const executionResult = listener.execute(entity);
+                    const executionResult = listener.execute(this.queryRunner, entity);
                     if (executionResult instanceof Promise)
                         result.promises.push(executionResult);
                     result.count++;
@@ -151,7 +151,7 @@ export class Broadcaster {
         if (entity && metadata.beforeRemoveListeners.length) {
             metadata.beforeRemoveListeners.forEach(listener => {
                 if (listener.isAllowed(entity)) {
-                    const executionResult = listener.execute(entity);
+                    const executionResult = listener.execute(this.queryRunner, entity);
                     if (executionResult instanceof Promise)
                         result.promises.push(executionResult);
                     result.count++;
@@ -192,7 +192,7 @@ export class Broadcaster {
         if (entity && metadata.afterInsertListeners.length) {
             metadata.afterInsertListeners.forEach(listener => {
                 if (listener.isAllowed(entity)) {
-                    const executionResult = listener.execute(entity);
+                    const executionResult = listener.execute(this.queryRunner, entity);
                     if (executionResult instanceof Promise)
                         result.promises.push(executionResult);
                     result.count++;
@@ -351,7 +351,7 @@ export class Broadcaster {
         if (entity && metadata.afterUpdateListeners.length) {
             metadata.afterUpdateListeners.forEach(listener => {
                 if (listener.isAllowed(entity)) {
-                    const executionResult = listener.execute(entity);
+                    const executionResult = listener.execute(this.queryRunner, entity);
                     if (executionResult instanceof Promise)
                         result.promises.push(executionResult);
                     result.count++;
@@ -393,7 +393,7 @@ export class Broadcaster {
         if (entity && metadata.afterRemoveListeners.length) {
             metadata.afterRemoveListeners.forEach(listener => {
                 if (listener.isAllowed(entity)) {
-                    const executionResult = listener.execute(entity);
+                    const executionResult = listener.execute(this.queryRunner, entity);
                     if (executionResult instanceof Promise)
                         result.promises.push(executionResult);
                     result.count++;
@@ -458,7 +458,7 @@ export class Broadcaster {
             if (metadata.afterLoadListeners.length) {
                 metadata.afterLoadListeners.forEach(listener => {
                     if (listener.isAllowed(entity)) {
-                        const executionResult = listener.execute(entity);
+                        const executionResult = listener.execute(this.queryRunner, entity);
                         if (executionResult instanceof Promise)
                             result.promises.push(executionResult);
                         result.count++;

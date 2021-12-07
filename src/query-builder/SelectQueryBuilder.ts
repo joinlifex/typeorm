@@ -1936,8 +1936,8 @@ export class SelectQueryBuilder<Entity> extends QueryBuilder<Entity> implements 
                 throw new NoVersionOrUpdateDateColumnError(metadata.name);
         }
 
-        const relationIdLoader = new RelationIdLoader(this.connection, queryRunner, this.expressionMap.relationIdAttributes);
-        const relationCountLoader = new RelationCountLoader(this.connection, queryRunner, this.expressionMap.relationCountAttributes);
+        const relationIdLoader = new RelationIdLoader(this.connection, this.expressionMap.relationIdAttributes);
+        const relationCountLoader = new RelationCountLoader(this.connection, this.expressionMap.relationCountAttributes);
         const relationIdMetadataTransformer = new RelationIdMetadataToAttributeTransformer(this.expressionMap);
         relationIdMetadataTransformer.transform();
         const relationCountMetadataTransformer = new RelationCountMetadataToAttributeTransformer(this.expressionMap);

@@ -11,7 +11,6 @@ export class RelationCountLoader {
     // -------------------------------------------------------------------------
 
     constructor(protected connection: Connection,
-                protected queryRunner: QueryRunner,
                 protected relationCountAttributes: RelationCountAttribute[]) {
     }
 

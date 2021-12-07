@@ -13,7 +13,6 @@ export class RelationIdLoader {
     // -------------------------------------------------------------------------
 
     constructor(protected connection: Connection,
-                protected queryRunner: QueryRunner,
                 protected relationIdAttributes: RelationIdAttribute[]) {
     }
 
