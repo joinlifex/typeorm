@@ -349,10 +349,31 @@ export class EntityManager {
     }
 
     /**
+     * Records the delete date of all given entities.
+     */
+     softRemove<Entity>(queryRunner: QueryRunner, entities: Entity[], options?: SaveOptions): Promise<Entity[]>;
+
+     /**
+      * Records the delete date of a given entity.
+      */
+     softRemove<Entity>(queryRunner: QueryRunner, entity: Entity, options?: SaveOptions): Promise<Entity>;
+ 
+     /**
+      * Records the delete date of all given entities.
+      */
+     softRemove<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: EntityTarget<Entity>, entities: T[], options?: SaveOptions): Promise<T[]>;
+ 
+     /**
+      * Records the delete date of a given entity.
+      */
+     softRemove<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: EntityTarget<Entity>, entity: T, options?: SaveOptions): Promise<T>;
+ 
+ 
+
+    /**
      * Records the delete date of one or many given entities.
      */
-    softRemove<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: (T|T[])|EntityTarget<Entity>, maybeEntityOrOptions?: T|T[]|SaveOptions, maybeOptions?: SaveOptions): Promise<T|T[]> {
-
+     softRemove<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: (T|T[])|EntityTarget<Entity>, maybeEntityOrOptions?: T|T[], maybeOptions?: SaveOptions): Promise<T|T[]> {
         // normalize mixed parameters
         let target = (arguments.length > 2 && (targetOrEntity instanceof Function || targetOrEntity instanceof EntitySchema || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
         const entity: T|T[] = target ? maybeEntityOrOptions as T|T[] : targetOrEntity as T|T[];
@@ -372,9 +393,31 @@ export class EntityManager {
     }
 
     /**
+     * Recovers all given entities.
+     */
+     recover<Entity>(queryRunner: QueryRunner, entities: Entity[], options?: SaveOptions): Promise<Entity[]>;
+
+     /**
+      * Recovers a given entity.
+      */
+     recover<Entity>(queryRunner: QueryRunner, entity: Entity, options?: SaveOptions): Promise<Entity>;
+ 
+     /**
+      * Recovers all given entities.
+      */
+     recover<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: EntityTarget<Entity>, entities: T[], options?: SaveOptions): Promise<T[]>;
+ 
+     /**
+      * Recovers a given entity.
+      */
+     recover<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: EntityTarget<Entity>, entity: T, options?: SaveOptions): Promise<T>;
+ 
+ 
+
+    /**
      * Recovers one or many given entities.
      */
-    recover<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: (T|T[])|EntityTarget<Entity>, maybeEntityOrOptions?: T|T[]|SaveOptions, maybeOptions?: SaveOptions): Promise<T|T[]> {
+     recover<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: (T|T[])|EntityTarget<Entity>, maybeEntityOrOptions?: T|T[], maybeOptions?: SaveOptions): Promise<T|T[]> {
 
         // normalize mixed parameters
         let target = (arguments.length > 2 && (targetOrEntity instanceof Function || targetOrEntity instanceof EntitySchema || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
@@ -670,6 +713,20 @@ export class EntityManager {
     }
 
     /**
+     * Finds entities that match given find options.
+     * Also counts all entities that match given conditions,
+     * but ignores pagination settings (from and take options).
+     */
+     findAndCount<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, options?: FindManyOptions<Entity>): Promise<[Entity[], number]>;
+
+     /**
+      * Finds entities that match given conditions.
+      * Also counts all entities that match given conditions,
+      * but ignores pagination settings (from and take options).
+      */
+     findAndCount<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, conditions?: FindConditions<Entity>): Promise<[Entity[], number]>;
+ 
+    /**
      * Finds entities that match given find options and conditions.
      * Also counts all entities that match given conditions,
      * but ignores pagination settings (from and take options).
@@ -684,6 +741,18 @@ export class EntityManager {
 
         return qb.getManyAndCount(queryRunner);
     }
+
+    /**
+     * Finds entities with ids.
+     * Optionally find options can be applied.
+     */
+     findByIds<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, ids: any[], options?: FindManyOptions<Entity>): Promise<Entity[]>;
+
+     /**
+      * Finds entities with ids.
+      * Optionally conditions can be applied.
+      */
+     findByIds<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, ids: any[], conditions?: FindConditions<Entity>): Promise<Entity[]>; 
 
     /**
      * Finds entities with ids.
@@ -703,6 +772,16 @@ export class EntityManager {
 
         return qb.andWhereInIds(ids).getMany(queryRunner);
     }
+
+    /**
+     * Finds first entity that matches given find options.
+     */
+     findOne<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, id?: string|number|Date|ObjectID, options?: FindOneOptions<Entity>): Promise<Entity|undefined>;
+
+     /**
+      * Finds first entity that matches given find options.
+      */
+     findOne<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, options?: FindOneOptions<Entity>): Promise<Entity|undefined>; 
 
     /**
      * Finds first entity that matches given conditions.
@@ -755,6 +834,16 @@ export class EntityManager {
         return qb.getOne(queryRunner);
     }
 
+    /**
+     * Finds first entity that matches given find options or rejects the returned promise on error.
+     */
+     findOneOrFail<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, id?: string|number|Date|ObjectID, options?: FindOneOptions<Entity>): Promise<Entity>;
+
+     /**
+      * Finds first entity that matches given find options or rejects the returned promise on error.
+      */
+     findOneOrFail<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, options?: FindOneOptions<Entity>): Promise<Entity>;
+ 
     /**
      * Finds first entity that matches given conditions or rejects the returned promise on error.
      */
