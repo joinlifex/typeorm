@@ -136,14 +136,17 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         if (this.isReleased) {
             return;
         }
+
+        const databaseConnection = await this.connect();
+        
         if (typeof this.ctx !== "undefined") {
-            await this.databaseConnection.query(`RESET ${this.getContextVarName()};`);
+            await databaseConnection.query(`RESET ${this.getContextVarName()};`);
             this.ctx = undefined;
         }
 
         this.isReleased = true;
         if (this.releaseCallback) {
-            this.releaseCallback(err);
+            await this.releaseCallback(err);
             this.releaseCallback = undefined;
         }
 

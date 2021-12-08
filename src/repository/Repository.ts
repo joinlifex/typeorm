@@ -159,36 +159,60 @@ export class Repository<Entity extends ObjectLiteral> {
     remove(queryRunner: QueryRunner, entityOrEntities: Entity|Entity[], options?: RemoveOptions): Promise<Entity|Entity[]> {
         return this.manager.remove(queryRunner, this.metadata.target as any, entityOrEntities as any, options);
     }
+
     /**
-     * Records the delete date of one given entity.
+     * Records the delete date of all given entities.
      */
-    softRemove<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T, options?: SaveOptions & { reload?: false }): Promise<T>;
+    softRemove<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entities: T[], options: SaveOptions & { reload: false }): Promise<T[]>;
+
     /**
-     * Records the delete date of many given entities.
+     * Records the delete date of all given entities.
      */
-     softRemove<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T[], options?: SaveOptions & { reload?: false }): Promise<T[]>;
+    softRemove<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entities: T[], options?: SaveOptions): Promise<(T & Entity)[]>;
+
+    /**
+     * Records the delete date of a given entity.
+     */
+    softRemove<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entity: T, options: SaveOptions & { reload: false }): Promise<T>;
+
+    /**
+     * Records the delete date of a given entity.
+     */
+    softRemove<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entity: T, options?: SaveOptions): Promise<T & Entity>;
 
     /**
      * Records the delete date of one or many given entities.
      */
-    softRemove<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T|T[], options?: SaveOptions & { reload?: false }): Promise<T|T[]> {
-        return this.manager.softRemove<Entity, T>(queryRunner, this.metadata.target, entityOrEntities, options);
+    softRemove<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T|T[], options?: SaveOptions): Promise<T|T[]> {
+        return this.manager.softRemove<Entity, T>(queryRunner, this.metadata.target as any, entityOrEntities as any, options);
     }
 
     /**
-     * Recovers one given entity.
+     * Recovers all given entities in the database.
      */
-     recover<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T, options?: SaveOptions & { reload?: false }): Promise<T>;
+     recover<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entities: T[], options: SaveOptions & { reload: false }): Promise<T[]>;
+
      /**
-      * Recovers many given entities.
+      * Recovers all given entities in the database.
       */
-     recover<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T[], options?: SaveOptions & { reload?: false }): Promise<T[]>;
-    /**
-     * Recovers one or many given entities.
-     */
-    recover<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T|T[], options?: SaveOptions & { reload?: false }): Promise<T|T[]> {
-        return this.manager.recover<Entity, T>(queryRunner, this.metadata.target as any, entityOrEntities as any, options);
-    }
+     recover<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entities: T[], options?: SaveOptions): Promise<(T & Entity)[]>;
+ 
+     /**
+      * Recovers a given entity in the database.
+      */
+     recover<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entity: T, options: SaveOptions & { reload: false }): Promise<T>;
+ 
+     /**
+      * Recovers a given entity in the database.
+      */
+     recover<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entity: T, options?: SaveOptions): Promise<T & Entity>;
+ 
+     /**
+      * Recovers one or many given entities.
+      */
+     recover<T extends DeepPartial<Entity>>(queryRunner: QueryRunner, entityOrEntities: T|T[], options?: SaveOptions): Promise<T|T[]> {
+         return this.manager.recover<Entity, T>(queryRunner, this.metadata.target as any, entityOrEntities as any, options);
+     }
 
     /**
      * Inserts a given entity into the database.
@@ -252,6 +276,16 @@ export class Repository<Entity extends ObjectLiteral> {
     }
 
     /**
+     * Counts entities that match given options.
+     */
+    count(queryRunner: QueryRunner, options?: FindManyOptions<Entity>): Promise<number>;
+
+    /**
+     * Counts entities that match given conditions.
+     */
+    count(queryRunner: QueryRunner, conditions?: FindConditions<Entity>): Promise<number>;
+
+    /**
      * Counts entities that match given find options or conditions.
      */
     count(queryRunner: QueryRunner, optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<number> {
@@ -259,11 +293,36 @@ export class Repository<Entity extends ObjectLiteral> {
     }
 
     /**
+     * Finds entities that match given options.
+     */
+    find(queryRunner: QueryRunner, options?: FindManyOptions<Entity>): Promise<Entity[]>;
+
+    /**
+     * Finds entities that match given conditions.
+     */
+    find(queryRunner: QueryRunner, conditions?: FindConditions<Entity>): Promise<Entity[]>;
+
+    /**
      * Finds entities that match given find options or conditions.
      */
     find(queryRunner: QueryRunner, optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<Entity[]> {
         return this.manager.find(queryRunner, this.metadata.target as any, optionsOrConditions as any);
     }
+
+    /**
+     * Finds entities that match given find options.
+     * Also counts all entities that match given conditions,
+     * but ignores pagination settings (from and take options).
+     */
+    findAndCount(queryRunner: QueryRunner, options?: FindManyOptions<Entity>): Promise<[ Entity[], number ]>;
+
+    /**
+     * Finds entities that match given conditions.
+     * Also counts all entities that match given conditions,
+     * but ignores pagination settings (from and take options).
+     */
+    findAndCount(queryRunner: QueryRunner, conditions?: FindConditions<Entity>): Promise<[ Entity[], number ]>;
+
     /**
      * Finds entities that match given find options or conditions.
      * Also counts all entities that match given conditions,
@@ -272,6 +331,19 @@ export class Repository<Entity extends ObjectLiteral> {
     findAndCount(queryRunner: QueryRunner, optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<[ Entity[], number ]> {
         return this.manager.findAndCount(queryRunner, this.metadata.target as any, optionsOrConditions as any);
     }
+
+    /**
+     * Finds entities by ids.
+     * Optionally find options can be applied.
+     */
+    findByIds(queryRunner: QueryRunner, ids: any[], options?: FindManyOptions<Entity>): Promise<Entity[]>;
+
+    /**
+     * Finds entities by ids.
+     * Optionally conditions can be applied.
+     */
+    findByIds(queryRunner: QueryRunner, ids: any[], conditions?: FindConditions<Entity>): Promise<Entity[]>;
+
     /**
      * Finds entities by ids.
      * Optionally find options can be applied.
@@ -281,6 +353,21 @@ export class Repository<Entity extends ObjectLiteral> {
     }
 
     /**
+     * Finds first entity that matches given options.
+     */
+    findOne(queryRunner: QueryRunner, id?: string|number|Date|ObjectID, options?: FindOneOptions<Entity>): Promise<Entity|undefined>;
+
+    /**
+     * Finds first entity that matches given options.
+     */
+    findOne(queryRunner: QueryRunner, options?: FindOneOptions<Entity>): Promise<Entity|undefined>;
+
+    /**
+     * Finds first entity that matches given conditions.
+     */
+    findOne(queryRunner: QueryRunner, conditions?: FindConditions<Entity>, options?: FindOneOptions<Entity>): Promise<Entity|undefined>;
+
+    /**
      * Finds first entity that matches given conditions.
      */
     findOne(queryRunner: QueryRunner, optionsOrConditions?: string|number|Date|ObjectID|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity|undefined> {
@@ -288,9 +375,24 @@ export class Repository<Entity extends ObjectLiteral> {
     }
 
     /**
+     * Finds first entity that matches given options.
+     */
+    findOneOrFail(queryRunner: QueryRunner, id?: string|number|Date|ObjectID, options?: FindOneOptions<Entity>): Promise<Entity>;
+
+    /**
+     * Finds first entity that matches given options.
+     */
+    findOneOrFail(queryRunner: QueryRunner, options?: FindOneOptions<Entity>): Promise<Entity>;
+
+    /**
      * Finds first entity that matches given conditions.
      */
-    findOneOrFail(queryRunner: QueryRunner, optionsOrConditions?: string|number|Date|ObjectID|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity> {
+    findOneOrFail(queryRunner: QueryRunner, conditions?: FindConditions<Entity>, options?: FindOneOptions<Entity>): Promise<Entity>;
+
+    /**
+     * Finds first entity that matches given conditions.
+     */
+     findOneOrFail(queryRunner: QueryRunner, optionsOrConditions?: string|number|Date|ObjectID|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity> {
         return this.manager.findOneOrFail(queryRunner, this.metadata.target as any, optionsOrConditions as any, maybeOptions);
     }
 

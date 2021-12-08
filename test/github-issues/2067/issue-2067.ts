@@ -1,9 +1,9 @@
 import "reflect-metadata";
+import chai from "chai";
 import {createTestingConnections, closeTestingConnections, reloadTestingDatabases} from "../../utils/test-utils";
 import {Connection} from "../../../src/connection/Connection";
 import {PostgresDriver} from "../../../src/driver/postgres/PostgresDriver";
 import {User} from "./entity/User";
-import {expect} from "chai";
 
 describe("github issues > #2067 Unhandled promise rejection warning on postgres connection issues", () => {
 
@@ -27,7 +27,7 @@ describe("github issues > #2067 Unhandled promise rejection warning on postgres 
 
         const qr = connection.createQueryRunner();
         const repository = connection.getRepository(User);
-        expect(repository.find(qr)).to.be.rejectedWith(Error, connectionFailureMessage);
+        await chai.expect(repository.find(qr)).to.eventually.rejectedWith(Error, connectionFailureMessage);
         await qr.release();
     })));
 

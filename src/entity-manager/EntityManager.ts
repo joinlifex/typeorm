@@ -291,7 +291,7 @@ export class EntityManager {
     save<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: (T|T[])|EntityTarget<Entity>, maybeEntityOrOptions?: T|T[], maybeOptions?: SaveOptions): Promise<T|T[]> {
 
         // normalize mixed parameters
-        let target = (arguments.length > 1 && (targetOrEntity instanceof Function || targetOrEntity instanceof EntitySchema || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
+        let target = (arguments.length > 2 && (targetOrEntity instanceof Function || targetOrEntity instanceof EntitySchema || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
         const entity: T|T[] = target ? maybeEntityOrOptions as T|T[] : targetOrEntity as T|T[];
         const options = target ? maybeOptions : maybeEntityOrOptions as SaveOptions;
 
@@ -334,7 +334,7 @@ export class EntityManager {
     remove<Entity>(queryRunner: QueryRunner, targetOrEntity: (Entity|Entity[])|EntityTarget<Entity>, maybeEntityOrOptions?: Entity|Entity[], maybeOptions?: RemoveOptions): Promise<Entity|Entity[]> {
 
         // normalize mixed parameters
-        const target = (arguments.length > 1 && (targetOrEntity instanceof Function || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
+        const target = (arguments.length > 2 && (targetOrEntity instanceof Function || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
         const entity: Entity|Entity[] = target ? maybeEntityOrOptions as Entity|Entity[] : targetOrEntity as Entity|Entity[];
         const options = target ? maybeOptions : maybeEntityOrOptions as SaveOptions;
 
@@ -354,7 +354,7 @@ export class EntityManager {
     softRemove<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: (T|T[])|EntityTarget<Entity>, maybeEntityOrOptions?: T|T[]|SaveOptions, maybeOptions?: SaveOptions): Promise<T|T[]> {
 
         // normalize mixed parameters
-        let target = (arguments.length > 1 && (targetOrEntity instanceof Function || targetOrEntity instanceof EntitySchema || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
+        let target = (arguments.length > 2 && (targetOrEntity instanceof Function || targetOrEntity instanceof EntitySchema || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
         const entity: T|T[] = target ? maybeEntityOrOptions as T|T[] : targetOrEntity as T|T[];
         const options = target ? maybeOptions : maybeEntityOrOptions as SaveOptions;
 
@@ -377,7 +377,7 @@ export class EntityManager {
     recover<Entity, T extends DeepPartial<Entity>>(queryRunner: QueryRunner, targetOrEntity: (T|T[])|EntityTarget<Entity>, maybeEntityOrOptions?: T|T[]|SaveOptions, maybeOptions?: SaveOptions): Promise<T|T[]> {
 
         // normalize mixed parameters
-        let target = (arguments.length > 1 && (targetOrEntity instanceof Function || targetOrEntity instanceof EntitySchema || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
+        let target = (arguments.length > 2 && (targetOrEntity instanceof Function || targetOrEntity instanceof EntitySchema || typeof targetOrEntity === "string")) ? targetOrEntity as Function|string : undefined;
         const entity: T|T[] = target ? maybeEntityOrOptions as T|T[] : targetOrEntity as T|T[];
         const options = target ? maybeOptions : maybeEntityOrOptions as SaveOptions;
 

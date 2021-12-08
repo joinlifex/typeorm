@@ -1,5 +1,12 @@
 import { Column, Entity, PrimaryGeneratedColumn } from "../../../../../src";
 
+export class EmbeddedEntityWithUniqueColumn {
+    @Column({ nullable: true, unique: true })
+    id: string;
+
+    @Column({ nullable: true })
+    value: string;
+}
 
 @Entity()
 export class EmbeddedUniqueConstraintEntity {
@@ -8,12 +15,4 @@ export class EmbeddedUniqueConstraintEntity {
 
     @Column(() => EmbeddedEntityWithUniqueColumn)
     embedded: EmbeddedEntityWithUniqueColumn;
-}
-
-export class EmbeddedEntityWithUniqueColumn {
-    @Column({ nullable: true, unique: true })
-    id: string;
-
-    @Column({ nullable: true })
-    value: string;
 }

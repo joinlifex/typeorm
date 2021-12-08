@@ -166,6 +166,10 @@ Instead, for a quicker feedback cycle, you can run `npm run compile -- --watch` 
 
 Once TypeScript finishes compiling your changes, you can run `npm run test-fast` (instead of `test`), to trigger a test without causing a full recompile, which allows you to edit and check your changes much faster.
 
+### Fast compilation with SWC
+
+To be able to compile code with swc, they need to implement this milestone: [TypeScript: Multi-file mode](https://github.com/swc-project/swc/milestone/158)
+
 ## Using Docker
 
 To run your tests you need dbms installed on your machine. Alternatively, you can use docker
