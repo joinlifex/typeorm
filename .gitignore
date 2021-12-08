@@ -9,6 +9,3 @@ node_modules/
 ormlogs.log
 npm-debug.log
 /test/github-issues/799/tmp/*
-*.d.ts
-*.js
-*.js.map
