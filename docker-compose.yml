@@ -46,6 +46,7 @@ services:
       POSTGRES_USER: "test"
       POSTGRES_PASSWORD: "test"
       POSTGRES_DB: "test"
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate='en_US.UTF-8' --lc-ctype='en_US.UTF-8'"
 
   postgres-12:
     image: "postgis/postgis:12-3.1-alpine"
@@ -56,6 +57,7 @@ services:
       POSTGRES_USER: "test"
       POSTGRES_PASSWORD: "test"
       POSTGRES_DB: "test"
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate='en_US.UTF-8' --lc-ctype='en_US.UTF-8'"
   postgres-13:
     image: "postgis/postgis:13-3.1-alpine"
     container_name: "typeorm-postgres-13"
@@ -65,6 +67,7 @@ services:
       POSTGRES_USER: "test"
       POSTGRES_PASSWORD: "test"
       POSTGRES_DB: "test"
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate='en_US.UTF-8' --lc-ctype='en_US.UTF-8'"
 
   postgres-14:
     image: "postgis/postgis:14-3.1-alpine"
@@ -75,6 +78,7 @@ services:
       POSTGRES_USER: "test"
       POSTGRES_PASSWORD: "test"
       POSTGRES_DB: "test"
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate='en_US.UTF-8' --lc-ctype='en_US.UTF-8'"
 
   # mssql
   mssql:
