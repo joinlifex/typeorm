@@ -194,7 +194,7 @@ export class BaseEntity {
      * Saves one or many given entities.
      */
     static save<T extends BaseEntity>(this: ObjectType<T>, queryRunner: QueryRunner, entityOrEntities: T|T[], options?: SaveOptions): Promise<T|T[]> {
-        return (this as any).getRepository().save(entityOrEntities as any, options);
+        return (this as any).getRepository().save(queryRunner, entityOrEntities as any, options);
     }
 
     /**
