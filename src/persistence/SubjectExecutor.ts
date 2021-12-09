@@ -729,11 +729,11 @@ export class SubjectExecutor {
             this.updateSpecialColumnsInInsertedAndUpdatedEntities(queryRunner, this.updateSubjects);
 
         // update soft-removed entity properties
-        if (this.softRemoveSubjects.length)
+        if (this.updateSubjects.length)
             this.updateSpecialColumnsInInsertedAndUpdatedEntities(queryRunner, this.softRemoveSubjects);
 
         // update recovered entity properties
-        if (this.recoverSubjects.length)
+        if (this.updateSubjects.length)
             this.updateSpecialColumnsInInsertedAndUpdatedEntities(queryRunner, this.recoverSubjects);
 
         // remove ids from the entities that were removed
