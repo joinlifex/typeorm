@@ -35,7 +35,7 @@ import {IsolationLevel} from "../driver/types/IsolationLevel";
 import {EntitySchema} from "../entity-schema/EntitySchema";
 import {ObjectLiteral} from "../common/ObjectLiteral";
 import {getMetadataArgsStorage} from "../globals";
-import {TypeORMError} from "../error";
+import {TypeORMError, TransactionAlreadyStartedError} from "../error";
 import {UpsertOptions} from "../repository/UpsertOptions";
 
 /**
@@ -115,7 +115,7 @@ export class EntityManager {
             throw new QueryRunnerProviderAlreadyReleasedError();
 
         if (queryRunner && queryRunner.isTransactionActive)
-            throw new TypeORMError(`Cannot start transaction because its already started`);
+            throw new TransactionAlreadyStartedError();
 
         try {
             if (isolation) {
@@ -781,13 +781,17 @@ export class EntityManager {
      /**
       * Finds first entity that matches given find options.
       */
-     findOne<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, options?: FindOneOptions<Entity>): Promise<Entity|undefined>; 
-
-    /**
-     * Finds first entity that matches given conditions.
-     */
-    async findOne<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, idOrOptionsOrConditions?: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity|undefined> {
-
+     findOne<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, options?: FindOneOptions<Entity>): Promise<Entity|undefined>;
+ 
+     /**
+      * Finds first entity that matches given conditions.
+      */
+     findOne<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, conditions?: FindConditions<Entity>, options?: FindOneOptions<Entity>): Promise<Entity|undefined>;
+ 
+     /**
+      * Finds first entity that matches given conditions.
+      */
+     async findOne<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, idOrOptionsOrConditions?: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity|undefined> {
         let findOptions: FindManyOptions<any>|FindOneOptions<any>|undefined = undefined;
         if (FindOptionsUtils.isFindOneOptions(idOrOptionsOrConditions)) {
             findOptions = idOrOptionsOrConditions;
@@ -844,10 +848,15 @@ export class EntityManager {
       */
      findOneOrFail<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, options?: FindOneOptions<Entity>): Promise<Entity>;
  
-    /**
-     * Finds first entity that matches given conditions or rejects the returned promise on error.
-     */
-    async findOneOrFail<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, idOrOptionsOrConditions?: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity> {
+     /**
+      * Finds first entity that matches given conditions or rejects the returned promise on error.
+      */
+     findOneOrFail<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, conditions?: FindConditions<Entity>, options?: FindOneOptions<Entity>): Promise<Entity>;
+ 
+     /**
+      * Finds first entity that matches given conditions or rejects the returned promise on error.
+      */
+     async findOneOrFail<Entity>(queryRunner: QueryRunner, entityClass: EntityTarget<Entity>, idOrOptionsOrConditions?: string|string[]|number|number[]|Date|Date[]|ObjectID|ObjectID[]|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>): Promise<Entity> {
         return this.findOne<Entity>(queryRunner, entityClass as any, idOrOptionsOrConditions as any, maybeOptions).then((value) => {
             if (value === undefined) {
                 return Promise.reject(new EntityNotFoundError(entityClass, idOrOptionsOrConditions));

@@ -171,10 +171,9 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
     async startTransaction(isolationLevel?: IsolationLevel): Promise<void> {
         if (this.isTransactionActive)
             throw new TransactionAlreadyStartedError();
-
+        this.isTransactionActive = true;
         await this.broadcaster.broadcast("BeforeTransactionStart");
 
-        this.isTransactionActive = true;
         await this.query("START TRANSACTION");
         if (isolationLevel) {
             await this.query("SET TRANSACTION ISOLATION LEVEL " + isolationLevel);
