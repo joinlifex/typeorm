@@ -1,3 +1,5 @@
+import { QueryRunner } from "../query-runner/QueryRunner";
+
 /**
  * Special options passed to Repository#remove and Repository#delete methods.
  */
@@ -28,5 +30,7 @@ export interface RemoveOptions {
      * This option is needed to perform very big insertions when you have issues with underlying driver parameter number limitation.
      */
     chunk?: number;
+
+    queryRunner?: QueryRunner;
 
 }

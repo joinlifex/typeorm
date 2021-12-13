@@ -1,3 +1,5 @@
+import { QueryRunner } from "../query-runner/QueryRunner";
+
 /**
  * Special options passed to Repository#save, Repository#insert and Repository#update methods.
  */
@@ -37,5 +39,7 @@ export interface SaveOptions {
      * Enabled by default.
      */
     reload?: boolean;
+
+    queryRunner?: QueryRunner;
 
 }

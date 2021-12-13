@@ -33,11 +33,19 @@ export class BaseEntity {
     // @ts-ignore: Unused variable which is actually used
     private static usedConnection?: Connection;
 
-    private usedQueryRunner: QueryRunner;
+    private usedQueryRunner?: QueryRunner;
 
     // -------------------------------------------------------------------------
     // Public Methods
     // -------------------------------------------------------------------------
+
+    getUsedQueryRunner (): QueryRunner | undefined { 
+        if (this.usedQueryRunner?.isReleased) {
+            // maybe we want to return undefined instead of an error so a default queryRunner is used by Executors
+            throw new Error("The used queryRunner has been release, you cannot use it");
+        }
+        return this.usedQueryRunner;
+    }
 
     /**
      * Checks if entity has an id.
@@ -52,32 +60,28 @@ export class BaseEntity {
      * If entity does not exist in the database then inserts, otherwise updates.
      */
     save(options?: SaveOptions): Promise<this> {
-        return (this.constructor as any).getRepository().save(this, options);
+        return (this.constructor as any).getRepository().save(this, Object.assign({queryRunner: this.getUsedQueryRunner()} , options));
     }
 
     /**
      * Removes current entity from the database.
      */
     remove(options?: RemoveOptions): Promise<this> {
-        return (this.constructor as any).getRepository().remove(this, options);
+        return (this.constructor as any).getRepository().remove(this, Object.assign({queryRunner: this.getUsedQueryRunner()} , options));
     }
 
     /**
      * Records the delete date of current entity.
      */
     softRemove(options?: SaveOptions): Promise<this> {
-        return (this.constructor as any).getRepository().softRemove(this, options);
+        return (this.constructor as any).getRepository().softRemove(this, Object.assign({queryRunner: this.getUsedQueryRunner()} , options));
     }
 
     /**
      * Recovers a given entity in the database.
      */
     recover(options?: SaveOptions): Promise<this> {
-        return (this.constructor as any).getRepository().recover(this, options);
-    }
-
-    getUsedQueryRunner (): QueryRunner { 
-        return this.usedQueryRunner;
+        return (this.constructor as any).getRepository().recover(this, Object.assign({queryRunner: this.getUsedQueryRunner()} , options));
     }
 
     /**

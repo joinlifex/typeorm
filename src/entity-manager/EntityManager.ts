@@ -333,7 +333,7 @@ export class EntityManager {
             return Promise.resolve(entity);
 
         // execute save operation
-        return new EntityPersistExecutor(this.connection, this.queryRunner, "save", target, entity, options)
+        return new EntityPersistExecutor(this.connection, options?.queryRunner || this.queryRunner, "save", target, entity, options)
             .execute()
             .then(() => entity);
     }
@@ -373,7 +373,7 @@ export class EntityManager {
             return Promise.resolve(entity);
 
         // execute save operation
-        return new EntityPersistExecutor(this.connection, this.queryRunner, "remove", target, entity, options)
+        return new EntityPersistExecutor(this.connection, options?.queryRunner || this.queryRunner, "remove", target, entity, options)
             .execute()
             .then(() => entity);
     }
@@ -416,7 +416,7 @@ export class EntityManager {
             return Promise.resolve(entity);
 
         // execute soft-remove operation
-        return new EntityPersistExecutor(this.connection, this.queryRunner, "soft-remove", target, entity, options)
+        return new EntityPersistExecutor(this.connection, options?.queryRunner || this.queryRunner, "soft-remove", target, entity, options)
             .execute()
             .then(() => entity);
     }
@@ -459,7 +459,7 @@ export class EntityManager {
             return Promise.resolve(entity);
 
         // execute recover operation
-        return new EntityPersistExecutor(this.connection, this.queryRunner, "recover", target, entity, options)
+        return new EntityPersistExecutor(this.connection, options?.queryRunner || this.queryRunner, "recover", target, entity, options)
             .execute()
             .then(() => entity);
     }
