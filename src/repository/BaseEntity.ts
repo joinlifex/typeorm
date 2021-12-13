@@ -16,6 +16,7 @@ import {ObjectID} from "../driver/mongodb/typings";
 import {ObjectUtils} from "../util/ObjectUtils";
 import {QueryDeepPartialEntity} from "../query-builder/QueryPartialEntity";
 import {UpsertOptions} from "./UpsertOptions";
+import { QueryRunner } from "..";
 
 /**
  * Base abstract entity for all entities, used in ActiveRecord patterns.
@@ -31,6 +32,8 @@ export class BaseEntity {
      */
     // @ts-ignore: Unused variable which is actually used
     private static usedConnection?: Connection;
+
+    private usedQueryRunner: QueryRunner;
 
     // -------------------------------------------------------------------------
     // Public Methods
@@ -71,6 +74,10 @@ export class BaseEntity {
      */
     recover(options?: SaveOptions): Promise<this> {
         return (this.constructor as any).getRepository().recover(this, options);
+    }
+
+    getUsedQueryRunner (): QueryRunner { 
+        return this.usedQueryRunner;
     }
 
     /**
