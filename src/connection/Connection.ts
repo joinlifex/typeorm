@@ -442,7 +442,7 @@ export class Connection {
      */
      createQueryRunner(mode: ReplicationMode = "master", onDatabaseConnection?: (databaseConnection: any) => Promise<void>, onReleaseDatabaseConnection?: (databaseConnection: any) => Promise<void>): QueryRunner {
         const queryRunner = this.driver.createQueryRunner(mode, onDatabaseConnection || this.options.onDatabaseConnection, onReleaseDatabaseConnection || this.options.onReleaseDatabaseConnection);
-        const manager = this.createEntityManager();
+        const manager = this.createEntityManager(queryRunner);
         Object.assign(queryRunner, { manager: manager });
         return queryRunner;
     }
