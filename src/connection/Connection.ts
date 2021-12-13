@@ -440,9 +440,9 @@ export class Connection {
      * If you perform writes you must use master database,
      * if you perform reads you can use slave databases.
      */
-    createQueryRunner(mode: ReplicationMode = "master"): QueryRunner {
-        const queryRunner = this.driver.createQueryRunner(mode);
-        const manager = this.createEntityManager(queryRunner);
+     createQueryRunner(mode: ReplicationMode = "master", onDatabaseConnection?: (databaseConnection: any) => Promise<void>, onReleaseDatabaseConnection?: (databaseConnection: any) => Promise<void>): QueryRunner {
+        const queryRunner = this.driver.createQueryRunner(mode, onDatabaseConnection || this.options.onDatabaseConnection, onReleaseDatabaseConnection || this.options.onReleaseDatabaseConnection);
+        const manager = this.createEntityManager();
         Object.assign(queryRunner, { manager: manager });
         return queryRunner;
     }

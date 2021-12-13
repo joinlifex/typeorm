@@ -184,4 +184,8 @@ export interface BaseConnectionOptions {
 
     };
 
+    readonly onDatabaseConnection?: (databaseConnection: any) => Promise<void>;
+
+    readonly onReleaseDatabaseConnection?: (databaseConnection: any) => Promise<void>;
+
 }

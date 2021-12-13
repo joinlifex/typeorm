@@ -41,6 +41,12 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
      */
     driver: PostgresDriver;
 
+    ctx?: string | number;
+
+    onDatabaseConnection?: (databaseConnection: any) => Promise<void>;
+    
+    onReleaseDatabaseConnection?: (databaseConnection: any) => Promise<void>;
+
     // -------------------------------------------------------------------------
     // Protected Properties
     // -------------------------------------------------------------------------
@@ -59,8 +65,10 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
     // Constructor
     // -------------------------------------------------------------------------
 
-    constructor(driver: PostgresDriver, mode: ReplicationMode) {
+    constructor(driver: PostgresDriver, mode: ReplicationMode,  onDatabaseConnection?: (databaseConnection: any) => Promise<void>, onReleaseDatabaseConnection?: (databaseConnection: any) => Promise<void>) {
         super();
+        this.onDatabaseConnection = onDatabaseConnection;
+        this.onReleaseDatabaseConnection = onReleaseDatabaseConnection;
         this.driver = driver;
         this.connection = driver.connection;
         this.mode = mode;
@@ -95,6 +103,11 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                 this.databaseConnection.on("error", onErrorCallback);
 
                 return this.databaseConnection;
+            }).then(async (dbConnection) => {
+                if (this.onDatabaseConnection) {
+                    await this.onDatabaseConnection(dbConnection);
+                }
+                return dbConnection;
             });
 
         } else { // master
@@ -110,6 +123,11 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                 this.databaseConnection.on("error", onErrorCallback);
 
                 return this.databaseConnection;
+            }).then(async (dbConnection) => {
+                if (this.onDatabaseConnection) {
+                    await this.onDatabaseConnection(dbConnection);
+                }
+                return dbConnection;
             });
         }
 
@@ -122,13 +140,16 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
      */
     private async releasePostgresConnection(err?: Error) {
         if (this.isReleased) {
-            return
+            return;
         }
+        if (this.onReleaseDatabaseConnection) {
+            await this.onReleaseDatabaseConnection(this.databaseConnection);
+        } 
 
         this.isReleased = true;
         if (this.releaseCallback) {
             this.releaseCallback(err);
-            this.releaseCallback = undefined
+            this.releaseCallback = undefined;
         }
 
         const index = this.driver.connectedQueryRunners.indexOf(this);
