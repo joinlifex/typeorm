@@ -2,6 +2,7 @@ import {EntityFieldsNames} from "../common/EntityFieldsNames";
 import {JoinOptions} from "./JoinOptions";
 import {ObjectLiteral} from "../common/ObjectLiteral";
 import {FindConditions} from "./FindConditions";
+import { QueryRunner } from "..";
 
 /**
  * Defines a special criteria to find specific entity.
@@ -65,6 +66,8 @@ export interface FindOneOptions<Entity = any> {
     /**
      * If this is set to true, SELECT query in a `find` method will be executed in a transaction.
      */
-    transaction?: boolean
+    transaction?: boolean;
+
+    queryRunner?: QueryRunner;
 
 }

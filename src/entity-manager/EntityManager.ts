@@ -710,7 +710,11 @@ export class EntityManager {
      */
     async count<Entity>(entityClass: EntityTarget<Entity>, optionsOrConditions?: FindConditions<Entity>|FindOneOptions<Entity>|FindManyOptions<Entity>): Promise<number> {
         const metadata = this.connection.getMetadata(entityClass);
-        const qb = this.createQueryBuilder(entityClass, FindOptionsUtils.extractFindManyOptionsAlias(optionsOrConditions) || metadata.name);
+        let findOptions: FindManyOptions<any>|undefined = undefined;
+        if (FindOptionsUtils.isFindOneOptions(optionsOrConditions)) {
+            findOptions = optionsOrConditions;
+        } 
+        const qb = this.createQueryBuilder(entityClass, FindOptionsUtils.extractFindManyOptionsAlias(optionsOrConditions) || metadata.name, findOptions?.queryRunner);
         return FindOptionsUtils.applyFindManyOptionsOrConditionsToQueryBuilder(qb, optionsOrConditions).getCount();
     }
 
@@ -729,7 +733,11 @@ export class EntityManager {
      */
     async find<Entity>(entityClass: EntityTarget<Entity>, optionsOrConditions?: FindManyOptions<Entity>|FindConditions<Entity>): Promise<Entity[]> {
         const metadata = this.connection.getMetadata(entityClass);
-        const qb = this.createQueryBuilder<Entity>(entityClass as any, FindOptionsUtils.extractFindManyOptionsAlias(optionsOrConditions) || metadata.name);
+        let findOptions: FindManyOptions<any>|undefined = undefined;
+        if (FindOptionsUtils.isFindOneOptions(optionsOrConditions)) {
+            findOptions = optionsOrConditions;
+        } 
+        const qb = this.createQueryBuilder<Entity>(entityClass as any, FindOptionsUtils.extractFindManyOptionsAlias(optionsOrConditions) || metadata.name, findOptions?.queryRunner);
         FindOptionsUtils.applyFindManyOptionsOrConditionsToQueryBuilder(qb, optionsOrConditions);
 
         if (!FindOptionsUtils.isFindManyOptions(optionsOrConditions) || optionsOrConditions.loadEagerRelations !== false)
@@ -759,7 +767,11 @@ export class EntityManager {
      */
     async findAndCount<Entity>(entityClass: EntityTarget<Entity>, optionsOrConditions?: FindConditions<Entity>|FindManyOptions<Entity>): Promise<[Entity[], number]> {
         const metadata = this.connection.getMetadata(entityClass);
-        const qb = this.createQueryBuilder<Entity>(entityClass as any, FindOptionsUtils.extractFindManyOptionsAlias(optionsOrConditions) || metadata.name);
+        let findOptions: FindManyOptions<any>|undefined = undefined;
+        if (FindOptionsUtils.isFindOneOptions(optionsOrConditions)) {
+            findOptions = optionsOrConditions;
+        } 
+        const qb = this.createQueryBuilder<Entity>(entityClass as any, FindOptionsUtils.extractFindManyOptionsAlias(optionsOrConditions) || metadata.name, findOptions?.queryRunner);
         FindOptionsUtils.applyFindManyOptionsOrConditionsToQueryBuilder(qb, optionsOrConditions);
 
         if (!FindOptionsUtils.isFindManyOptions(optionsOrConditions) || optionsOrConditions.loadEagerRelations !== false)
@@ -790,7 +802,11 @@ export class EntityManager {
         if (!ids.length)
             return Promise.resolve([]);
         const metadata = this.connection.getMetadata(entityClass);
-        const qb = this.createQueryBuilder<Entity>(entityClass as any, FindOptionsUtils.extractFindManyOptionsAlias(optionsOrConditions) || metadata.name);
+        let findOptions: FindManyOptions<any>|undefined = undefined;
+        if (FindOptionsUtils.isFindOneOptions(optionsOrConditions)) {
+            findOptions = optionsOrConditions;
+        } 
+        const qb = this.createQueryBuilder<Entity>(entityClass as any, FindOptionsUtils.extractFindManyOptionsAlias(optionsOrConditions) || metadata.name, findOptions?.queryRunner);
         FindOptionsUtils.applyFindManyOptionsOrConditionsToQueryBuilder(qb, optionsOrConditions);
 
         if (!FindOptionsUtils.isFindManyOptions(optionsOrConditions) || optionsOrConditions.loadEagerRelations !== false)
@@ -838,7 +854,7 @@ export class EntityManager {
         } else if (maybeOptions && FindOptionsUtils.isFindOneOptions(maybeOptions) && maybeOptions.join) {
             alias = maybeOptions.join.alias;
         }
-        const qb = this.createQueryBuilder<Entity>(entityClass as any, alias);
+        const qb = this.createQueryBuilder<Entity>(entityClass as any, alias, findOptions?.queryRunner);
 
         const passedId = typeof idOrOptionsOrConditions === "string" || typeof idOrOptionsOrConditions === "number" || (idOrOptionsOrConditions as any) instanceof Date;
 
