@@ -153,19 +153,19 @@ export class BaseEntity {
      * Creates a new entities and copies all entity properties from given objects into their new entities.
      * Note that it copies only properties that present in entity schema.
      */
-    static create<T extends BaseEntity>(this: ObjectType<T>, entityLikeArray: DeepPartial<T>[]): T[];
+    static create<T extends BaseEntity>(this: ObjectType<T>, entityLikeArray: DeepPartial<T>[], queryRunner?: QueryRunner): T[];
 
     /**
      * Creates a new entity instance and copies all entity properties from this object into a new entity.
      * Note that it copies only properties that present in entity schema.
      */
-    static create<T extends BaseEntity>(this: ObjectType<T>, entityLike: DeepPartial<T>): T;
+    static create<T extends BaseEntity>(this: ObjectType<T>, entityLike: DeepPartial<T>, queryRunner?: QueryRunner): T;
    /**
      * Creates a new entity instance and copies all entity properties from this object into a new entity.
      * Note that it copies only properties that present in entity schema.
      */
-    static create<T extends BaseEntity>(this: ObjectType<T>, entityOrEntities?: any): T {
-        return (this as any).getRepository().create(entityOrEntities);
+    static create<T extends BaseEntity>(this: ObjectType<T>, entityOrEntities?: any, queryRunner?: QueryRunner): T {
+        return (this as any).getRepository().create(entityOrEntities, queryRunner);
     }
 
     /**

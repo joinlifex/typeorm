@@ -228,28 +228,28 @@ export class EntityManager {
      * Creates a new entity instance and copies all entity properties from this object into a new entity.
      * Note that it copies only properties that present in entity schema.
      */
-    create<Entity>(entityClass: EntityTarget<Entity>, plainObject?: DeepPartial<Entity>): Entity;
+    create<Entity>(entityClass: EntityTarget<Entity>, plainObject?: DeepPartial<Entity>, queryRunner?: QueryRunner): Entity;
 
     /**
      * Creates a new entities and copies all entity properties from given objects into their new entities.
      * Note that it copies only properties that present in entity schema.
      */
-    create<Entity>(entityClass: EntityTarget<Entity>, plainObjects?: DeepPartial<Entity>[]): Entity[];
+    create<Entity>(entityClass: EntityTarget<Entity>, plainObjects?: DeepPartial<Entity>[], queryRunner?: QueryRunner): Entity[];
 
     /**
      * Creates a new entity instance or instances.
      * Can copy properties from the given object into new entities.
      */
-    create<Entity>(entityClass: EntityTarget<Entity>, plainObjectOrObjects?: DeepPartial<Entity>|DeepPartial<Entity>[]): Entity|Entity[] {
+    create<Entity>(entityClass: EntityTarget<Entity>, plainObjectOrObjects?: DeepPartial<Entity>|DeepPartial<Entity>[], queryRunner?: QueryRunner): Entity|Entity[] {
         const metadata = this.connection.getMetadata(entityClass);
 
         if (!plainObjectOrObjects)
-            return metadata.create(this.queryRunner);
+            return metadata.create(queryRunner || this.queryRunner);
 
         if (Array.isArray(plainObjectOrObjects))
             return plainObjectOrObjects.map(plainEntityLike => this.create(entityClass as any, plainEntityLike));
 
-        const mergeIntoEntity = metadata.create(this.queryRunner);
+        const mergeIntoEntity = metadata.create(queryRunner || this.queryRunner);
         this.plainObjectToEntityTransformer.transform(mergeIntoEntity, plainObjectOrObjects, metadata, true);
         return mergeIntoEntity;
     }
@@ -333,7 +333,7 @@ export class EntityManager {
             return Promise.resolve(entity);
 
         // execute save operation
-        return new EntityPersistExecutor(this.connection, options?.queryRunner || this.queryRunner, "save", target, entity, options)
+        return new EntityPersistExecutor(this.connection, options?.queryRunner || this.queryRunner, "save", target, entity, options)
             .execute()
             .then(() => entity);
     }

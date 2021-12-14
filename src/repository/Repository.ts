@@ -84,20 +84,20 @@ export class Repository<Entity extends ObjectLiteral> {
      * Creates new entities and copies all entity properties from given objects into their new entities.
      * Note that it copies only properties that are present in entity schema.
      */
-    create(entityLikeArray: DeepPartial<Entity>[]): Entity[];
+    create(entityLikeArray: DeepPartial<Entity>[], queryRunner?: QueryRunner): Entity[];
 
     /**
      * Creates a new entity instance and copies all entity properties from this object into a new entity.
      * Note that it copies only properties that are present in entity schema.
      */
-    create(entityLike: DeepPartial<Entity>): Entity;
+    create(entityLike: DeepPartial<Entity>, queryRunner?: QueryRunner): Entity;
 
     /**
      * Creates a new entity instance or instances.
      * Can copy properties from the given object into new entities.
      */
-    create(plainEntityLikeOrPlainEntityLikes?: DeepPartial<Entity>|DeepPartial<Entity>[]): Entity|Entity[] {
-        return this.manager.create<any>(this.metadata.target as any, plainEntityLikeOrPlainEntityLikes as any);
+    create(plainEntityLikeOrPlainEntityLikes?: DeepPartial<Entity>|DeepPartial<Entity>[], queryRunner?: QueryRunner): Entity|Entity[] {
+        return this.manager.create<any>(this.metadata.target as any, plainEntityLikeOrPlainEntityLikes as any, queryRunner);
     }
 
     /**
