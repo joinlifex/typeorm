@@ -35,6 +35,10 @@ export class BaseEntity {
 
     private usedQueryRunner?: QueryRunner;
 
+    constructor(usedQueryRunner?: QueryRunner) {
+        this.usedQueryRunner = usedQueryRunner;
+    }
+
     // -------------------------------------------------------------------------
     // Public Methods
     // -------------------------------------------------------------------------

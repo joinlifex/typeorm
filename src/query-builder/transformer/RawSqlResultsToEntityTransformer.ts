@@ -36,11 +36,11 @@ export class RawSqlResultsToEntityTransformer {
      * Since db returns a duplicated rows of the data where accuracies of the same object can be duplicated
      * we need to group our result and we must have some unique id (primary key in our case)
      */
-    transform(rawResults: any[], alias: Alias): any[] {
+    transform(rawResults: any[], alias: Alias, queryRunner?: QueryRunner): any[] {
         const group = this.group(rawResults, alias);
         const entities: any[] = [];
         group.forEach(results => {
-            const entity = this.transformRawResultsGroup(results, alias);
+            const entity = this.transformRawResultsGroup(results, alias, queryRunner);
             if (entity !== undefined && !Object.values(entity).every((value) => value === null))
                 entities.push(entity);
         });
@@ -90,19 +90,19 @@ export class RawSqlResultsToEntityTransformer {
     /**
      * Transforms set of data results into single entity.
      */
-    protected transformRawResultsGroup(rawResults: any[], alias: Alias): ObjectLiteral|undefined {
+    protected transformRawResultsGroup(rawResults: any[], alias: Alias, queryRunner?: QueryRunner): ObjectLiteral|undefined {        
         // let hasColumns = false; // , hasEmbeddedColumns = false, hasParentColumns = false, hasParentEmbeddedColumns = false;
         let metadata = alias.metadata;
 
         if (metadata.discriminatorColumn) {
             const discriminatorValues = rawResults.map(result => result[DriverUtils.buildAlias(this.driver, alias.name, alias.metadata.discriminatorColumn!.databaseName)]);
             const discriminatorMetadata = metadata.childEntityMetadatas.find(childEntityMetadata => {
-                return typeof discriminatorValues.find(value => value === childEntityMetadata.discriminatorValue) !== 'undefined';
+                return typeof discriminatorValues.find(value => value === childEntityMetadata.discriminatorValue) !== "undefined";
             });
             if (discriminatorMetadata)
                 metadata = discriminatorMetadata;
         }
-        let entity: any = this.expressionMap.options.indexOf("create-pojo") !== -1 ? {} : metadata.create(this.queryRunner, { fromDeserializer: true });
+        let entity: any = this.expressionMap.options.indexOf("create-pojo") !== -1 ? {} : metadata.create(queryRunner || this.queryRunner, { fromDeserializer: true });
 
         // get value from columns selections and put them into newly created entity
         const hasColumns = this.transformColumns(rawResults, alias, entity, metadata);

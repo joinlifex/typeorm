@@ -531,16 +531,15 @@ export class EntityMetadata {
         let ret: any;
         if (this.target instanceof Function) {
             if (!options?.fromDeserializer || this.isAlwaysUsingConstructor) {
-                ret = new (<any> this.target)();
+                ret = new (<any> this.target)(queryRunner);
             } else {
                 ret = Object.create(this.target.prototype);
+                ret.usedQueryRunner = queryRunner;
             }
 
             this.lazyRelations.forEach(relation => this.connection.relationLoader.enableLazyLoad(relation, ret, queryRunner));
-            ret.usedQueryRunner = queryRunner;
             return ret;
         }
-
         // otherwise simply return a new empty object
         const newObject = {usedQueryRunner: queryRunner};
         this.lazyRelations.forEach(relation => this.connection.relationLoader.enableLazyLoad(relation, newObject, queryRunner));
