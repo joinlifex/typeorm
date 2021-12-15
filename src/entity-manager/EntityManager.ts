@@ -243,9 +243,7 @@ export class EntityManager {
     create<Entity>(entityClass: EntityTarget<Entity>, plainObjectOrObjects?: DeepPartial<Entity>|DeepPartial<Entity>[], queryRunner?: QueryRunner): Entity|Entity[] {
         const metadata = this.connection.getMetadata(entityClass);
         
-        if (!plainObjectOrObjects) {
-            console.log("manager 11111", queryRunner?.isReleased);
-            
+        if (!plainObjectOrObjects) {            
             return metadata.create(queryRunner || this.queryRunner);
 
         }
@@ -255,7 +253,6 @@ export class EntityManager {
             return plainObjectOrObjects.map(plainEntityLike => this.create(entityClass as any, plainEntityLike));
         }
 
-        console.log("manager 2222");
         const mergeIntoEntity = metadata.create(queryRunner || this.queryRunner);
         this.plainObjectToEntityTransformer.transform(mergeIntoEntity, plainObjectOrObjects, metadata, true, queryRunner);
         return mergeIntoEntity;
@@ -861,7 +858,6 @@ export class EntityManager {
         } else if (maybeOptions && FindOptionsUtils.isFindOneOptions(maybeOptions) && maybeOptions.join) {
             alias = maybeOptions.join.alias;
         }
-        console.log("findOne", entityClass, !!findOptions?.queryRunner);
         const qb = this.createQueryBuilder<Entity>(entityClass as any, alias, findOptions?.queryRunner);
 
         const passedId = typeof idOrOptionsOrConditions === "string" || typeof idOrOptionsOrConditions === "number" || (idOrOptionsOrConditions as any) instanceof Date;
