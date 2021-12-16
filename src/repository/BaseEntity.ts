@@ -93,7 +93,7 @@ export class BaseEntity {
      */
     async reload(): Promise<void> {
         const base: any = this.constructor;
-        const newestEntity: BaseEntity = await base.getRepository().findOneOrFail(base.getId(this));
+        const newestEntity: BaseEntity = await base.getRepository().findOneOrFail(base.getId(this), {queryRunner: this.getUsedQueryRunner()});
 
         ObjectUtils.assign(this, newestEntity);
     }
