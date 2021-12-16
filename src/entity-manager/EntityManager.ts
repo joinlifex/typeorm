@@ -96,13 +96,14 @@ export class EntityManager {
      * Wraps given function execution (and all operations made there) in a transaction.
      * All database operations must be executed using provided entity manager.
      */
-    async transaction<T>(runInTransaction: (entityManager: EntityManager) => Promise<T>): Promise<T>;
+    
+    async transaction<T>(runInTransaction: (entityManager: EntityManager) => Promise<T>, queryRunner?: QueryRunner): Promise<T>;
 
     /**
      * Wraps given function execution (and all operations made there) in a transaction.
      * All database operations must be executed using provided entity manager.
      */
-    async transaction<T>(isolationLevel: IsolationLevel, runInTransaction: (entityManager: EntityManager) => Promise<T>): Promise<T>;
+    async transaction<T>(isolationLevel: IsolationLevel, runInTransaction: (entityManager: EntityManager) => Promise<T>, queryRunner?: QueryRunner): Promise<T>;
 
     /**
      * Wraps given function execution (and all operations made there) in a transaction.
@@ -110,11 +111,15 @@ export class EntityManager {
      */
     async transaction<T>(
         isolationOrRunInTransaction: IsolationLevel | ((entityManager: EntityManager) => Promise<T>),
-        runInTransactionParam?: (entityManager: EntityManager) => Promise<T>
+        runInTransactionParamOrQueryRunner?: QueryRunner | ((entityManager: EntityManager) => Promise<T>),
+        maybeQueryRunner?: QueryRunner
     ): Promise<T> {
 
         const isolation = typeof isolationOrRunInTransaction === "string" ? isolationOrRunInTransaction : undefined;
-        const runInTransaction = typeof isolationOrRunInTransaction === "function" ? isolationOrRunInTransaction : runInTransactionParam;
+        const runInTransaction = typeof isolationOrRunInTransaction === "function" ? isolationOrRunInTransaction : runInTransactionParamOrQueryRunner as ((entityManager: EntityManager) => Promise<T>);
+        const queryRunnerOption = typeof runInTransactionParamOrQueryRunner === "object" ? runInTransactionParamOrQueryRunner : maybeQueryRunner;
+       queryRunnerOption || this.queryRunner;
+        const queryRunner =  queryRunnerOption ||  this.queryRunner || this.connection.createQueryRunner();
 
         if (!runInTransaction) {
             throw new TypeORMError(`Transaction method requires callback in second paramter if isolation level is supplied.`);
@@ -123,15 +128,14 @@ export class EntityManager {
         if (this.connection.driver instanceof MongoDriver)
             throw new TypeORMError(`Transactions aren't supported by MongoDB.`);
 
-        if (this.queryRunner && this.queryRunner.isReleased)
+        if (queryRunner && queryRunner.isReleased)
             throw new QueryRunnerProviderAlreadyReleasedError();
 
-        if (this.queryRunner && this.queryRunner.isTransactionActive)
+        if (queryRunner && queryRunner.isTransactionActive)
             throw new TypeORMError(`Cannot start transaction because its already started`);
 
         // if query runner is already defined in this class, it means this entity manager was already created for a single connection
         // if its not defined we create a new query runner - single connection where we'll execute all our operations
-        const queryRunner = this.queryRunner || this.connection.createQueryRunner();
 
         try {
             if (isolation) {
