@@ -154,7 +154,7 @@ export class EntityManager {
             throw err;
 
         } finally {
-            if (!this.queryRunner) // if we used a new query runner provider then release it
+            if (!this.queryRunner && !queryRunnerOption) // if we used a new query runner provider then release it
                 await queryRunner.release();
         }
     }
