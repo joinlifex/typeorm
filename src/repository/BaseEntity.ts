@@ -35,7 +35,12 @@ export class BaseEntity {
 
     private usedQueryRunner?: QueryRunner;
 
+
     constructor(usedQueryRunner?: QueryRunner) {
+        Object.defineProperty(this, "usedQueryRunner", {
+            enumerable: false,
+            writable: true
+          });
         this.usedQueryRunner = usedQueryRunner;
     }
 

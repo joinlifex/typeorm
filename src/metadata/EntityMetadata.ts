@@ -534,14 +534,14 @@ export class EntityMetadata {
                 ret = new (<any> this.target)(queryRunner);
             } else {
                 ret = Object.create(this.target.prototype);
-                ret.usedQueryRunner = queryRunner;
+                //ret.usedQueryRunner = queryRunner;
             }
 
             this.lazyRelations.forEach(relation => this.connection.relationLoader.enableLazyLoad(relation, ret, queryRunner));
             return ret;
         }
         // otherwise simply return a new empty object
-        const newObject = {usedQueryRunner: queryRunner};
+        const newObject = {};
         this.lazyRelations.forEach(relation => this.connection.relationLoader.enableLazyLoad(relation, newObject, queryRunner));
         return newObject;
     }
