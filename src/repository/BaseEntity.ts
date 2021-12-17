@@ -91,9 +91,9 @@ export class BaseEntity {
     /**
      * Reloads entity data from the database.
      */
-    async reload(): Promise<void> {
+    async reload(options?: {queryRunner: QueryRunner}): Promise<void> {
         const base: any = this.constructor;
-        const newestEntity: BaseEntity = await base.getRepository().findOneOrFail(base.getId(this), {queryRunner: this.getUsedQueryRunner()});
+        const newestEntity: BaseEntity = await base.getRepository().findOneOrFail(base.getId(this), {queryRunner: options?.queryRunner || this.getUsedQueryRunner()});
 
         ObjectUtils.assign(this, newestEntity);
     }
