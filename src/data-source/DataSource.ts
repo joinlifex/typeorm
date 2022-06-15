@@ -470,21 +470,22 @@ export class DataSource {
      * All database operations must be executed using provided entity manager.
      */
     async transaction<T>(
-        runInTransaction: (entityManager: EntityManager) => Promise<T>,
+        runInTransaction: (entityManager: EntityManager) => Promise<T>, queryRunner?: QueryRunner,
     ): Promise<T>
     async transaction<T>(
         isolationLevel: IsolationLevel,
-        runInTransaction: (entityManager: EntityManager) => Promise<T>,
+        runInTransaction: (entityManager: EntityManager) => Promise<T>, queryRunner?: QueryRunner,
     ): Promise<T>
     async transaction<T>(
         isolationOrRunInTransaction:
             | IsolationLevel
             | ((entityManager: EntityManager) => Promise<T>),
-        runInTransactionParam?: (entityManager: EntityManager) => Promise<T>,
+        runInTransactionParam?: (entityManager: EntityManager) => Promise<T> | QueryRunner, maybeQueryRunner?: QueryRunner,
     ): Promise<any> {
         return this.manager.transaction(
             isolationOrRunInTransaction as any,
             runInTransactionParam as any,
+            maybeQueryRunner
         )
     }
 
@@ -562,8 +563,8 @@ export class DataSource {
      * If you perform writes you must use master database,
      * if you perform reads you can use slave databases.
      */
-    createQueryRunner(mode: ReplicationMode = "master"): QueryRunner {
-        const queryRunner = this.driver.createQueryRunner(mode)
+     createQueryRunner(mode: ReplicationMode = "master", onDatabaseConnection?: (databaseConnection: any) => Promise<void>, onReleaseDatabaseConnection?: (databaseConnection: any) => Promise<void>): QueryRunner {
+        const queryRunner = this.driver.createQueryRunner(mode, onDatabaseConnection || this.options.onDatabaseConnection, onReleaseDatabaseConnection || this.options.onReleaseDatabaseConnection);
         const manager = this.createEntityManager(queryRunner)
         Object.assign(queryRunner, { manager: manager })
         return queryRunner

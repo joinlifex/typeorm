@@ -1,3 +1,5 @@
+import { QueryRunner } from "../query-runner/QueryRunner";
+
 /**
  * Special options passed to Repository#save, Repository#insert and Repository#update methods.
  */
@@ -35,5 +37,8 @@ export interface SaveOptions {
      * It will work only on databases which does not support RETURNING / OUTPUT statement.
      * Enabled by default.
      */
-    reload?: boolean
+    reload?: boolean;
+
+    queryRunner?: QueryRunner;
+
 }

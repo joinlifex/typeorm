@@ -126,7 +126,7 @@ export interface Driver {
     /**
      * Creates a query runner used for common queries.
      */
-    createQueryRunner(mode: ReplicationMode): QueryRunner
+    createQueryRunner(mode: ReplicationMode, onDatabaseConnection?: (databaseConnection: any) => Promise<void>, onReleaseDatabaseConnection?: (databaseConnection: any) => Promise<void>): QueryRunner;
 
     /**
      * Replaces parameters in the given sql with special escaping character

@@ -43,6 +43,12 @@ export class PostgresQueryRunner
      */
     driver: PostgresDriver
 
+    ctx?: string | number;
+
+    onDatabaseConnection?: (databaseConnection: any) => Promise<void>;
+    
+    onReleaseDatabaseConnection?: (databaseConnection: any) => Promise<void>;
+
     // -------------------------------------------------------------------------
     // Protected Properties
     // -------------------------------------------------------------------------
@@ -61,12 +67,14 @@ export class PostgresQueryRunner
     // Constructor
     // -------------------------------------------------------------------------
 
-    constructor(driver: PostgresDriver, mode: ReplicationMode) {
-        super()
-        this.driver = driver
-        this.connection = driver.connection
-        this.mode = mode
-        this.broadcaster = new Broadcaster(this)
+    constructor(driver: PostgresDriver, mode: ReplicationMode,  onDatabaseConnection?: (databaseConnection: any) => Promise<void>, onReleaseDatabaseConnection?: (databaseConnection: any) => Promise<void>) {
+        super();
+        this.onDatabaseConnection = onDatabaseConnection;
+        this.onReleaseDatabaseConnection = onReleaseDatabaseConnection;
+        this.driver = driver;
+        this.connection = driver.connection;
+        this.mode = mode;
+        this.broadcaster = new Broadcaster(this);
     }
 
     // -------------------------------------------------------------------------
@@ -102,15 +110,13 @@ export class PostgresQueryRunner
                     }
                     this.databaseConnection.on("error", onErrorCallback)
 
-                    return this.databaseConnection
-                })
-        } else {
-            // master
-            this.databaseConnectionPromise = this.driver
-                .obtainMasterConnection()
-                .then(([connection, release]: any[]) => {
-                    this.driver.connectedQueryRunners.push(this)
-                    this.databaseConnection = connection
+                return this.databaseConnection;
+            }).then(async (dbConnection) => {
+                if (this.onDatabaseConnection) {
+                    await this.onDatabaseConnection(dbConnection);
+                }
+                return dbConnection;
+            });
 
                     const onErrorCallback = (err: Error) =>
                         this.releasePostgresConnection(err)
@@ -123,8 +129,20 @@ export class PostgresQueryRunner
                     }
                     this.databaseConnection.on("error", onErrorCallback)
 
-                    return this.databaseConnection
-                })
+                const onErrorCallback = (err: Error) => this.releasePostgresConnection(err);
+                this.releaseCallback = () => {
+                    this.databaseConnection.removeListener("error", onErrorCallback);
+                    release();
+                };
+                this.databaseConnection.on("error", onErrorCallback);
+
+                return this.databaseConnection;
+            }).then(async (dbConnection) => {
+                if (this.onDatabaseConnection) {
+                    await this.onDatabaseConnection(dbConnection);
+                }
+                return dbConnection;
+            });
         }
 
         return this.databaseConnectionPromise
@@ -136,13 +154,18 @@ export class PostgresQueryRunner
      */
     private async releasePostgresConnection(err?: Error) {
         if (this.isReleased) {
-            return
+            return;
         }
+        if (this.onReleaseDatabaseConnection) {
+            await this.onReleaseDatabaseConnection(this.databaseConnection);
+        } 
 
         this.isReleased = true
         if (this.releaseCallback) {
             this.releaseCallback(err)
             this.releaseCallback = undefined
+            this.releaseCallback(err);
+            this.releaseCallback = undefined;
         }
 
         const index = this.driver.connectedQueryRunners.indexOf(this)

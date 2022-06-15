@@ -1,6 +1,7 @@
 import { EntityMetadata } from "../../metadata/EntityMetadata"
 import { ObjectLiteral } from "../../common/ObjectLiteral"
 import { ObjectUtils } from "../../util/ObjectUtils"
+import { QueryRunner } from "../..";
 
 /**
  * Transforms plain old javascript object
@@ -11,20 +12,10 @@ export class PlainObjectToNewEntityTransformer {
     // Public Methods
     // -------------------------------------------------------------------------
 
-    transform<T>(
-        newEntity: T,
-        object: ObjectLiteral,
-        metadata: EntityMetadata,
-        getLazyRelationsPromiseValue: boolean = false,
-    ): T {
+    transform<T>(newEntity: T, object: ObjectLiteral, metadata: EntityMetadata, getLazyRelationsPromiseValue: boolean = false, queryRunner?: QueryRunner): T {
         // console.log("groupAndTransform entity:", newEntity);
         // console.log("groupAndTransform object:", object);
-        this.groupAndTransform(
-            newEntity,
-            object,
-            metadata,
-            getLazyRelationsPromiseValue,
-        )
+        this.groupAndTransform(newEntity, object, metadata, getLazyRelationsPromiseValue, queryRunner);
         // console.log("result:", newEntity);
         return newEntity
     }
@@ -37,12 +28,7 @@ export class PlainObjectToNewEntityTransformer {
      * Since db returns a duplicated rows of the data where accuracies of the same object can be duplicated
      * we need to group our result and we must have some unique id (primary key in our case)
      */
-    private groupAndTransform(
-        entity: ObjectLiteral,
-        object: ObjectLiteral,
-        metadata: EntityMetadata,
-        getLazyRelationsPromiseValue: boolean = false,
-    ): void {
+    private groupAndTransform(entity: ObjectLiteral, object: ObjectLiteral, metadata: EntityMetadata, getLazyRelationsPromiseValue: boolean = false, queryRunner?: QueryRunner): void {        
         // console.log("groupAndTransform entity:", entity);
         // console.log("groupAndTransform object:", object);
 
@@ -83,22 +69,14 @@ export class PlainObjectToNewEntityTransformer {
                         })
 
                         // if such item already exist then merge new data into it, if its not we create a new entity and merge it into the array
-                        if (!objectRelatedValueEntity) {
-                            objectRelatedValueEntity =
-                                relation.inverseEntityMetadata.create(
-                                    undefined,
-                                    { fromDeserializer: true },
-                                )
-                            entityRelatedValue.push(objectRelatedValueEntity)
+                        if (!objectRelatedValueEntity) {                            
+                            objectRelatedValueEntity = relation.inverseEntityMetadata.create(queryRunner, { fromDeserializer: true });
+                            entityRelatedValue.push(objectRelatedValueEntity);
                         }
 
-                        this.groupAndTransform(
-                            objectRelatedValueEntity,
-                            objectRelatedValueItem,
-                            relation.inverseEntityMetadata,
-                            getLazyRelationsPromiseValue,
-                        )
-                    })
+                        this.groupAndTransform(objectRelatedValueEntity, objectRelatedValueItem, relation.inverseEntityMetadata, getLazyRelationsPromiseValue, queryRunner);
+                    });
+
                 } else {
                     // if related object isn't an object (direct relation id for example)
                     // we just set it to the entity relation, we don't need anything more from it
@@ -111,19 +89,11 @@ export class PlainObjectToNewEntityTransformer {
                     }
 
                     if (!entityRelatedValue) {
-                        entityRelatedValue =
-                            relation.inverseEntityMetadata.create(undefined, {
-                                fromDeserializer: true,
-                            })
-                        relation.setEntityValue(entity, entityRelatedValue)
+                        entityRelatedValue = relation.inverseEntityMetadata.create(queryRunner, { fromDeserializer: true });
+                        relation.setEntityValue(entity, entityRelatedValue);
                     }
 
-                    this.groupAndTransform(
-                        entityRelatedValue,
-                        objectRelatedValue,
-                        relation.inverseEntityMetadata,
-                        getLazyRelationsPromiseValue,
-                    )
+                    this.groupAndTransform(entityRelatedValue, objectRelatedValue, relation.inverseEntityMetadata, getLazyRelationsPromiseValue, queryRunner);
                 }
             })
         }

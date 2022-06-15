@@ -100,28 +100,23 @@ export class EntityManager {
      * Wraps given function execution (and all operations made there) in a transaction.
      * All database operations must be executed using provided entity manager.
      */
-    async transaction<T>(
-        runInTransaction: (entityManager: EntityManager) => Promise<T>,
-    ): Promise<T>
+    
+    async transaction<T>(runInTransaction: (entityManager: EntityManager) => Promise<T>, queryRunner?: QueryRunner): Promise<T>;
+
+    /**
+     * Wraps given function execution (and all operations made there) in a transaction.
+     * All database operations must be executed using provided entity manager.
+     */
+    async transaction<T>(isolationLevel: IsolationLevel, runInTransaction: (entityManager: EntityManager) => Promise<T>, queryRunner?: QueryRunner): Promise<T>;
 
     /**
      * Wraps given function execution (and all operations made there) in a transaction.
      * All database operations must be executed using provided entity manager.
      */
     async transaction<T>(
-        isolationLevel: IsolationLevel,
-        runInTransaction: (entityManager: EntityManager) => Promise<T>,
-    ): Promise<T>
-
-    /**
-     * Wraps given function execution (and all operations made there) in a transaction.
-     * All database operations must be executed using provided entity manager.
-     */
-    async transaction<T>(
-        isolationOrRunInTransaction:
-            | IsolationLevel
-            | ((entityManager: EntityManager) => Promise<T>),
-        runInTransactionParam?: (entityManager: EntityManager) => Promise<T>,
+        isolationOrRunInTransaction: IsolationLevel | ((entityManager: EntityManager) => Promise<T>),
+        runInTransactionParamOrQueryRunner?: QueryRunner | ((entityManager: EntityManager) => Promise<T>),
+        maybeQueryRunner?: QueryRunner
     ): Promise<T> {
         const isolation =
             typeof isolationOrRunInTransaction === "string"
@@ -132,6 +127,12 @@ export class EntityManager {
                 ? isolationOrRunInTransaction
                 : runInTransactionParam
 
+        const isolation = typeof isolationOrRunInTransaction === "string" ? isolationOrRunInTransaction : undefined;
+        const runInTransaction = typeof isolationOrRunInTransaction === "function" ? isolationOrRunInTransaction : runInTransactionParamOrQueryRunner as ((entityManager: EntityManager) => Promise<T>);
+        const queryRunnerOption = typeof runInTransactionParamOrQueryRunner === "object" ? runInTransactionParamOrQueryRunner : maybeQueryRunner;
+       queryRunnerOption || this.queryRunner;
+        const queryRunner =  queryRunnerOption ||  this.queryRunner || this.connection.createQueryRunner();
+
         if (!runInTransaction) {
             throw new TypeORMError(
                 `Transaction method requires callback in second paramter if isolation level is supplied.`,
@@ -141,10 +142,11 @@ export class EntityManager {
         if (this.queryRunner && this.queryRunner.isReleased)
             throw new QueryRunnerProviderAlreadyReleasedError()
 
+        if (queryRunner && queryRunner.isTransactionActive)
+            throw new TypeORMError(`Cannot start transaction because its already started`);
+
         // if query runner is already defined in this class, it means this entity manager was already created for a single connection
         // if its not defined we create a new query runner - single connection where we'll execute all our operations
-        const queryRunner =
-            this.queryRunner || this.connection.createQueryRunner()
 
         try {
             await queryRunner.startTransaction(isolation)
@@ -158,9 +160,8 @@ export class EntityManager {
             } catch (rollbackError) {}
             throw err
         } finally {
-            if (!this.queryRunner)
-                // if we used a new query runner provider then release it
-                await queryRunner.release()
+            if (!this.queryRunner && !queryRunnerOption) // if we used a new query runner provider then release it
+                await queryRunner.release();
         }
     }
 
@@ -254,45 +255,34 @@ export class EntityManager {
      * Creates a new entity instance and copies all entity properties from this object into a new entity.
      * Note that it copies only properties that present in entity schema.
      */
-    create<Entity>(
-        entityClass: EntityTarget<Entity>,
-        plainObject?: DeepPartial<Entity>,
-    ): Entity
+    create<Entity>(entityClass: EntityTarget<Entity>, plainObject?: DeepPartial<Entity>, queryRunner?: QueryRunner): Entity;
 
     /**
      * Creates a new entities and copies all entity properties from given objects into their new entities.
      * Note that it copies only properties that present in entity schema.
      */
-    create<Entity>(
-        entityClass: EntityTarget<Entity>,
-        plainObjects?: DeepPartial<Entity>[],
-    ): Entity[]
+    create<Entity>(entityClass: EntityTarget<Entity>, plainObjects?: DeepPartial<Entity>[], queryRunner?: QueryRunner): Entity[];
 
     /**
      * Creates a new entity instance or instances.
      * Can copy properties from the given object into new entities.
      */
-    create<Entity>(
-        entityClass: EntityTarget<Entity>,
-        plainObjectOrObjects?: DeepPartial<Entity> | DeepPartial<Entity>[],
-    ): Entity | Entity[] {
-        const metadata = this.connection.getMetadata(entityClass)
+    create<Entity>(entityClass: EntityTarget<Entity>, plainObjectOrObjects?: DeepPartial<Entity>|DeepPartial<Entity>[], queryRunner?: QueryRunner): Entity|Entity[] {
+        const metadata = this.connection.getMetadata(entityClass);
+        
+        if (!plainObjectOrObjects) {            
+            return metadata.create(queryRunner || this.queryRunner);
 
-        if (!plainObjectOrObjects) return metadata.create(this.queryRunner)
+        }
 
-        if (Array.isArray(plainObjectOrObjects))
-            return (plainObjectOrObjects as DeepPartial<Entity>[]).map(
-                (plainEntityLike) => this.create(entityClass, plainEntityLike),
-            )
 
-        const mergeIntoEntity = metadata.create(this.queryRunner)
-        this.plainObjectToEntityTransformer.transform(
-            mergeIntoEntity,
-            plainObjectOrObjects,
-            metadata,
-            true,
-        )
-        return mergeIntoEntity
+        if (Array.isArray(plainObjectOrObjects)) {
+            return plainObjectOrObjects.map(plainEntityLike => this.create(entityClass as any, plainEntityLike));
+        }
+
+        const mergeIntoEntity = metadata.create(queryRunner || this.queryRunner);
+        this.plainObjectToEntityTransformer.transform(mergeIntoEntity, plainObjectOrObjects, metadata, true, queryRunner);
+        return mergeIntoEntity;
     }
 
     /**
@@ -425,14 +415,7 @@ export class EntityManager {
             return Promise.resolve(entity)
 
         // execute save operation
-        return new EntityPersistExecutor(
-            this.connection,
-            this.queryRunner,
-            "save",
-            target,
-            entity,
-            options,
-        )
+        return new EntityPersistExecutor(this.connection, options?.queryRunner || this.queryRunner, "save", target, entity, options)
             .execute()
             .then(() => entity)
     }
@@ -492,14 +475,7 @@ export class EntityManager {
             return Promise.resolve(entity)
 
         // execute save operation
-        return new EntityPersistExecutor(
-            this.connection,
-            this.queryRunner,
-            "remove",
-            target,
-            entity,
-            options,
-        )
+        return new EntityPersistExecutor(this.connection, options?.queryRunner || this.queryRunner, "remove", target, entity, options)
             .execute()
             .then(() => entity)
     }
@@ -565,14 +541,7 @@ export class EntityManager {
             return Promise.resolve(entity)
 
         // execute soft-remove operation
-        return new EntityPersistExecutor(
-            this.connection,
-            this.queryRunner,
-            "soft-remove",
-            target,
-            entity,
-            options,
-        )
+        return new EntityPersistExecutor(this.connection, options?.queryRunner || this.queryRunner, "soft-remove", target, entity, options)
             .execute()
             .then(() => entity)
     }
@@ -638,14 +607,7 @@ export class EntityManager {
             return Promise.resolve(entity)
 
         // execute recover operation
-        return new EntityPersistExecutor(
-            this.connection,
-            this.queryRunner,
-            "recover",
-            target,
-            entity,
-            options,
-        )
+        return new EntityPersistExecutor(this.connection, options?.queryRunner || this.queryRunner, "recover", target, entity, options)
             .execute()
             .then(() => entity)
     }

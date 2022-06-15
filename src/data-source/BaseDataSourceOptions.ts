@@ -203,4 +203,7 @@ export interface BaseDataSourceOptions {
                */
               readonly ignoreErrors?: boolean
           }
+
+    readonly onDatabaseConnection?: (databaseConnection: any) => Promise<void>;
+    readonly onReleaseDatabaseConnection?: (databaseConnection: any) => Promise<void>;
 }

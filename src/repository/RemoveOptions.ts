@@ -1,3 +1,5 @@
+import { QueryRunner } from "../query-runner/QueryRunner";
+
 /**
  * Special options passed to Repository#remove and Repository#delete methods.
  */
@@ -26,5 +28,8 @@ export interface RemoveOptions {
      * you can break them into 10 groups of 10,000 objects (by setting { chunk: 10000 }) and save each group separately.
      * This option is needed to perform very big insertions when you have issues with underlying driver parameter number limitation.
      */
-    chunk?: number
+    chunk?: number;
+
+    queryRunner?: QueryRunner;
+
 }

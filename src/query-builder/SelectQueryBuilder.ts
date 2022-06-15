@@ -3336,6 +3336,7 @@ export class SelectQueryBuilder<Entity>
             entities = transformer.transform(
                 rawResults,
                 this.expressionMap.mainAlias!,
+                queryRunner,
             )
 
             // broadcast all "after load" events

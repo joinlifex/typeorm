@@ -41,8 +41,9 @@ export class FindOptionsUtils {
                 typeof possibleOptions.loadEagerRelations === "boolean" ||
                 typeof possibleOptions.withDeleted === "boolean" ||
                 typeof possibleOptions.relationLoadStrategy === "string" ||
-                typeof possibleOptions.transaction === "boolean")
-        )
+                typeof possibleOptions.transaction === "boolean" ||
+                typeof possibleOptions.queryRunner === "object"
+            );
     }
 
     /**

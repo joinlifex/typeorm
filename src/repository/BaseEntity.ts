@@ -15,6 +15,7 @@ import { ObjectUtils } from "../util/ObjectUtils"
 import { QueryDeepPartialEntity } from "../query-builder/QueryPartialEntity"
 import { UpsertOptions } from "./UpsertOptions"
 import { EntityTarget } from "../common/EntityTarget"
+import { QueryRunner } from "..";
 
 /**
  * Base abstract entity for all entities, used in ActiveRecord patterns.
@@ -29,9 +30,28 @@ export class BaseEntity {
      */
     private static dataSource: DataSource | null
 
+    private usedQueryRunner?: QueryRunner;
+
+
+    constructor(usedQueryRunner?: QueryRunner) {
+        Object.defineProperty(this, "usedQueryRunner", {
+            enumerable: false,
+            writable: true
+          });
+        this.usedQueryRunner = usedQueryRunner;
+    }
+
     // -------------------------------------------------------------------------
     // Public Methods
     // -------------------------------------------------------------------------
+
+    getUsedQueryRunner (): QueryRunner | undefined { 
+        if (this.usedQueryRunner?.isReleased) {
+            // maybe we want to return undefined instead of an error so a default queryRunner is used by Executors
+            throw new Error("The used queryRunner has been release, you cannot use it");
+        }
+        return this.usedQueryRunner;
+    }
 
     /**
      * Checks if entity has an id.
@@ -48,7 +68,7 @@ export class BaseEntity {
      */
     save(options?: SaveOptions): Promise<this> {
         const baseEntity = this.constructor as typeof BaseEntity
-        return baseEntity.getRepository().save(this, options)
+        return baseEntity.getRepository().save(this, Object.assign({queryRunner: this.getUsedQueryRunner()} , options));
     }
 
     /**
@@ -56,7 +76,7 @@ export class BaseEntity {
      */
     remove(options?: RemoveOptions): Promise<this> {
         const baseEntity = this.constructor as typeof BaseEntity
-        return baseEntity.getRepository().remove(this, options) as Promise<this>
+        return baseEntity.getRepository().remove(this, Object.assign({queryRunner: this.getUsedQueryRunner()} , options));
     }
 
     /**
@@ -64,7 +84,7 @@ export class BaseEntity {
      */
     softRemove(options?: SaveOptions): Promise<this> {
         const baseEntity = this.constructor as typeof BaseEntity
-        return baseEntity.getRepository().softRemove(this, options)
+        return baseEntity.getRepository().softRemove(this, Object.assign({queryRunner: this.getUsedQueryRunner()} , options));
     }
 
     /**
@@ -72,13 +92,13 @@ export class BaseEntity {
      */
     recover(options?: SaveOptions): Promise<this> {
         const baseEntity = this.constructor as typeof BaseEntity
-        return baseEntity.getRepository().recover(this, options)
+        return baseEntity.getRepository().recover(this, Object.assign({queryRunner: this.getUsedQueryRunner()} , options));
     }
 
     /**
      * Reloads entity data from the database.
      */
-    async reload(): Promise<void> {
+    async reload(options?: {queryRunner: QueryRunner}): Promise<void> {
         const baseEntity = this.constructor as typeof BaseEntity
         const id = baseEntity.getRepository().metadata.getEntityIdMap(this)
         if (!id) {
@@ -88,7 +108,7 @@ export class BaseEntity {
         }
         const reloadedEntity: BaseEntity = await baseEntity
             .getRepository()
-            .findOneByOrFail(id)
+            .findOneByOrFail(id, {queryRunner: options?.queryRunner || this.getUsedQueryRunner()})
 
         ObjectUtils.assign(this, reloadedEntity)
     }
@@ -149,8 +169,9 @@ export class BaseEntity {
     static createQueryBuilder<T extends BaseEntity>(
         this: { new (): T } & typeof BaseEntity,
         alias?: string,
+        queryRunner?: QueryRunner,
     ): SelectQueryBuilder<T> {
-        return this.getRepository<T>().createQueryBuilder(alias)
+        return this.getRepository<T>().createQueryBuilder(alias, queryRunner)
     }
 
     /**
@@ -167,6 +188,7 @@ export class BaseEntity {
     static create<T extends BaseEntity>(
         this: { new (): T } & typeof BaseEntity,
         entityLikeArray: DeepPartial<T>[],
+        queryRunner?: QueryRunner,
     ): T[]
 
     /**
@@ -176,6 +198,7 @@ export class BaseEntity {
     static create<T extends BaseEntity>(
         this: { new (): T } & typeof BaseEntity,
         entityLike: DeepPartial<T>,
+        queryRunner?: QueryRunner,
     ): T
 
     /**
@@ -185,8 +208,9 @@ export class BaseEntity {
     static create<T extends BaseEntity>(
         this: { new (): T } & typeof BaseEntity,
         entityOrEntities?: any,
+        queryRunner?: QueryRunner,
     ) {
-        return this.getRepository<T>().create(entityOrEntities)
+        return this.getRepository<T>().create(entityOrEntities, queryRunner)
     }
 
     /**

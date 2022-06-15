@@ -560,7 +560,7 @@ export class EntityMetadata {
         let ret: any
         if (typeof this.target === "function" && !pojo) {
             if (!options?.fromDeserializer || this.isAlwaysUsingConstructor) {
-                ret = new (<any>this.target)()
+                ret = new (<any> this.target)(queryRunner);
             } else {
                 ret = Object.create(this.target.prototype)
             }

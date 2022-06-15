@@ -595,8 +595,8 @@ export class PostgresDriver implements Driver {
     /**
      * Creates a query runner used to execute database queries.
      */
-    createQueryRunner(mode: ReplicationMode): QueryRunner {
-        return new PostgresQueryRunner(this, mode)
+    createQueryRunner(mode: ReplicationMode, onDatabaseConnection?: (databaseConnection: any) => Promise<void>, onReleaseDatabaseConnection?: (databaseConnection: any) => Promise<void>): QueryRunner {
+        return new PostgresQueryRunner(this, mode, onDatabaseConnection, onReleaseDatabaseConnection);
     }
 
     /**
