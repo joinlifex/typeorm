@@ -117,32 +117,28 @@ export class PostgresQueryRunner
                 }
                 return dbConnection;
             });
+        } else {
+            // master
+            this.databaseConnectionPromise = this.driver
+                .obtainMasterConnection()
+                .then(([connection, release]: any[]) => {
+                    this.driver.connectedQueryRunners.push(this)
+                    this.databaseConnection = connection      
 
-                    const onErrorCallback = (err: Error) =>
-                        this.releasePostgresConnection(err)
+                    const onErrorCallback = (err: Error) => this.releasePostgresConnection(err);
                     this.releaseCallback = () => {
-                        this.databaseConnection.removeListener(
-                            "error",
-                            onErrorCallback,
-                        )
-                        release()
+                        this.databaseConnection.removeListener("error", onErrorCallback);
+                        release();
+                    };
+                    this.databaseConnection.on("error", onErrorCallback);
+
+                    return this.databaseConnection;
+                }).then(async (dbConnection) => {
+                    if (this.onDatabaseConnection) {
+                        await this.onDatabaseConnection(dbConnection);
                     }
-                    this.databaseConnection.on("error", onErrorCallback)
-
-                const onErrorCallback = (err: Error) => this.releasePostgresConnection(err);
-                this.releaseCallback = () => {
-                    this.databaseConnection.removeListener("error", onErrorCallback);
-                    release();
-                };
-                this.databaseConnection.on("error", onErrorCallback);
-
-                return this.databaseConnection;
-            }).then(async (dbConnection) => {
-                if (this.onDatabaseConnection) {
-                    await this.onDatabaseConnection(dbConnection);
-                }
-                return dbConnection;
-            });
+                    return dbConnection;
+                });
         }
 
         return this.databaseConnectionPromise
@@ -164,8 +160,6 @@ export class PostgresQueryRunner
         if (this.releaseCallback) {
             this.releaseCallback(err)
             this.releaseCallback = undefined
-            this.releaseCallback(err);
-            this.releaseCallback = undefined;
         }
 
         const index = this.driver.connectedQueryRunners.indexOf(this)

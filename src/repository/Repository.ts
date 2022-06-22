@@ -528,8 +528,9 @@ export class Repository<Entity extends ObjectLiteral> {
      */
     async findOneBy(
         where: FindOptionsWhere<Entity> | FindOptionsWhere<Entity>[],
+        queryRunner?: QueryRunner
     ): Promise<Entity | null> {
-        return this.manager.findOneBy(this.metadata.target, where)
+        return this.manager.findOneBy(this.metadata.target, where, queryRunner)
     }
 
     /**
@@ -544,8 +545,9 @@ export class Repository<Entity extends ObjectLiteral> {
      */
     async findOneById(
         id: number | string | Date | ObjectID,
+        queryRunner?: QueryRunner
     ): Promise<Entity | null> {
-        return this.manager.findOneById(this.metadata.target, id)
+        return this.manager.findOneById(this.metadata.target, id, queryRunner)
     }
 
     /**
@@ -562,8 +564,9 @@ export class Repository<Entity extends ObjectLiteral> {
      */
     async findOneByOrFail(
         where: FindOptionsWhere<Entity> | FindOptionsWhere<Entity>[],
+        queryRunner?: QueryRunner
     ): Promise<Entity> {
-        return this.manager.findOneByOrFail(this.metadata.target, where)
+        return this.manager.findOneByOrFail(this.metadata.target, where, queryRunner)
     }
 
     /**

@@ -480,11 +480,12 @@ export class DataSource {
         isolationOrRunInTransaction:
             | IsolationLevel
             | ((entityManager: EntityManager) => Promise<T>),
-        runInTransactionParam?: (entityManager: EntityManager) => Promise<T> | QueryRunner, maybeQueryRunner?: QueryRunner,
+        runInTransactionParamOrQueryRunner?: QueryRunner | ((entityManager: EntityManager) => Promise<T>),
+        maybeQueryRunner?: QueryRunner
     ): Promise<any> {
         return this.manager.transaction(
             isolationOrRunInTransaction as any,
-            runInTransactionParam as any,
+            runInTransactionParamOrQueryRunner as any,
             maybeQueryRunner
         )
     }

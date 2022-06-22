@@ -118,15 +118,6 @@ export class EntityManager {
         runInTransactionParamOrQueryRunner?: QueryRunner | ((entityManager: EntityManager) => Promise<T>),
         maybeQueryRunner?: QueryRunner
     ): Promise<T> {
-        const isolation =
-            typeof isolationOrRunInTransaction === "string"
-                ? isolationOrRunInTransaction
-                : undefined
-        const runInTransaction =
-            typeof isolationOrRunInTransaction === "function"
-                ? isolationOrRunInTransaction
-                : runInTransactionParam
-
         const isolation = typeof isolationOrRunInTransaction === "string" ? isolationOrRunInTransaction : undefined;
         const runInTransaction = typeof isolationOrRunInTransaction === "function" ? isolationOrRunInTransaction : runInTransactionParamOrQueryRunner as ((entityManager: EntityManager) => Promise<T>);
         const queryRunnerOption = typeof runInTransactionParamOrQueryRunner === "object" ? runInTransactionParamOrQueryRunner : maybeQueryRunner;
@@ -917,8 +908,8 @@ export class EntityManager {
         const metadata = this.connection.getMetadata(entityClass)
         return this.createQueryBuilder(
             entityClass,
-            FindOptionsUtils.extractFindManyOptionsAlias(options) ||
-                metadata.name,
+            FindOptionsUtils.extractFindManyOptionsAlias(options) || metadata.name,
+            options?.queryRunner
         )
             .setFindOptions(options || {})
             .getCount()
@@ -948,8 +939,8 @@ export class EntityManager {
         const metadata = this.connection.getMetadata(entityClass)
         return this.createQueryBuilder<Entity>(
             entityClass as any,
-            FindOptionsUtils.extractFindManyOptionsAlias(options) ||
-                metadata.name,
+            FindOptionsUtils.extractFindManyOptionsAlias(options) || metadata.name,
+            options?.queryRunner
         )
             .setFindOptions(options || {})
             .getMany()
@@ -983,8 +974,8 @@ export class EntityManager {
         const metadata = this.connection.getMetadata(entityClass)
         return this.createQueryBuilder<Entity>(
             entityClass as any,
-            FindOptionsUtils.extractFindManyOptionsAlias(options) ||
-                metadata.name,
+            FindOptionsUtils.extractFindManyOptionsAlias(options) || metadata.name,
+            options?.queryRunner
         )
             .setFindOptions(options || {})
             .getManyAndCount()
@@ -1057,7 +1048,7 @@ export class EntityManager {
         }
 
         // create query builder and apply find options
-        return this.createQueryBuilder<Entity>(entityClass, alias)
+        return this.createQueryBuilder<Entity>(entityClass, alias, options.queryRunner)
             .setFindOptions({
                 ...options,
                 take: 1,
@@ -1072,11 +1063,12 @@ export class EntityManager {
     async findOneBy<Entity>(
         entityClass: EntityTarget<Entity>,
         where: FindOptionsWhere<Entity> | FindOptionsWhere<Entity>[],
+        queryRunner?: QueryRunner
     ): Promise<Entity | null> {
         const metadata = this.connection.getMetadata(entityClass)
 
         // create query builder and apply find options
-        return this.createQueryBuilder<Entity>(entityClass, metadata.name)
+        return this.createQueryBuilder<Entity>(entityClass, metadata.name, queryRunner)
             .setFindOptions({
                 where,
                 take: 1,
@@ -1097,11 +1089,12 @@ export class EntityManager {
     async findOneById<Entity>(
         entityClass: EntityTarget<Entity>,
         id: number | string | Date | ObjectID,
+        queryRunner?: QueryRunner
     ): Promise<Entity | null> {
         const metadata = this.connection.getMetadata(entityClass)
 
         // create query builder and apply find options
-        return this.createQueryBuilder<Entity>(entityClass, metadata.name)
+        return this.createQueryBuilder<Entity>(entityClass, metadata.name, queryRunner)
             .setFindOptions({
                 take: 1,
             })
@@ -1136,8 +1129,9 @@ export class EntityManager {
     async findOneByOrFail<Entity>(
         entityClass: EntityTarget<Entity>,
         where: FindOptionsWhere<Entity> | FindOptionsWhere<Entity>[],
+        queryRunner?: QueryRunner
     ): Promise<Entity> {
-        return this.findOneBy<Entity>(entityClass as any, where).then(
+        return this.findOneBy<Entity>(entityClass as any, where, queryRunner).then(
             (value) => {
                 if (value === null) {
                     return Promise.reject(

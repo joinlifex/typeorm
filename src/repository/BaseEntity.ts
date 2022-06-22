@@ -76,7 +76,7 @@ export class BaseEntity {
      */
     remove(options?: RemoveOptions): Promise<this> {
         const baseEntity = this.constructor as typeof BaseEntity
-        return baseEntity.getRepository().remove(this, Object.assign({queryRunner: this.getUsedQueryRunner()} , options));
+        return baseEntity.getRepository().remove(this, Object.assign({queryRunner: this.getUsedQueryRunner()} , options)) as Promise<this>;
     }
 
     /**
@@ -108,7 +108,7 @@ export class BaseEntity {
         }
         const reloadedEntity: BaseEntity = await baseEntity
             .getRepository()
-            .findOneByOrFail(id, {queryRunner: options?.queryRunner || this.getUsedQueryRunner()})
+            .findOneByOrFail(id, options?.queryRunner || this.getUsedQueryRunner())
 
         ObjectUtils.assign(this, reloadedEntity)
     }
@@ -509,8 +509,9 @@ export class BaseEntity {
     static findOneBy<T extends BaseEntity>(
         this: { new (): T } & typeof BaseEntity,
         where: FindOptionsWhere<T>,
+        queryRunner?: QueryRunner
     ): Promise<T | null> {
-        return this.getRepository<T>().findOneBy(where)
+        return this.getRepository<T>().findOneBy(where, queryRunner)
     }
 
     /**
@@ -525,8 +526,9 @@ export class BaseEntity {
     static findOneById<T extends BaseEntity>(
         this: { new (): T } & typeof BaseEntity,
         id: string | number | Date | ObjectID,
+        queryRunner?: QueryRunner
     ): Promise<T | null> {
-        return this.getRepository<T>().findOneById(id)
+        return this.getRepository<T>().findOneById(id, queryRunner)
     }
 
     /**
@@ -545,8 +547,9 @@ export class BaseEntity {
     static findOneByOrFail<T extends BaseEntity>(
         this: { new (): T } & typeof BaseEntity,
         where: FindOptionsWhere<T>,
+        queryRunner?: QueryRunner
     ): Promise<T> {
-        return this.getRepository<T>().findOneByOrFail(where)
+        return this.getRepository<T>().findOneByOrFail(where, queryRunner)
     }
 
     /**

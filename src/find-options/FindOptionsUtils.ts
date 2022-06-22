@@ -43,7 +43,8 @@ export class FindOptionsUtils {
                 typeof possibleOptions.relationLoadStrategy === "string" ||
                 typeof possibleOptions.transaction === "boolean" ||
                 typeof possibleOptions.queryRunner === "object"
-            );
+            )
+        );
     }
 
     /**
