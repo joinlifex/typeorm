@@ -629,6 +629,7 @@ export class EntityManager {
             | QueryDeepPartialEntity<Entity>
             | QueryDeepPartialEntity<Entity>[],
         conflictPathsOrOptions: string[] | UpsertOptions<Entity>,
+        queryRunner?: QueryRunner
     ): Promise<InsertResult> {
         const metadata = this.connection.getMetadata(target)
 
@@ -663,7 +664,7 @@ export class EntityManager {
                 ),
         )
 
-        return this.createQueryBuilder()
+        return this.createQueryBuilder(queryRunner)
             .insert()
             .into(target)
             .values(entities)
@@ -700,6 +701,7 @@ export class EntityManager {
             | ObjectID[]
             | any,
         partialEntity: QueryDeepPartialEntity<Entity>,
+        queryRunner?: QueryRunner
     ): Promise<UpdateResult> {
         // if user passed empty criteria or empty list of criterias, then throw an error
         if (
@@ -721,13 +723,13 @@ export class EntityManager {
             criteria instanceof Date ||
             Array.isArray(criteria)
         ) {
-            return this.createQueryBuilder()
+            return this.createQueryBuilder(queryRunner)
                 .update(target)
                 .set(partialEntity)
                 .whereInIds(criteria)
                 .execute()
         } else {
-            return this.createQueryBuilder()
+            return this.createQueryBuilder(queryRunner)
                 .update(target)
                 .set(partialEntity)
                 .where(criteria)

@@ -368,8 +368,9 @@ export class BaseEntity {
             | ObjectID[]
             | FindOptionsWhere<T>,
         partialEntity: QueryDeepPartialEntity<T>,
+        queryRunner?: QueryRunner
     ): Promise<UpdateResult> {
-        return this.getRepository<T>().update(criteria, partialEntity)
+        return this.getRepository<T>().update(criteria, partialEntity, queryRunner)
     }
 
     /**
@@ -383,10 +384,12 @@ export class BaseEntity {
             | QueryDeepPartialEntity<T>
             | QueryDeepPartialEntity<T>[],
         conflictPathsOrOptions: string[] | UpsertOptions<T>,
+        queryRunner?: QueryRunner
     ): Promise<InsertResult> {
         return this.getRepository<T>().upsert(
             entityOrEntities,
             conflictPathsOrOptions,
+            queryRunner
         )
     }
 

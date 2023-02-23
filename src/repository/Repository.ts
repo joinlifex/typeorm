@@ -349,11 +349,13 @@ export class Repository<Entity extends ObjectLiteral> {
             | ObjectID[]
             | FindOptionsWhere<Entity>,
         partialEntity: QueryDeepPartialEntity<Entity>,
+        queryRunner?: QueryRunner
     ): Promise<UpdateResult> {
         return this.manager.update(
             this.metadata.target as any,
             criteria as any,
             partialEntity,
+            queryRunner
         )
     }
 
@@ -367,11 +369,13 @@ export class Repository<Entity extends ObjectLiteral> {
             | QueryDeepPartialEntity<Entity>
             | QueryDeepPartialEntity<Entity>[],
         conflictPathsOrOptions: string[] | UpsertOptions<Entity>,
+        queryRunner?: QueryRunner
     ): Promise<InsertResult> {
         return this.manager.upsert(
             this.metadata.target as any,
             entityOrEntities,
             conflictPathsOrOptions,
+            queryRunner
         )
     }
 
