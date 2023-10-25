@@ -252,7 +252,11 @@ export interface QueryRunner {
     /**
      * Creates a new view.
      */
-    createView(view: View, oldView?: View): Promise<void>
+    createView(
+        view: View,
+        syncWithMetadata?: boolean,
+        oldView?: View,
+    ): Promise<void>
 
     /**
      * Drops a view.
@@ -325,6 +329,7 @@ export interface QueryRunner {
     createPrimaryKey(
         table: Table | string,
         columnNames: string[],
+        constraintName?: string,
     ): Promise<void>
 
     /**
@@ -338,7 +343,10 @@ export interface QueryRunner {
     /**
      * Drops a primary key.
      */
-    dropPrimaryKey(table: Table | string): Promise<void>
+    dropPrimaryKey(
+        table: Table | string,
+        constraintName?: string,
+    ): Promise<void>
 
     /**
      * Creates a new unique constraint.

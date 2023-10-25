@@ -14,6 +14,7 @@
         -   [`@DeleteDateColumn`](#deletedatecolumn)
         -   [`@VersionColumn`](#versioncolumn)
         -   [`@Generated`](#generated)
+        -   [`@VirtualColumn`](#virtualcolumn)
     -   [Relation decorators](#relation-decorators)
         -   [`@OneToOne`](#onetoone)
         -   [`@ManyToOne`](#manytoone)
@@ -199,13 +200,14 @@ export class User {
 -   `enum: string[]|AnyEnum` - Used in `enum` column type to specify list of allowed enum values.
     You can specify array of values or specify a enum class.
 -   `enumName: string` - A name for generated enum type. If not specified, TypeORM will generate a enum type from entity and column names - so it's necessary if you intend to use the same enum type in different tables.
+-   `primaryKeyConstraintName: string` - A name for the primary key constraint. If not specified, then constraint name is generated from the table name and the names of the involved columns.
 -   `asExpression: string` - Generated column expression. Used only in [MySQL](https://dev.mysql.com/doc/refman/5.7/en/create-table-generated-columns.html) and [Postgres](https://www.postgresql.org/docs/12/ddl-generated-columns.html).
 -   `generatedType: "VIRTUAL"|"STORED"` - Generated column type. Used only in [MySQL](https://dev.mysql.com/doc/refman/5.7/en/create-table-generated-columns.html) and [Postgres (Only "STORED")](https://www.postgresql.org/docs/12/ddl-generated-columns.html).
 -   `hstoreType: "object"|"string"` - Return type of `HSTORE` column. Returns value as string or as object. Used only in [Postgres](https://www.postgresql.org/docs/9.6/static/hstore.html).
 -   `array: boolean` - Used for postgres and cockroachdb column types which can be array (for example int[]).
 -   `transformer: ValueTransformer|ValueTransformer[]` - Specifies a value transformer (or array of value transformers) that is to be used to (un)marshal this column when reading or writing to the database. In case of an array, the value transformers will be applied in the natural order from entityValue to databaseValue, and in reverse order from databaseValue to entityValue.
--   `spatialFeatureType: string` - Optional feature type (`Point`, `Polygon`, `LineString`, `Geometry`) used as a constraint on a spatial column. If not specified, it will behave as though `Geometry` was provided. Used only in PostgreSQL.
--   `srid: number` - Optional [Spatial Reference ID](https://postgis.net/docs/using_postgis_dbmanagement.html#spatial_ref_sys) used as a constraint on a spatial column. If not specified, it will default to `0`. Standard geographic coordinates (latitude/longitude in the WGS84 datum) correspond to [EPSG 4326](http://spatialreference.org/ref/epsg/wgs-84/). Used only in PostgreSQL.
+-   `spatialFeatureType: string` - Optional feature type (`Point`, `Polygon`, `LineString`, `Geometry`) used as a constraint on a spatial column. If not specified, it will behave as though `Geometry` was provided. Used only in PostgreSQL and CockroachDB.
+-   `srid: number` - Optional [Spatial Reference ID](https://postgis.net/docs/using_postgis_dbmanagement.html#spatial_ref_sys) used as a constraint on a spatial column. If not specified, it will default to `0`. Standard geographic coordinates (latitude/longitude in the WGS84 datum) correspond to [EPSG 4326](http://spatialreference.org/ref/epsg/wgs-84/). Used only in PostgreSQL and CockroachDB.
 
 Learn more about [entity columns](entities.md#entity-columns).
 
@@ -213,6 +215,7 @@ Learn more about [entity columns](entities.md#entity-columns).
 
 Marks a property in your entity as a table primary column.
 Same as `@Column` decorator but sets its `primary` option to true.
+
 Example:
 
 ```typescript
@@ -222,6 +225,18 @@ export class User {
     id: number
 }
 ```
+
+`@PrimaryColumn()` supports custom primary key constraint name:
+
+```typescript
+@Entity()
+export class User {
+    @PrimaryColumn({ primaryKeyConstraintName: "pk_user_id" })
+    id: number
+}
+```
+
+> Note: when using `primaryKeyConstraintName` with multiple primary keys, the constraint name must be the same for all primary columns.
 
 Learn more about [entity columns](entities.md#entity-columns).
 
@@ -235,6 +250,16 @@ Example:
 @Entity()
 export class User {
     @PrimaryGeneratedColumn()
+    id: number
+}
+```
+
+`@PrimaryGeneratedColumn()` supports custom primary key constraint name:
+
+```typescript
+@Entity()
+export class User {
+    @PrimaryGeneratedColumn({ primaryKeyConstraintName: "pk_user_id" })
     id: number
 }
 ```
@@ -262,16 +287,16 @@ Learn more about [entity columns](entities.md#entity-columns).
 
 #### `@ObjectIdColumn`
 
-Marks a property in your entity as ObjectID.
+Marks a property in your entity as ObjectId.
 This decorator is only used in MongoDB.
-Every entity in MongoDB must have a ObjectID column.
+Every entity in MongoDB must have a ObjectId column.
 Example:
 
 ```typescript
 @Entity()
 export class User {
     @ObjectIdColumn()
-    id: ObjectID
+    id: ObjectId
 }
 ```
 
@@ -349,6 +374,34 @@ export class User {
 ```
 
 Value will be generated only once, before inserting the entity into the database.
+
+#### `@VirtualColumn`
+
+Special column that is never saved to the database and thus acts as a readonly property.
+Each time you call `find` or `findOne` from the entity manager, the value is recalculated based on the query function that was provided in the VirtualColumn Decorator. The alias argument passed to the query references the exact entity alias of the generated query behind the scenes.
+
+```typescript
+@Entity({ name: "companies", alias: "COMP" })
+export class Company extends BaseEntity {
+  @PrimaryColumn("varchar", { length: 50 })
+  name: string;
+
+  @VirtualColumn({ query: (alias) => `SELECT COUNT("name") FROM "employees" WHERE "companyName" = ${alias}.name` })
+  totalEmployeesCount: number;
+
+  @OneToMany((type) => Employee, (employee) => employee.company)
+  employees: Employee[];
+}
+
+@Entity({ name: "employees" })
+export class Employee extends BaseEntity {
+  @PrimaryColumn("varchar", { length: 50 })
+  name: string;
+
+  @ManyToOne((type) => Company, (company) => company.employees)
+  company: Company;
+}
+```
 
 ## Relation decorators
 
@@ -464,7 +517,7 @@ Learn more about [many-to-many relations](many-to-many-relations.md).
 #### `@JoinColumn`
 
 Defines which side of the relation contains the join column with a foreign key and
-allows you to customize the join column name and referenced column name.
+allows you to customize the join column name, referenced column name and foreign key name.
 Example:
 
 ```typescript
@@ -474,6 +527,7 @@ export class Post {
     @JoinColumn({
         name: "cat_id",
         referencedColumnName: "name",
+        foreignKeyConstraintName: "fk_cat_id"
     })
     category: Category
 }
@@ -483,7 +537,10 @@ export class Post {
 
 Used for `many-to-many` relations and describes join columns of the "junction" table.
 Junction table is a special, separate table created automatically by TypeORM with columns referenced to the related entities.
-You can change the name of the generated "junction" table and also the column names inside the junction table and their referenced columns with the `joinColumn`- and `inverseJoinColumn` attributes.
+You can change the name of the generated "junction" table, the column names inside the junction table, their referenced
+columns with the `joinColumn`- and `inverseJoinColumn` attributes, and the created foreign keys names.
+You can also set parameter `synchronize` to false to skip schema update(same way as in @Entity)
+
 Example:
 
 ```typescript
@@ -495,11 +552,14 @@ export class Post {
         joinColumn: {
             name: "question",
             referencedColumnName: "id",
+            foreignKeyConstraintName: "fk_question_categories_questionId"
         },
         inverseJoinColumn: {
             name: "category",
             referencedColumnName: "id",
+            foreignKeyConstraintName: "fk_question_categories_categoryId"
         },
+        synchronize: false,
     })
     categories: Category[]
 }

@@ -120,6 +120,11 @@ export interface SqlServerConnectionOptions
      */
     readonly options?: {
         /**
+         * The named instance to connect to
+         */
+        readonly instanceName?: string
+
+        /**
          * By default, if the database requestion by options.database cannot be accessed, the connection will fail with
          * an error. However, if options.fallbackToDefaultDb is set to true, then the user's default database will
          * be used instead (Default: false).
@@ -148,7 +153,7 @@ export interface SqlServerConnectionOptions
         readonly packetSize?: number
 
         /**
-         * A boolean determining whether to pass time values in UTC or local time. (default: true).
+         * A boolean determining whether to pass time values in UTC or local time. (default: false).
          */
         readonly useUTC?: boolean
 
@@ -239,7 +244,7 @@ export interface SqlServerConnectionOptions
 
         /**
          * A boolean determining whether or not the connection will be encrypted. Set to true if you're on
-         * Windows Azure. (default: false).
+         * Windows Azure. (default: true).
          */
         readonly encrypt?: boolean
 
@@ -272,6 +277,18 @@ export interface SqlServerConnectionOptions
          * A boolean, that when true will abort a query when an overflow or divide-by-zero error occurs during query execution.
          */
         readonly enableArithAbort?: boolean
+
+        /**
+         * Application name used for identifying a specific application in profiling, logging or tracing tools of SQL Server.
+         * (default: node-mssql)
+         */
+        readonly appName?: string
+
+        /**
+         * A boolean, controlling whether encryption occurs if there is no verifiable server certificate.
+         * (default: false)
+         */
+        readonly trustServerCertificate?: boolean
     }
 
     /**
@@ -288,4 +305,6 @@ export interface SqlServerConnectionOptions
          */
         readonly slaves: SqlServerConnectionCredentialsOptions[]
     }
+
+    readonly poolSize?: never
 }

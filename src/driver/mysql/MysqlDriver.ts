@@ -26,6 +26,7 @@ import { View } from "../../schema-builder/view/View"
 import { TableForeignKey } from "../../schema-builder/table/TableForeignKey"
 import { VersionUtils } from "../../util/VersionUtils"
 import { InstanceChecker } from "../../util/InstanceChecker"
+import { UpsertType } from "../types/UpsertType"
 
 /**
  * Organizes communication with MySQL DBMS.
@@ -64,6 +65,11 @@ export class MysqlDriver implements Driver {
      * Connection options.
      */
     options: MysqlConnectionOptions
+
+    /**
+     * Version of MySQL. Requires a SQL query to the DB, so it is not always set
+     */
+    version?: string
 
     /**
      * Master database used to perform all write queries.
@@ -146,12 +152,16 @@ export class MysqlDriver implements Driver {
         "multilinestring",
         "multipolygon",
         "geometrycollection",
+        // additional data types for mariadb
+        "uuid",
+        "inet4",
+        "inet6",
     ]
 
     /**
      * Returns type of upsert supported by driver if any
      */
-    readonly supportedUpsertType = "on-duplicate-key-update"
+    supportedUpsertTypes: UpsertType[] = ["on-duplicate-key-update"]
 
     /**
      * Gets list of spatial column data types.
@@ -325,6 +335,9 @@ export class MysqlDriver implements Driver {
             update: false,
         }
 
+    /** MariaDB supports uuid type for version 10.7.0 and up */
+    private uuidColumnTypeSuported = false
+
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
@@ -402,6 +415,7 @@ export class MysqlDriver implements Driver {
             version: string
         }[] = await queryRunner.query(`SELECT VERSION() AS \`version\``)
         const dbVersion = result[0].version
+        this.version = dbVersion
         await queryRunner.release()
 
         if (this.options.type === "mariadb") {
@@ -413,6 +427,9 @@ export class MysqlDriver implements Driver {
             }
             if (VersionUtils.isGreaterOrEqual(dbVersion, "10.2.0")) {
                 this.cteCapabilities.enabled = true
+            }
+            if (VersionUtils.isGreaterOrEqual(dbVersion, "10.7.0")) {
+                this.uuidColumnTypeSuported = true
             }
         } else if (this.options.type === "mysql") {
             if (VersionUtils.isGreaterOrEqual(dbVersion, "8.0.0")) {
@@ -628,6 +645,9 @@ export class MysqlDriver implements Driver {
             return "" + value
         } else if (columnMetadata.type === "set") {
             return DateUtils.simpleArrayToString(value)
+        } else if (columnMetadata.type === Number) {
+            // convert to number if number
+            value = !isNaN(+value) ? parseInt(value) : value
         }
 
         return value
@@ -677,6 +697,9 @@ export class MysqlDriver implements Driver {
             value = parseInt(value)
         } else if (columnMetadata.type === "set") {
             value = DateUtils.stringToSimpleArray(value)
+        } else if (columnMetadata.type === Number) {
+            // convert to number if number
+            value = !isNaN(+value) ? parseInt(value) : value
         }
 
         if (columnMetadata.transformer)
@@ -707,14 +730,19 @@ export class MysqlDriver implements Driver {
             return "blob"
         } else if (column.type === Boolean) {
             return "tinyint"
-        } else if (column.type === "uuid") {
+        } else if (column.type === "uuid" && !this.uuidColumnTypeSuported) {
             return "varchar"
-        } else if (column.type === "json" && this.options.type === "mariadb") {
+        } else if (
+            column.type === "json" &&
+            this.options.type === "mariadb" &&
+            !VersionUtils.isGreaterOrEqual(this.version ?? "0.0.0", "10.4.3")
+        ) {
             /*
              * MariaDB implements this as a LONGTEXT rather, as the JSON data type contradicts the SQL standard,
              * and MariaDB's benchmarks indicate that performance is at least equivalent.
              *
              * @see https://mariadb.com/kb/en/json-data-type/
+             * if Version is 10.4.3 or greater, JSON is an alias for longtext and an automatic check_json(column) constraint is added
              */
             return "longtext"
         } else if (
@@ -812,8 +840,13 @@ export class MysqlDriver implements Driver {
 
         /**
          * fix https://github.com/typeorm/typeorm/issues/1139
+         * note that if the db did support uuid column type it wouldn't have been defaulted to varchar
          */
-        if (column.generationStrategy === "uuid") return "36"
+        if (
+            column.generationStrategy === "uuid" &&
+            !this.uuidColumnTypeSuported
+        )
+            return "36"
 
         switch (column.type) {
             case String:
@@ -974,7 +1007,7 @@ export class MysqlDriver implements Driver {
 
             const isColumnChanged =
                 tableColumn.name !== columnMetadata.databaseName ||
-                tableColumn.type !== this.normalizeType(columnMetadata) ||
+                this.isColumnDataTypeChanged(tableColumn, columnMetadata) ||
                 tableColumn.length !== this.getColumnLength(columnMetadata) ||
                 tableColumn.width !== columnMetadata.width ||
                 (columnMetadata.precision !== undefined &&
@@ -1000,7 +1033,7 @@ export class MysqlDriver implements Driver {
                 tableColumn.onUpdate !==
                     this.normalizeDatetimeFunction(columnMetadata.onUpdate) ||
                 tableColumn.isPrimary !== columnMetadata.isPrimary ||
-                tableColumn.isNullable !== columnMetadata.isNullable ||
+                !this.compareNullableValues(columnMetadata, tableColumn) ||
                 tableColumn.isUnique !==
                     this.normalizeIsUnique(columnMetadata) ||
                 (columnMetadata.generationStrategy !== "uuid" &&
@@ -1008,28 +1041,91 @@ export class MysqlDriver implements Driver {
 
             // DEBUG SECTION
             // if (isColumnChanged) {
-            //     console.log("table:", columnMetadata.entityMetadata.tableName);
-            //     console.log("name:", tableColumn.name, columnMetadata.databaseName);
-            //     console.log("type:", tableColumn.type, this.normalizeType(columnMetadata));
-            //     console.log("length:", tableColumn.length, columnMetadata.length);
-            //     console.log("width:", tableColumn.width, columnMetadata.width);
-            //     console.log("precision:", tableColumn.precision, columnMetadata.precision);
-            //     console.log("scale:", tableColumn.scale, columnMetadata.scale);
-            //     console.log("zerofill:", tableColumn.zerofill, columnMetadata.zerofill);
-            //     console.log("unsigned:", tableColumn.unsigned, columnMetadata.unsigned);
-            //     console.log("asExpression:", tableColumn.asExpression, columnMetadata.asExpression);
-            //     console.log("generatedType:", tableColumn.generatedType, columnMetadata.generatedType);
-            //     console.log("comment:", tableColumn.comment, this.escapeComment(columnMetadata.comment));
-            //     console.log("default:", tableColumn.default, this.normalizeDefault(columnMetadata));
-            //     console.log("enum:", tableColumn.enum, columnMetadata.enum);
-            //     console.log("default changed:", !this.compareDefaultValues(this.normalizeDefault(columnMetadata), tableColumn.default));
-            //     console.log("onUpdate:", tableColumn.onUpdate, this.normalizeOnUpdate(columnMetadata.onUpdate));
-            //     console.log("isPrimary:", tableColumn.isPrimary, columnMetadata.isPrimary);
-            //     console.log("isNullable:", tableColumn.isNullable, columnMetadata.isNullable);
-            //     console.log("isUnique:", tableColumn.isUnique, this.normalizeIsUnique(columnMetadata));
-            //     console.log("isGenerated:", tableColumn.isGenerated, columnMetadata.isGenerated);
-            //     console.log((columnMetadata.generationStrategy !== "uuid" && tableColumn.isGenerated !== columnMetadata.isGenerated));
-            //     console.log("==========================================");
+            //     console.log("table:", columnMetadata.entityMetadata.tableName)
+            //     console.log(
+            //         "name:",
+            //         tableColumn.name,
+            //         columnMetadata.databaseName,
+            //     )
+            //     console.log(
+            //         "type:",
+            //         tableColumn.type,
+            //         this.normalizeType(columnMetadata),
+            //     )
+            //     console.log(
+            //         "length:",
+            //         tableColumn.length,
+            //         columnMetadata.length,
+            //     )
+            //     console.log("width:", tableColumn.width, columnMetadata.width)
+            //     console.log(
+            //         "precision:",
+            //         tableColumn.precision,
+            //         columnMetadata.precision,
+            //     )
+            //     console.log("scale:", tableColumn.scale, columnMetadata.scale)
+            //     console.log(
+            //         "zerofill:",
+            //         tableColumn.zerofill,
+            //         columnMetadata.zerofill,
+            //     )
+            //     console.log(
+            //         "unsigned:",
+            //         tableColumn.unsigned,
+            //         columnMetadata.unsigned,
+            //     )
+            //     console.log(
+            //         "asExpression:",
+            //         tableColumn.asExpression,
+            //         columnMetadata.asExpression,
+            //     )
+            //     console.log(
+            //         "generatedType:",
+            //         tableColumn.generatedType,
+            //         columnMetadata.generatedType,
+            //     )
+            //     console.log(
+            //         "comment:",
+            //         tableColumn.comment,
+            //         this.escapeComment(columnMetadata.comment),
+            //     )
+            //     console.log(
+            //         "default:",
+            //         tableColumn.default,
+            //         this.normalizeDefault(columnMetadata),
+            //     )
+            //     console.log("enum:", tableColumn.enum, columnMetadata.enum)
+            //     console.log(
+            //         "default changed:",
+            //         !this.compareDefaultValues(
+            //             this.normalizeDefault(columnMetadata),
+            //             tableColumn.default,
+            //         ),
+            //     )
+            //     console.log(
+            //         "isPrimary:",
+            //         tableColumn.isPrimary,
+            //         columnMetadata.isPrimary,
+            //     )
+            //     console.log(
+            //         "isNullable changed:",
+            //         !this.compareNullableValues(columnMetadata, tableColumn),
+            //     )
+            //     console.log(
+            //         "isUnique:",
+            //         tableColumn.isUnique,
+            //         this.normalizeIsUnique(columnMetadata),
+            //     )
+            //     console.log(
+            //         "isGenerated:",
+            //         tableColumn.isGenerated,
+            //         columnMetadata.isGenerated,
+            //     )
+            //     console.log(
+            //         columnMetadata.generationStrategy !== "uuid" &&
+            //             tableColumn.isGenerated !== columnMetadata.isGenerated,
+            //     )
+            //     console.log("==========================================")
             // }
 
             return isColumnChanged
@@ -1153,6 +1249,7 @@ export class MysqlDriver implements Driver {
             options.acquireTimeout === undefined
                 ? {}
                 : { acquireTimeout: options.acquireTimeout },
+            { connectionLimit: options.poolSize },
             options.extra || {},
         )
     }
@@ -1217,6 +1314,19 @@ export class MysqlDriver implements Driver {
         return columnMetadataValue === databaseValue
     }
 
+    compareNullableValues(
+        columnMetadata: ColumnMetadata,
+        tableColumn: TableColumn,
+    ): boolean {
+        // MariaDB does not support NULL/NOT NULL expressions for generated columns
+        const isMariaDb = this.options.type === "mariadb"
+        if (isMariaDb && columnMetadata.generatedType) {
+            return true
+        }
+
+        return columnMetadata.isNullable === tableColumn.isNullable
+    }
+
     /**
      * If parameter is a datetime function, e.g. "CURRENT_TIMESTAMP", normalizes it.
      * Otherwise returns original input.
@@ -1255,5 +1365,23 @@ export class MysqlDriver implements Driver {
         comment = comment.replace(/\u0000/g, "") // Null bytes aren't allowed in comments
 
         return comment
+    }
+
+    /**
+     * A helper to check if column data types have changed
+     * This can be used to manage checking any types the
+     * database may alias
+     */
+    private isColumnDataTypeChanged(
+        tableColumn: TableColumn,
+        columnMetadata: ColumnMetadata,
+    ) {
+        // this is an exception for mariadb versions where json is an alias for longtext
+        if (
+            this.normalizeType(columnMetadata) === "json" &&
+            tableColumn.type.toLowerCase() === "longtext"
+        )
+            return false
+        return tableColumn.type !== this.normalizeType(columnMetadata)
     }
 }

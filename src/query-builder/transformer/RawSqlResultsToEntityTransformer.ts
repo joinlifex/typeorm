@@ -69,6 +69,7 @@ export class RawSqlResultsToEntityTransformer {
                 ...alias.metadata.columns.map((column) =>
                     DriverUtils.buildAlias(
                         this.driver,
+                        undefined,
                         alias.name,
                         column.databaseName,
                     ),
@@ -79,6 +80,7 @@ export class RawSqlResultsToEntityTransformer {
                 ...alias.metadata.primaryColumns.map((column) =>
                     DriverUtils.buildAlias(
                         this.driver,
+                        undefined,
                         alias.name,
                         column.databaseName,
                     ),
@@ -120,12 +122,29 @@ export class RawSqlResultsToEntityTransformer {
         let metadata = alias.metadata
 
         if (metadata.discriminatorColumn) {
-            const discriminatorValues = rawResults.map(result => result[DriverUtils.buildAlias(this.driver, alias.name, alias.metadata.discriminatorColumn!.databaseName)]);
-            const discriminatorMetadata = metadata.childEntityMetadatas.find(childEntityMetadata => {
-                return typeof discriminatorValues.find(value => value === childEntityMetadata.discriminatorValue) !== "undefined";
-            });
-            if (discriminatorMetadata)
-                metadata = discriminatorMetadata;
+            const discriminatorValues = rawResults.map(
+                (result) =>
+                    result[
+                        DriverUtils.buildAlias(
+                            this.driver,
+                            undefined,
+                            alias.name,
+                            alias.metadata.discriminatorColumn!.databaseName,
+                        )
+                    ],
+            )
+            const discriminatorMetadata = metadata.childEntityMetadatas.find(
+                (childEntityMetadata) => {
+                    return (
+                        typeof discriminatorValues.find(
+                            (value) =>
+                                value ===
+                                childEntityMetadata.discriminatorValue,
+                        ) !== "undefined"
+                    )
+                },
+            )
+            if (discriminatorMetadata) metadata = discriminatorMetadata
         }
         let entity: any = metadata.create(queryRunner || this.queryRunner, { fromDeserializer: true, pojo: this.expressionMap.options.indexOf("create-pojo") !== -1 });
 
@@ -196,6 +215,7 @@ export class RawSqlResultsToEntityTransformer {
                 rawResults[0][
                     DriverUtils.buildAlias(
                         this.driver,
+                        undefined,
                         alias.name,
                         column.databaseName,
                     )
@@ -390,6 +410,7 @@ export class RawSqlResultsToEntityTransformer {
                     rawSqlResults[0][
                         DriverUtils.buildAlias(
                             this.driver,
+                            undefined,
                             alias.name,
                             referenceColumnName,
                         )
@@ -449,6 +470,7 @@ export class RawSqlResultsToEntityTransformer {
                             rawSqlResult[
                                 DriverUtils.buildAlias(
                                     this.driver,
+                                    undefined,
                                     parentAlias,
                                     column.databaseName,
                                 )
@@ -461,11 +483,12 @@ export class RawSqlResultsToEntityTransformer {
                             rawSqlResult[
                                 DriverUtils.buildAlias(
                                     this.driver,
+                                    undefined,
                                     parentAlias,
                                     column.referencedColumn!.databaseName,
                                 )
                             ],
-                            column,
+                            column.referencedColumn!,
                         )
                 }
             })
@@ -566,7 +589,10 @@ export class RawSqlResultsToEntityTransformer {
                                 column.createValueMap(value),
                             )
                         }
-                        if (column.referencedColumn!.referencedColumn) {
+                        if (
+                            !column.isPrimary &&
+                            column.referencedColumn!.referencedColumn
+                        ) {
                             // if column is a relation
                             value =
                                 column.referencedColumn!.referencedColumn!.createValueMap(

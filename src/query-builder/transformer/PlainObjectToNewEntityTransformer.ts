@@ -12,7 +12,13 @@ export class PlainObjectToNewEntityTransformer {
     // Public Methods
     // -------------------------------------------------------------------------
 
-    transform<T>(newEntity: T, object: ObjectLiteral, metadata: EntityMetadata, getLazyRelationsPromiseValue: boolean = false, queryRunner?: QueryRunner): T {
+    transform<T extends ObjectLiteral>(
+        newEntity: T,
+        object: ObjectLiteral,
+        metadata: EntityMetadata,
+        getLazyRelationsPromiseValue: boolean = false,
+        queryRunner?: QueryRunner,
+    ): T {
         // console.log("groupAndTransform entity:", newEntity);
         // console.log("groupAndTransform object:", object);
         this.groupAndTransform(newEntity, object, metadata, getLazyRelationsPromiseValue, queryRunner);
@@ -68,15 +74,28 @@ export class PlainObjectToNewEntityTransformer {
                             )
                         })
 
+                        const inverseEntityMetadata =
+                            relation.inverseEntityMetadata.findInheritanceMetadata(
+                                objectRelatedValueItem,
+                            )
+
                         // if such item already exist then merge new data into it, if its not we create a new entity and merge it into the array
-                        if (!objectRelatedValueEntity) {                            
-                            objectRelatedValueEntity = relation.inverseEntityMetadata.create(queryRunner, { fromDeserializer: true });
-                            entityRelatedValue.push(objectRelatedValueEntity);
+                        if (!objectRelatedValueEntity) {
+                            objectRelatedValueEntity =
+                                inverseEntityMetadata.create(queryRunner, {
+                                    fromDeserializer: true,
+                                })
+                            entityRelatedValue.push(objectRelatedValueEntity)
                         }
 
-                        this.groupAndTransform(objectRelatedValueEntity, objectRelatedValueItem, relation.inverseEntityMetadata, getLazyRelationsPromiseValue, queryRunner);
-                    });
-
+                        this.groupAndTransform(
+                            objectRelatedValueEntity,
+                            objectRelatedValueItem,
+                            inverseEntityMetadata,
+                            getLazyRelationsPromiseValue,
+                            queryRunner,
+                        )
+                    })
                 } else {
                     // if related object isn't an object (direct relation id for example)
                     // we just set it to the entity relation, we don't need anything more from it
@@ -88,12 +107,28 @@ export class PlainObjectToNewEntityTransformer {
                         return
                     }
 
+                    const inverseEntityMetadata =
+                        relation.inverseEntityMetadata.findInheritanceMetadata(
+                            objectRelatedValue,
+                        )
+
                     if (!entityRelatedValue) {
-                        entityRelatedValue = relation.inverseEntityMetadata.create(queryRunner, { fromDeserializer: true });
-                        relation.setEntityValue(entity, entityRelatedValue);
+                        entityRelatedValue = inverseEntityMetadata.create(
+                            queryRunner,
+                            {
+                                fromDeserializer: true,
+                            },
+                        )
+                        relation.setEntityValue(entity, entityRelatedValue)
                     }
 
-                    this.groupAndTransform(entityRelatedValue, objectRelatedValue, relation.inverseEntityMetadata, getLazyRelationsPromiseValue, queryRunner);
+                    this.groupAndTransform(
+                        entityRelatedValue,
+                        objectRelatedValue,
+                        inverseEntityMetadata,
+                        getLazyRelationsPromiseValue,
+                        queryRunner,
+                    )
                 }
             })
         }

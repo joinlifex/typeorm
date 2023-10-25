@@ -59,6 +59,7 @@ export class JunctionEntityMetadataBuilder {
                 database:
                     joinTable.database || relation.entityMetadata.database,
                 schema: joinTable.schema || relation.entityMetadata.schema,
+                synchronize: joinTable.synchronize,
             },
         })
         entityMetadata.build()
@@ -101,6 +102,10 @@ export class JunctionEntityMetadataBuilder {
                             ) ||
                                 this.connection.driver.options.type ===
                                     "aurora-mysql") &&
+                            // some versions of mariadb support the column type and should not try to provide the length property
+                            this.connection.driver.normalizeType(
+                                referencedColumn,
+                            ) !== "uuid" &&
                             (referencedColumn.generationStrategy === "uuid" ||
                                 referencedColumn.type === "uuid")
                                 ? "36"
@@ -117,6 +122,8 @@ export class JunctionEntityMetadataBuilder {
                             : referencedColumn.unsigned,
                         enum: referencedColumn.enum,
                         enumName: referencedColumn.enumName,
+                        foreignKeyConstraintName:
+                            joinColumn?.foreignKeyConstraintName,
                         nullable: false,
                         primary: true,
                     },
@@ -163,6 +170,10 @@ export class JunctionEntityMetadataBuilder {
                                 ) ||
                                     this.connection.driver.options.type ===
                                         "aurora-mysql") &&
+                                // some versions of mariadb support the column type and should not try to provide the length property
+                                this.connection.driver.normalizeType(
+                                    inverseReferencedColumn,
+                                ) !== "uuid" &&
                                 (inverseReferencedColumn.generationStrategy ===
                                     "uuid" ||
                                     inverseReferencedColumn.type === "uuid")
@@ -180,6 +191,8 @@ export class JunctionEntityMetadataBuilder {
                                 : inverseReferencedColumn.unsigned,
                             enum: inverseReferencedColumn.enum,
                             enumName: inverseReferencedColumn.enumName,
+                            foreignKeyConstraintName:
+                                joinColumn?.foreignKeyConstraintName,
                             name: columnName,
                             nullable: false,
                             primary: true,
@@ -215,6 +228,7 @@ export class JunctionEntityMetadataBuilder {
                       referencedEntityMetadata: relation.entityMetadata,
                       columns: junctionColumns,
                       referencedColumns: referencedColumns,
+                      name: junctionColumns[0]?.foreignKeyConstraintName,
                       onDelete:
                           this.connection.driver.options.type === "spanner"
                               ? "NO ACTION"
@@ -230,6 +244,7 @@ export class JunctionEntityMetadataBuilder {
                       referencedEntityMetadata: relation.inverseEntityMetadata,
                       columns: inverseJunctionColumns,
                       referencedColumns: inverseReferencedColumns,
+                      name: inverseJunctionColumns[0]?.foreignKeyConstraintName,
                       onDelete:
                           this.connection.driver.options.type === "spanner"
                               ? "NO ACTION"

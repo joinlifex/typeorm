@@ -26,6 +26,7 @@ import { View } from "../../schema-builder/view/View"
 import { TableForeignKey } from "../../schema-builder/table/TableForeignKey"
 import { TypeORMError } from "../../error"
 import { InstanceChecker } from "../../util/InstanceChecker"
+import { UpsertType } from "../types/UpsertType"
 
 /**
  * Organizes communication with SQL Server DBMS.
@@ -141,6 +142,11 @@ export class SqlServerDriver implements Driver {
         "geography",
         "rowversion",
     ]
+
+    /**
+     * Returns type of upsert supported by driver if any
+     */
+    supportedUpsertTypes: UpsertType[] = []
 
     /**
      * Gets list of spatial column data types.
@@ -568,6 +574,9 @@ export class SqlServerDriver implements Driver {
             value = DateUtils.stringToSimpleJson(value)
         } else if (columnMetadata.type === "simple-enum") {
             value = DateUtils.stringToSimpleEnum(value, columnMetadata)
+        } else if (columnMetadata.type === Number) {
+            // convert to number if number
+            value = !isNaN(+value) ? parseInt(value) : value
         }
 
         if (columnMetadata.transformer)
@@ -680,6 +689,10 @@ export class SqlServerDriver implements Driver {
      * Creates column type definition including length, precision and scale
      */
     createFullType(column: TableColumn): string {
+        // The Database Engine determines the data type of the computed column by applying the rules
+        // of data type precedence to the expressions specified in the formula.
+        if (column.asExpression) return ""
+
         let type = column.type
 
         // used 'getColumnLength()' method, because SqlServer sets `varchar` and `nvarchar` length to 1 by default.
@@ -765,8 +778,8 @@ export class SqlServerDriver implements Driver {
 
             const isColumnChanged =
                 tableColumn.name !== columnMetadata.databaseName ||
-                tableColumn.type !== this.normalizeType(columnMetadata) ||
-                tableColumn.length !== this.getColumnLength(columnMetadata) ||
+                this.compareColumnType(tableColumn, columnMetadata) ||
+                this.compareColumnLength(tableColumn, columnMetadata) ||
                 tableColumn.precision !== columnMetadata.precision ||
                 tableColumn.scale !== columnMetadata.scale ||
                 // || tableColumn.comment !== columnMetadata.comment || // todo
@@ -780,39 +793,90 @@ export class SqlServerDriver implements Driver {
                         )) || // we included check for generated here, because generated columns already can have default values
                 tableColumn.isPrimary !== columnMetadata.isPrimary ||
                 tableColumn.isNullable !== columnMetadata.isNullable ||
-                tableColumn.isUnique !== this.normalizeIsUnique(columnMetadata)
+                tableColumn.asExpression !== columnMetadata.asExpression ||
+                tableColumn.generatedType !== columnMetadata.generatedType ||
+                tableColumn.isUnique !==
+                    this.normalizeIsUnique(columnMetadata) ||
+                (tableColumn.enum &&
+                    columnMetadata.enum &&
+                    !OrmUtils.isArraysEqual(
+                        tableColumn.enum,
+                        columnMetadata.enum.map((val) => val + ""),
+                    ))
 
             // DEBUG SECTION
             // if (isColumnChanged) {
-            //     console.log("table:", columnMetadata.entityMetadata.tableName);
-            //     console.log("name:", tableColumn.name, columnMetadata.databaseName);
-            //     console.log("type:", tableColumn.type, this.normalizeType(columnMetadata));
-            //     console.log("length:", tableColumn.length, columnMetadata.length);
-            //     console.log("precision:", tableColumn.precision, columnMetadata.precision);
-            //     console.log("scale:", tableColumn.scale, columnMetadata.scale);
-            //     console.log("isGenerated:", tableColumn.isGenerated, columnMetadata.isGenerated);
-            //     console.log("isGenerated 2:", !tableColumn.isGenerated && this.lowerDefaultValueIfNecessary(this.normalizeDefault(columnMetadata)) !== this.lowerDefaultValueIfNecessary(tableColumn.default));
-            //     console.log("isPrimary:", tableColumn.isPrimary, columnMetadata.isPrimary);
-            //     console.log("isNullable:", tableColumn.isNullable, columnMetadata.isNullable);
-            //     console.log("isUnique:", tableColumn.isUnique, this.normalizeIsUnique(columnMetadata));
-            //     console.log("==========================================");
+            //     console.log("table:", columnMetadata.entityMetadata.tableName)
+            //     console.log(
+            //         "name:",
+            //         tableColumn.name,
+            //         columnMetadata.databaseName,
+            //     )
+            //     console.log(
+            //         "type:",
+            //         tableColumn.type,
+            //         this.normalizeType(columnMetadata),
+            //         this.compareColumnType(tableColumn, columnMetadata),
+            //     )
+            //     console.log(
+            //         "length:",
+            //         tableColumn.length,
+            //         columnMetadata.length,
+            //         this.compareColumnLength(tableColumn, columnMetadata),
+            //     )
+            //     console.log(
+            //         "precision:",
+            //         tableColumn.precision,
+            //         columnMetadata.precision,
+            //     )
+            //     console.log("scale:", tableColumn.scale, columnMetadata.scale)
+            //     console.log(
+            //         "isGenerated:",
+            //         tableColumn.isGenerated,
+            //         columnMetadata.isGenerated,
+            //     )
+            //     console.log(
+            //         "isGenerated 2:",
+            //         !tableColumn.isGenerated &&
+            //             this.lowerDefaultValueIfNecessary(
+            //                 this.normalizeDefault(columnMetadata),
+            //             ) !==
+            //                 this.lowerDefaultValueIfNecessary(
+            //                     tableColumn.default,
+            //                 ),
+            //     )
+            //     console.log(
+            //         "isPrimary:",
+            //         tableColumn.isPrimary,
+            //         columnMetadata.isPrimary,
+            //     )
+            //     console.log(
+            //         "isNullable:",
+            //         tableColumn.isNullable,
+            //         columnMetadata.isNullable,
+            //     )
+            //     console.log(
+            //         "asExpression:",
+            //         tableColumn.asExpression,
+            //         columnMetadata.asExpression,
+            //     )
+            //     console.log(
+            //         "generatedType:",
+            //         tableColumn.generatedType,
+            //         columnMetadata.generatedType,
+            //     )
+            //     console.log(
+            //         "isUnique:",
+            //         tableColumn.isUnique,
+            //         this.normalizeIsUnique(columnMetadata),
+            //     )
+            //     console.log("==========================================")
             // }
 
             return isColumnChanged
         })
     }
-    private lowerDefaultValueIfNecessary(value: string | undefined) {
-        // SqlServer saves function calls in default value as lowercase https://github.com/typeorm/typeorm/issues/2733
-        if (!value) {
-            return value
-        }
-        return value
-            .split(`'`)
-            .map((v, i) => {
-                return i % 2 === 1 ? v : v.toLowerCase()
-            })
-            .join(`'`)
-    }
+
     /**
      * Returns true if driver supports RETURNING / OUTPUT statement.
      */
@@ -957,6 +1021,44 @@ export class SqlServerDriver implements Driver {
             // todo: better error for browser env
             throw new DriverPackageNotInstalledError("SQL Server", "mssql")
         }
+    }
+
+    protected compareColumnType(
+        tableColumn: TableColumn,
+        columnMetadata: ColumnMetadata,
+    ): boolean {
+        // The Database Engine determines the data type of the computed column by applying the rules
+        // of data type precedence to the expressions specified in the formula.
+        if (columnMetadata.asExpression) return false
+
+        return tableColumn.type !== this.normalizeType(columnMetadata)
+    }
+
+    protected compareColumnLength(
+        tableColumn: TableColumn,
+        columnMetadata: ColumnMetadata,
+    ): boolean {
+        // The Database Engine determines the data type of the computed column by applying the rules
+        // of data type precedence to the expressions specified in the formula.
+        if (columnMetadata.asExpression) return false
+
+        return (
+            tableColumn.length.toUpperCase() !==
+            this.getColumnLength(columnMetadata).toUpperCase()
+        )
+    }
+
+    protected lowerDefaultValueIfNecessary(value: string | undefined) {
+        // SqlServer saves function calls in default value as lowercase https://github.com/typeorm/typeorm/issues/2733
+        if (!value) {
+            return value
+        }
+        return value
+            .split(`'`)
+            .map((v, i) => {
+                return i % 2 === 1 ? v : v.toLowerCase()
+            })
+            .join(`'`)
     }
 
     /**

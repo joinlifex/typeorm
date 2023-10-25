@@ -10,12 +10,13 @@ import { SelectQueryBuilder } from "../query-builder/SelectQueryBuilder"
 import { InsertResult } from "../query-builder/result/InsertResult"
 import { UpdateResult } from "../query-builder/result/UpdateResult"
 import { DeleteResult } from "../query-builder/result/DeleteResult"
-import { ObjectID } from "../driver/mongodb/typings"
+import { ObjectId } from "../driver/mongodb/typings"
 import { ObjectUtils } from "../util/ObjectUtils"
 import { QueryDeepPartialEntity } from "../query-builder/QueryPartialEntity"
 import { UpsertOptions } from "./UpsertOptions"
 import { EntityTarget } from "../common/EntityTarget"
 import { QueryRunner } from "..";
+import { PickKeysByType } from "../common/PickKeysByType"
 
 /**
  * Base abstract entity for all entities, used in ActiveRecord patterns.
@@ -240,7 +241,7 @@ export class BaseEntity {
         this: { new (): T } & typeof BaseEntity,
         entityLike: DeepPartial<T>,
     ): Promise<T | undefined> {
-        const thisRepository = this.getRepository() as Repository<T>
+        const thisRepository = this.getRepository<T>()
         return thisRepository.preload(entityLike)
     }
 
@@ -364,8 +365,8 @@ export class BaseEntity {
             | number[]
             | Date
             | Date[]
-            | ObjectID
-            | ObjectID[]
+            | ObjectId
+            | ObjectId[]
             | FindOptionsWhere<T>,
         partialEntity: QueryDeepPartialEntity<T>,
         queryRunner?: QueryRunner
@@ -408,8 +409,8 @@ export class BaseEntity {
             | number[]
             | Date
             | Date[]
-            | ObjectID
-            | ObjectID[]
+            | ObjectId
+            | ObjectId[]
             | FindOptionsWhere<T>,
     ): Promise<DeleteResult> {
         return this.getRepository<T>().delete(criteria)
@@ -433,6 +434,50 @@ export class BaseEntity {
         where: FindOptionsWhere<T>,
     ): Promise<number> {
         return this.getRepository<T>().countBy(where)
+    }
+
+    /**
+     * Return the SUM of a column
+     */
+    static sum<T extends BaseEntity>(
+        this: { new (): T } & typeof BaseEntity,
+        columnName: PickKeysByType<T, number>,
+        where: FindOptionsWhere<T>,
+    ): Promise<number | null> {
+        return this.getRepository<T>().sum(columnName, where)
+    }
+
+    /**
+     * Return the AVG of a column
+     */
+    static average<T extends BaseEntity>(
+        this: { new (): T } & typeof BaseEntity,
+        columnName: PickKeysByType<T, number>,
+        where: FindOptionsWhere<T>,
+    ): Promise<number | null> {
+        return this.getRepository<T>().average(columnName, where)
+    }
+
+    /**
+     * Return the MIN of a column
+     */
+    static minimum<T extends BaseEntity>(
+        this: { new (): T } & typeof BaseEntity,
+        columnName: PickKeysByType<T, number>,
+        where: FindOptionsWhere<T>,
+    ): Promise<number | null> {
+        return this.getRepository<T>().minimum(columnName, where)
+    }
+
+    /**
+     * Return the MAX of a column
+     */
+    static maximum<T extends BaseEntity>(
+        this: { new (): T } & typeof BaseEntity,
+        columnName: PickKeysByType<T, number>,
+        where: FindOptionsWhere<T>,
+    ): Promise<number | null> {
+        return this.getRepository<T>().maximum(columnName, where)
     }
 
     /**
@@ -528,7 +573,7 @@ export class BaseEntity {
      */
     static findOneById<T extends BaseEntity>(
         this: { new (): T } & typeof BaseEntity,
-        id: string | number | Date | ObjectID,
+        id: string | number | Date | ObjectId,
         queryRunner?: QueryRunner
     ): Promise<T | null> {
         return this.getRepository<T>().findOneById(id, queryRunner)

@@ -62,6 +62,9 @@ export class RedisQueryResultCache implements QueryResultCache {
                     this.connection.logger.log("warn", err)
                 })
             }
+            if ("connect" in this.client) {
+                await this.client.connect()
+            }
         } else if (this.clientType === "ioredis") {
             if (cacheOptions && cacheOptions.port) {
                 if (cacheOptions.options) {
@@ -120,7 +123,7 @@ export class RedisQueryResultCache implements QueryResultCache {
     async synchronize(queryRunner: QueryRunner): Promise<void> {}
 
     /**
-     * Caches given query result.
+     * Get data from cache.
      * Returns cache result if found.
      * Returns undefined if result is not cached.
      */

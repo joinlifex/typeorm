@@ -20,6 +20,7 @@ import { Table } from "../../schema-builder/table/Table"
 import { View } from "../../schema-builder/view/View"
 import { TableForeignKey } from "../../schema-builder/table/TableForeignKey"
 import { CteCapabilities } from "../types/CteCapabilities"
+import { UpsertType } from "../types/UpsertType"
 
 /**
  * Organizes communication with Spanner DBMS.
@@ -99,7 +100,7 @@ export class SpannerDriver implements Driver {
     /**
      * Returns type of upsert supported by driver if any
      */
-    readonly supportedUpsertType = undefined
+    supportedUpsertTypes: UpsertType[] = []
 
     /**
      * Gets list of spatial column data types.
@@ -439,6 +440,9 @@ export class SpannerDriver implements Driver {
             value = DateUtils.mixedDateToDateString(value)
         } else if (columnMetadata.type === "json") {
             value = typeof value === "string" ? JSON.parse(value) : value
+        } else if (columnMetadata.type === Number) {
+            // convert to number if number
+            value = !isNaN(+value) ? parseInt(value) : value
         }
 
         if (columnMetadata.transformer)
@@ -635,54 +639,54 @@ export class SpannerDriver implements Driver {
                 tableColumn.asExpression !== columnMetadata.asExpression ||
                 tableColumn.generatedType !== columnMetadata.generatedType ||
                 tableColumn.isPrimary !== columnMetadata.isPrimary ||
-                tableColumn.isNullable !== columnMetadata.isNullable ||
+                !this.compareNullableValues(columnMetadata, tableColumn) ||
                 tableColumn.isUnique !== this.normalizeIsUnique(columnMetadata)
 
             // DEBUG SECTION
-            if (isColumnChanged) {
-                console.log("table:", columnMetadata.entityMetadata.tableName)
-                console.log(
-                    "name:",
-                    tableColumn.name,
-                    columnMetadata.databaseName,
-                )
-                console.log(
-                    "type:",
-                    tableColumn.type,
-                    this.normalizeType(columnMetadata),
-                )
-                console.log(
-                    "length:",
-                    tableColumn.length,
-                    this.getColumnLength(columnMetadata),
-                )
-                console.log(
-                    "asExpression:",
-                    tableColumn.asExpression,
-                    columnMetadata.asExpression,
-                )
-                console.log(
-                    "generatedType:",
-                    tableColumn.generatedType,
-                    columnMetadata.generatedType,
-                )
-                console.log(
-                    "isPrimary:",
-                    tableColumn.isPrimary,
-                    columnMetadata.isPrimary,
-                )
-                console.log(
-                    "isNullable:",
-                    tableColumn.isNullable,
-                    columnMetadata.isNullable,
-                )
-                console.log(
-                    "isUnique:",
-                    tableColumn.isUnique,
-                    this.normalizeIsUnique(columnMetadata),
-                )
-                console.log("==========================================")
-            }
+            // if (isColumnChanged) {
+            //     console.log("table:", columnMetadata.entityMetadata.tableName)
+            //     console.log(
+            //         "name:",
+            //         tableColumn.name,
+            //         columnMetadata.databaseName,
+            //     )
+            //     console.log(
+            //         "type:",
+            //         tableColumn.type,
+            //         this.normalizeType(columnMetadata),
+            //     )
+            //     console.log(
+            //         "length:",
+            //         tableColumn.length,
+            //         this.getColumnLength(columnMetadata),
+            //     )
+            //     console.log(
+            //         "asExpression:",
+            //         tableColumn.asExpression,
+            //         columnMetadata.asExpression,
+            //     )
+            //     console.log(
+            //         "generatedType:",
+            //         tableColumn.generatedType,
+            //         columnMetadata.generatedType,
+            //     )
+            //     console.log(
+            //         "isPrimary:",
+            //         tableColumn.isPrimary,
+            //         columnMetadata.isPrimary,
+            //     )
+            //     console.log(
+            //         "isNullable:",
+            //         tableColumn.isNullable,
+            //         columnMetadata.isNullable,
+            //     )
+            //     console.log(
+            //         "isUnique:",
+            //         tableColumn.isUnique,
+            //         this.normalizeIsUnique(columnMetadata),
+            //     )
+            //     console.log("==========================================")
+            // }
 
             return isColumnChanged
         })
@@ -736,6 +740,18 @@ export class SpannerDriver implements Driver {
                 "@google-cloud/spanner",
             )
         }
+    }
+
+    compareNullableValues(
+        columnMetadata: ColumnMetadata,
+        tableColumn: TableColumn,
+    ): boolean {
+        // Spanner does not support NULL/NOT NULL expressions for generated columns
+        if (columnMetadata.generatedType) {
+            return true
+        }
+
+        return columnMetadata.isNullable === tableColumn.isNullable
     }
 
     /**
