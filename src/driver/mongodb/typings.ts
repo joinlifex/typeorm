@@ -1,5 +1,4 @@
 import {
-    BSON,
     BSONRegExp,
     BSONSymbol,
     BSONType,
@@ -814,7 +813,6 @@ export declare type BitwiseFilter =
     | Binary /** BinData bit mask */
     | ReadonlyArray<number>
 
-export { BSON }
 
 export { BSONRegExp }
 
