@@ -97,6 +97,11 @@ export class ExpoQueryRunner extends AbstractSqliteQueryRunner {
 
         this.transactionDepth -= 1
 
+        await Promise.all(this.afterCommitListeners.map((listener) => listener())).finally(() => {
+            this.afterRollbackListeners = [];
+            this.afterCommitListeners = [];
+        });
+
         await this.broadcaster.broadcast("AfterTransactionCommit")
     }
 
@@ -120,6 +125,11 @@ export class ExpoQueryRunner extends AbstractSqliteQueryRunner {
         this.isTransactionActive = false
 
         this.transactionDepth -= 1
+
+        await Promise.all(this.afterRollbackListeners.map((listener) => listener())).finally(() => {
+            this.afterRollbackListeners = [];
+            this.afterCommitListeners = [];
+        });
 
         await this.broadcaster.broadcast("AfterTransactionRollback")
     }

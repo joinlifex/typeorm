@@ -64,6 +64,16 @@ export abstract class BaseQueryRunner {
      */
     broadcaster: Broadcaster
 
+    /**
+     * Stores functions to execute after rollback
+     */
+    protected afterRollbackListeners: Function[]
+
+    /**
+     * Stores functions to execute after commit
+     */
+    protected afterCommitListeners: Function[]
+
     // -------------------------------------------------------------------------
     // Protected Properties
     // -------------------------------------------------------------------------
@@ -135,6 +145,28 @@ export abstract class BaseQueryRunner {
      */
     async afterMigration(): Promise<void> {
         // Do nothing
+    }
+
+    /**
+     * add after rollback callback. If transaction is not active, executes callback immediately.
+     */
+    async onAfterCommit(callback: Function): Promise<void> {
+        if(this.isTransactionActive) {
+            this.afterCommitListeners.push(callback);
+        } else {
+            await callback();
+        }
+    }
+
+    /**
+     * add after rollback callback. If transaction is not active, executes callback immediately.
+     */
+    async onAfterRollback(callback: Function): Promise<void> {
+        if(this.isTransactionActive) {
+            this.afterRollbackListeners.push(callback);
+        } else {
+            await callback();
+        }
     }
 
     /**

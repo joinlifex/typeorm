@@ -196,6 +196,11 @@ export class CockroachQueryRunner
             this.transactionDepth -= 1
         }
 
+        await Promise.all(this.afterCommitListeners.map((listener) => listener())).finally(() => {
+            this.afterRollbackListeners = [];
+            this.afterCommitListeners = [];
+        });
+
         await this.broadcaster.broadcast("AfterTransactionCommit")
     }
 
@@ -220,6 +225,11 @@ export class CockroachQueryRunner
             this.transactionRetries = 0
         }
         this.transactionDepth -= 1
+
+        await Promise.all(this.afterRollbackListeners.map((listener) => listener()));
+
+        this.afterRollbackListeners = [];
+        this.afterCommitListeners = [];
 
         await this.broadcaster.broadcast("AfterTransactionRollback")
     }

@@ -161,6 +161,11 @@ export class SqlServerQueryRunner
             })
         }
         this.transactionDepth -= 1
+
+        await Promise.all(this.afterCommitListeners.map((listener) => listener())).finally(() => {
+            this.afterRollbackListeners = [];
+            this.afterCommitListeners = [];
+        });
     }
 
     /**
@@ -194,6 +199,11 @@ export class SqlServerQueryRunner
                 })
             })
         }
+
+        await Promise.all(this.afterRollbackListeners.map((listener) => listener())).finally(() => {
+            this.afterRollbackListeners = [];
+            this.afterCommitListeners = [];
+        });
     }
 
     /**
