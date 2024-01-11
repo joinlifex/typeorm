@@ -169,6 +169,15 @@ export class SqlServerQueryRunner
     }
 
     /**
+     * Commits transaction if transaction was not started do nothing
+     */
+    async commitTransactionIfNotStarted(): Promise<void> {
+        if (!this.isTransactionActive) return
+        
+        return this.commitTransaction();
+    }
+
+    /**
      * Rollbacks transaction.
      * Error will be thrown if transaction was not started.
      */
@@ -204,6 +213,15 @@ export class SqlServerQueryRunner
             this.afterRollbackListeners = [];
             this.afterCommitListeners = [];
         });
+    }
+
+    /**
+     * Rollbacks transaction if transaction was not started do nothing
+     */
+    async rollbackTransactionIfNotStarted(): Promise<void> {
+        if (!this.isTransactionActive) return
+        
+        return this.rollbackTransaction();
     }
 
     /**

@@ -559,9 +559,23 @@ export class MongoQueryRunner implements QueryRunner {
     }
 
     /**
+     * Commits transaction if transaction was not started do nothing
+     */
+    async commitTransactionIfNotStarted(): Promise<void> {
+        // transactions are not supported by mongodb driver, so simply don't do anything here
+    }
+
+    /**
      * Rollbacks transaction.
      */
     async rollbackTransaction(): Promise<void> {
+        // transactions are not supported by mongodb driver, so simply don't do anything here
+    }
+
+    /**
+     * Rollbacks transaction if transaction was not started do nothing
+     */
+    async rollbackTransactionIfNotStarted(): Promise<void> {
         // transactions are not supported by mongodb driver, so simply don't do anything here
     }
     

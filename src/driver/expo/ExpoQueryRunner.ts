@@ -106,6 +106,15 @@ export class ExpoQueryRunner extends AbstractSqliteQueryRunner {
     }
 
     /**
+     * Commits transaction if transaction was not started do nothing
+     */
+    async commitTransactionIfNotStarted(): Promise<void> {
+        if (!this.isTransactionActive) return
+        
+        return this.commitTransaction();
+    }
+
+    /**
      * Rollbacks transaction.
      * Error will be thrown if transaction was not started.
      * This method's functionality is identical to `commitTransaction()` because
@@ -132,6 +141,15 @@ export class ExpoQueryRunner extends AbstractSqliteQueryRunner {
         });
 
         await this.broadcaster.broadcast("AfterTransactionRollback")
+    }
+
+    /**
+     * Rollbacks transaction if transaction was not started do nothing
+     */
+    async rollbackTransactionIfNotStarted(): Promise<void> {
+        if (!this.isTransactionActive) return
+        
+        return this.rollbackTransaction();
     }
 
     /**
