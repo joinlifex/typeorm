@@ -99,6 +99,11 @@ export interface QueryRunner {
      * Starts transaction.
      */
     startTransaction(isolationLevel?: IsolationLevel): Promise<void>
+    
+    /**
+     * Starts transaction if transaction was started do nothing
+     */
+    startTransactionIfNotStarted(): Promise<void>
 
     /**
      * Commits transaction.

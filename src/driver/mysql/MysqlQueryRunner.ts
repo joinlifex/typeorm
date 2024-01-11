@@ -133,6 +133,15 @@ export class MysqlQueryRunner extends BaseQueryRunner implements QueryRunner {
     }
 
     /**
+     * Starts transaction if transaction was started do nothing
+     */
+    async startTransactionIfNotStarted(): Promise<void> {
+        if (!this.isTransactionActive) return
+        
+        return this.startTransaction();
+    }
+
+    /**
      * Commits transaction.
      * Error will be thrown if transaction was not started.
      */
