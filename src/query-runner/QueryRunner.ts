@@ -114,7 +114,7 @@ export interface QueryRunner {
     /**
      * Commits transaction if transaction was not started do nothing
      */
-    commitTransactionIfNotStarted(): Promise<void>
+    commitTransactionIfStarted(): Promise<void>
 
     /**
      * Rollbacks transaction.
@@ -125,7 +125,7 @@ export interface QueryRunner {
     /**
      * Rollbacks transaction if transaction was not started do nothing
      */
-    rollbackTransactionIfNotStarted(): Promise<void>
+    rollbackTransactionIfStarted(): Promise<void>
 
     /**
      * add after commit callback. If transaction is not active, executes callback immediately.

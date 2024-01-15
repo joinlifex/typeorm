@@ -79,7 +79,7 @@ export class ExpoQueryRunner extends AbstractSqliteQueryRunner {
      * Starts transaction if transaction was started do nothing
      */
     async startTransactionIfNotStarted(): Promise<void> {
-        if (!this.isTransactionActive) return
+        if (this.isTransactionActive) return
         
         return this.startTransaction();
     }
@@ -106,10 +106,12 @@ export class ExpoQueryRunner extends AbstractSqliteQueryRunner {
 
         this.transactionDepth -= 1
 
-        await Promise.all(this.afterCommitListeners.map((listener) => listener())).finally(() => {
-            this.afterRollbackListeners = [];
-            this.afterCommitListeners = [];
-        });
+        if(this.transactionDepth === 0) {
+            await Promise.all(this.afterCommitListeners.map((listener) => listener())).finally(() => {
+                this.afterRollbackListeners = []
+                this.afterCommitListeners = []
+            })
+        }
 
         await this.broadcaster.broadcast("AfterTransactionCommit")
     }
@@ -117,7 +119,7 @@ export class ExpoQueryRunner extends AbstractSqliteQueryRunner {
     /**
      * Commits transaction if transaction was not started do nothing
      */
-    async commitTransactionIfNotStarted(): Promise<void> {
+    async commitTransactionIfStarted(): Promise<void> {
         if (!this.isTransactionActive) return
         
         return this.commitTransaction();
@@ -145,9 +147,9 @@ export class ExpoQueryRunner extends AbstractSqliteQueryRunner {
         this.transactionDepth -= 1
 
         await Promise.all(this.afterRollbackListeners.map((listener) => listener())).finally(() => {
-            this.afterRollbackListeners = [];
-            this.afterCommitListeners = [];
-        });
+            this.afterRollbackListeners = []
+            this.afterCommitListeners = []
+        })
 
         await this.broadcaster.broadcast("AfterTransactionRollback")
     }
@@ -155,7 +157,7 @@ export class ExpoQueryRunner extends AbstractSqliteQueryRunner {
     /**
      * Rollbacks transaction if transaction was not started do nothing
      */
-    async rollbackTransactionIfNotStarted(): Promise<void> {
+    async rollbackTransactionIfStarted(): Promise<void> {
         if (!this.isTransactionActive) return
         
         return this.rollbackTransaction();
