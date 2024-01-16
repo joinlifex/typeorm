@@ -99,43 +99,28 @@ export interface QueryRunner {
      * Starts transaction.
      */
     startTransaction(isolationLevel?: IsolationLevel): Promise<void>
-    
-    /**
-     * Starts transaction if transaction was started do nothing
-     */
-    startTransactionIfNotStarted(): Promise<void>
 
     /**
      * Commits transaction.
      * Error will be thrown if transaction was not started.
      */
     commitTransaction(): Promise<void>
-    
-    /**
-     * Commits transaction if transaction was not started do nothing
-     */
-    commitTransactionIfStarted(): Promise<void>
 
     /**
      * Rollbacks transaction.
      * Error will be thrown if transaction was not started.
      */
     rollbackTransaction(): Promise<void>
-    
-    /**
-     * Rollbacks transaction if transaction was not started do nothing
-     */
-    rollbackTransactionIfStarted(): Promise<void>
 
     /**
      * add after commit callback. If transaction is not active, executes callback immediately.
      */
-    onAfterCommit(callback: Function): Promise<void>
+    onAfterTransactionCommitted(callback: Function): void
 
     /**
      * add after rollback callback. If transaction is not active, executes callback immediately.
      */
-    onAfterRollback(callback: Function): Promise<void>
+    onAfterTransactionRolledback(callback: Function): void
 
     /**
      * Executes a given SQL query and returns raw database results.

@@ -552,23 +552,17 @@ export class MongoQueryRunner implements QueryRunner {
     }
 
     /**
-     * Starts transaction if transaction was started do nothing
-     */
-    async startTransactionIfNotStarted(): Promise<void> {
-        // transactions are not supported by mongodb driver, so simply don't do anything here
-    }
-
-    /**
      * Commits transaction.
      */
     async commitTransaction(): Promise<void> {
         // transactions are not supported by mongodb driver, so simply don't do anything here
     }
 
-    /**
-     * Commits transaction if transaction was not started do nothing
-     */
-    async commitTransactionIfStarted(): Promise<void> {
+    onAfterTransactionCommitted(callback: Function): void {
+        // transactions are not supported by mongodb driver, so simply don't do anything here
+    }
+
+    onAfterTransactionRolledback(callback: Function): void {
         // transactions are not supported by mongodb driver, so simply don't do anything here
     }
 
@@ -576,27 +570,6 @@ export class MongoQueryRunner implements QueryRunner {
      * Rollbacks transaction.
      */
     async rollbackTransaction(): Promise<void> {
-        // transactions are not supported by mongodb driver, so simply don't do anything here
-    }
-
-    /**
-     * Rollbacks transaction if transaction was not started do nothing
-     */
-    async rollbackTransactionIfStarted(): Promise<void> {
-        // transactions are not supported by mongodb driver, so simply don't do anything here
-    }
-    
-    /**
-     * add after commit callback. If transaction is not active, executes callback immediately.
-     */
-    async onAfterCommit(callback: Function): Promise<void> {
-        // transactions are not supported by mongodb driver, so simply don't do anything here
-    }
-    
-    /**
-     * add after rollback callback. If transaction is not active, executes callback immediately.
-     */
-    async onAfterRollback(callback: Function): Promise<void> {
         // transactions are not supported by mongodb driver, so simply don't do anything here
     }
 

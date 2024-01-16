@@ -150,22 +150,22 @@ export abstract class BaseQueryRunner {
     /**
      * add after rollback callback. If transaction is not active, executes callback immediately.
      */
-    async onAfterCommit(callback: Function): Promise<void> {
+    onAfterTransactionCommitted(callback: Function): void {
         if(this.isTransactionActive) {
             this.afterCommitListeners.push(callback);
         } else {
-            await callback();
+            throw new Error('Cannot add after transaction committed listener when transaction is not active');
         }
     }
 
     /**
      * add after rollback callback. If transaction is not active, executes callback immediately.
      */
-    async onAfterRollback(callback: Function): Promise<void> {
+    onAfterTransactionRolledback(callback: Function): void {
         if(this.isTransactionActive) {
             this.afterRollbackListeners.push(callback);
         } else {
-            await callback();
+            throw new Error('Cannot add after transaction rolledback listener when transaction is not active');
         }
     }
 

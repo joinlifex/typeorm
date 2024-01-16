@@ -109,15 +109,6 @@ export class AuroraMysqlQueryRunner
     }
 
     /**
-     * Starts transaction if transaction was started do nothing
-     */
-    async startTransactionIfNotStarted(): Promise<void> {
-        if (this.isTransactionActive) return
-        
-        return this.startTransaction();
-    }
-
-    /**
      * Commits transaction.
      * Error will be thrown if transaction was not started.
      */
@@ -133,24 +124,10 @@ export class AuroraMysqlQueryRunner
         } else {
             await this.client.commitTransaction()
             this.isTransactionActive = false
-
-            await Promise.all(this.afterCommitListeners.map((listener) => listener())).finally(() => {
-                this.afterRollbackListeners = []
-                this.afterCommitListeners = []
-            })
         }
         this.transactionDepth -= 1
 
         await this.broadcaster.broadcast("AfterTransactionCommit")
-    }
-
-    /**
-     * Commits transaction if transaction was not started do nothing
-     */
-    async commitTransactionIfStarted(): Promise<void> {
-        if (!this.isTransactionActive) return
-        
-        return this.commitTransaction();
     }
 
     /**
@@ -169,24 +146,10 @@ export class AuroraMysqlQueryRunner
         } else {
             await this.client.rollbackTransaction()
             this.isTransactionActive = false
-
-            await Promise.all(this.afterRollbackListeners.map((listener) => listener())).finally(() => {
-                this.afterRollbackListeners = []
-                this.afterCommitListeners = []
-            })
         }
         this.transactionDepth -= 1
 
         await this.broadcaster.broadcast("AfterTransactionRollback")
-    }
-
-    /**
-     * Rollbacks transaction if transaction was not started do nothing
-     */
-    async rollbackTransactionIfStarted(): Promise<void> {
-        if (!this.isTransactionActive) return
-        
-        return this.rollbackTransaction();
     }
 
     /**
