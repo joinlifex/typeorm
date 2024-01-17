@@ -148,7 +148,7 @@ export abstract class BaseQueryRunner {
     }
 
     /**
-     * add after rollback callback. If transaction is not active, executes callback immediately.
+     * add after rollback callback. If transaction is not active, it throws an error.
      */
     onAfterTransactionCommitted(callback: Function): void {
         if(this.isTransactionActive) {
@@ -159,7 +159,7 @@ export abstract class BaseQueryRunner {
     }
 
     /**
-     * add after rollback callback. If transaction is not active, executes callback immediately.
+     * add after rollback callback. If transaction is not active, it throws an error.
      */
     onAfterTransactionRolledback(callback: Function): void {
         if(this.isTransactionActive) {
