@@ -558,6 +558,14 @@ export class MongoQueryRunner implements QueryRunner {
         // transactions are not supported by mongodb driver, so simply don't do anything here
     }
 
+    onAfterTransactionCommitted(callback: Function): void {
+        // transactions are not supported by mongodb driver, so simply don't do anything here
+    }
+
+    onAfterTransactionRolledback(callback: Function): void {
+        // transactions are not supported by mongodb driver, so simply don't do anything here
+    }
+
     /**
      * Rollbacks transaction.
      */

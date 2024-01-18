@@ -113,6 +113,16 @@ export interface QueryRunner {
     rollbackTransaction(): Promise<void>
 
     /**
+     * add after commit callback. If transaction is not active, it throws an error.
+     */
+    onAfterTransactionCommitted(callback: Function): void
+
+    /**
+     * add after rollback callback. If transaction is not active, it throws an error.
+     */
+    onAfterTransactionRolledback(callback: Function): void
+
+    /**
      * Executes a given SQL query and returns raw database results.
      */
     query(
