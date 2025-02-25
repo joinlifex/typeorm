@@ -4,6 +4,7 @@ import { TypeORMError } from "../error/TypeORMError"
 import { FindOptionsUtils } from "../find-options/FindOptionsUtils"
 import { FindTreeOptions } from "../find-options/FindTreeOptions"
 import { SelectQueryBuilder } from "../query-builder/SelectQueryBuilder"
+import { QueryRunner } from "../query-runner/QueryRunner"
 import { TreeRepositoryUtils } from "../util/TreeRepositoryUtils"
 import { Repository } from "./Repository"
 
@@ -22,10 +23,10 @@ export class TreeRepository<
     /**
      * Gets complete trees for all roots in the table.
      */
-    async findTrees(options?: FindTreeOptions): Promise<Entity[]> {
-        const roots = await this.findRoots(options)
+    async findTrees(queryRunner?: QueryRunner, options?: FindTreeOptions): Promise<Entity[]> {
+        const roots = await this.findRoots(queryRunner, options)
         await Promise.all(
-            roots.map((root) => this.findDescendantsTree(root, options)),
+            roots.map((root) => this.findDescendantsTree(root,queryRunner, options)),
         )
         return roots
     }
@@ -33,7 +34,7 @@ export class TreeRepository<
     /**
      * Roots are entities that have no ancestors. Finds them all.
      */
-    findRoots(options?: FindTreeOptions): Promise<Entity[]> {
+    findRoots(queryRunner?: QueryRunner, options?: FindTreeOptions): Promise<Entity[]> {
         const escapeAlias = (alias: string) =>
             this.manager.connection.driver.escape(alias)
         const escapeColumn = (column: string) =>
@@ -43,7 +44,7 @@ export class TreeRepository<
         const parentPropertyName =
             joinColumn.givenDatabaseName || joinColumn.databaseName
 
-        const qb = this.createQueryBuilder("treeEntity")
+        const qb = this.createQueryBuilder("treeEntity", queryRunner)
         FindOptionsUtils.applyOptionsToTreeQueryBuilder(qb, options)
 
         return qb
@@ -60,12 +61,14 @@ export class TreeRepository<
      */
     findDescendants(
         entity: Entity,
+        queryRunner?: QueryRunner,
         options?: FindTreeOptions,
     ): Promise<Entity[]> {
         const qb = this.createDescendantsQueryBuilder(
             "treeEntity",
             "treeClosure",
             entity,
+            queryRunner
         )
         FindOptionsUtils.applyOptionsToTreeQueryBuilder(qb, options)
         return qb.getMany()
@@ -76,6 +79,8 @@ export class TreeRepository<
      */
     async findDescendantsTree(
         entity: Entity,
+        queryRunner?: QueryRunner,
+
         options?: FindTreeOptions,
     ): Promise<Entity> {
         // todo: throw exception if there is no column of this relation?
@@ -85,6 +90,7 @@ export class TreeRepository<
                 "treeEntity",
                 "treeClosure",
                 entity,
+                queryRunner
             )
         FindOptionsUtils.applyOptionsToTreeQueryBuilder(qb, options)
 
@@ -112,11 +118,12 @@ export class TreeRepository<
     /**
      * Gets number of descendants of the entity.
      */
-    countDescendants(entity: Entity): Promise<number> {
+    countDescendants(entity: Entity, queryRunner?: QueryRunner): Promise<number> {
         return this.createDescendantsQueryBuilder(
             "treeEntity",
             "treeClosure",
             entity,
+            queryRunner
         ).getCount()
     }
 
@@ -127,6 +134,7 @@ export class TreeRepository<
         alias: string,
         closureTableAlias: string,
         entity: Entity,
+        queryRunner?: QueryRunner,
     ): SelectQueryBuilder<Entity> {
         // create shortcuts for better readability
         const escape = (alias: string) =>
@@ -164,7 +172,7 @@ export class TreeRepository<
                     })
                     .join(" AND ")
 
-            return this.createQueryBuilder(alias)
+            return this.createQueryBuilder(alias, queryRunner)
                 .innerJoin(
                     this.metadata.closureJunctionTable.tableName,
                     closureTableAlias,
@@ -201,11 +209,11 @@ export class TreeRepository<
                 })
                 .join(" AND ")
 
-            return this.createQueryBuilder(alias)
+            return this.createQueryBuilder(alias, queryRunner)
                 .innerJoin(this.metadata.targetName, "joined", whereCondition)
                 .where(joinCondition, parameters)
         } else if (this.metadata.treeType === "materialized-path") {
-            return this.createQueryBuilder(alias).where((qb) => {
+            return this.createQueryBuilder(alias, queryRunner).where((qb) => {
                 const subQuery = qb
                     .subQuery()
                     .select(
@@ -239,12 +247,14 @@ export class TreeRepository<
      */
     findAncestors(
         entity: Entity,
+        queryRunner?: QueryRunner,
         options?: FindTreeOptions,
     ): Promise<Entity[]> {
         const qb = this.createAncestorsQueryBuilder(
             "treeEntity",
             "treeClosure",
             entity,
+            queryRunner,
         )
         FindOptionsUtils.applyOptionsToTreeQueryBuilder(qb, options)
         return qb.getMany()
@@ -255,6 +265,7 @@ export class TreeRepository<
      */
     async findAncestorsTree(
         entity: Entity,
+        queryRunner?: QueryRunner,
         options?: FindTreeOptions,
     ): Promise<Entity> {
         // todo: throw exception if there is no column of this relation?
@@ -262,6 +273,7 @@ export class TreeRepository<
             "treeEntity",
             "treeClosure",
             entity,
+            queryRunner,
         )
         FindOptionsUtils.applyOptionsToTreeQueryBuilder(qb, options)
 
@@ -284,11 +296,12 @@ export class TreeRepository<
     /**
      * Gets number of ancestors of the entity.
      */
-    countAncestors(entity: Entity): Promise<number> {
+    countAncestors(entity: Entity, queryRunner?: QueryRunner): Promise<number> {
         return this.createAncestorsQueryBuilder(
             "treeEntity",
             "treeClosure",
             entity,
+            queryRunner,
         ).getCount()
     }
 
@@ -299,6 +312,7 @@ export class TreeRepository<
         alias: string,
         closureTableAlias: string,
         entity: Entity,
+        queryRunner?: QueryRunner,
     ): SelectQueryBuilder<Entity> {
         // create shortcuts for better readability
         // const escape = (alias: string) => this.manager.connection.driver.escape(alias);
@@ -335,7 +349,7 @@ export class TreeRepository<
                     })
                     .join(" AND ")
 
-            return this.createQueryBuilder(alias)
+            return this.createQueryBuilder(alias, queryRunner)
                 .innerJoin(
                     this.metadata.closureJunctionTable.tableName,
                     closureTableAlias,
@@ -374,12 +388,12 @@ export class TreeRepository<
                 })
                 .join(" AND ")
 
-            return this.createQueryBuilder(alias)
+            return this.createQueryBuilder(alias, queryRunner)
                 .innerJoin(this.metadata.targetName, "joined", joinCondition)
                 .where(whereCondition, parameters)
         } else if (this.metadata.treeType === "materialized-path") {
             // example: SELECT * FROM category category WHERE (SELECT mpath FROM `category` WHERE id = 2) LIKE CONCAT(category.mpath, '%');
-            return this.createQueryBuilder(alias).where((qb) => {
+            return this.createQueryBuilder(alias, queryRunner).where((qb) => {
                 const subQuery = qb
                     .subQuery()
                     .select(
